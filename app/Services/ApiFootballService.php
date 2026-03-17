@@ -31,11 +31,4 @@ class ApiFootballService
         if (!$response->successful()) return [];
         return $response->json('response', []);
     }
-
-    public function getLeagues(): array
-    {
-        $response = $this->client->get('/leagues', ['current' => 'true']);
-        if (!$response->successful()) return [];
-        return $response->json('response', []);
-    }
 }
