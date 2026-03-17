@@ -4,13 +4,16 @@ namespace App\Jobs;
 use App\Events\LiveScoreUpdated;
 use App\Models\ApiCallLog;
 use App\Models\Fixture;
+use App\Models\FixtureEvent;
 use App\Models\FixtureScore;
+use App\Models\Team;
 use App\Services\ApiFootballService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class FetchLiveFixtures implements ShouldQueue
@@ -19,8 +22,8 @@ class FetchLiveFixtures implements ShouldQueue
 
     public function handle(ApiFootballService $api): void
     {
-        if (ApiCallLog::getTodayCount() >= 80) {
-            Log::warning('API daily budget reached (80), skipping poll');
+        if (ApiCallLog::getTodayCount() >= 75) {
+            Log::warning('API daily budget reached, skipping poll');
             return;
         }
 
@@ -46,6 +49,23 @@ class FetchLiveFixtures implements ShouldQueue
                     'away_halftime' => $data['score']['halftime']['away'] ?? 0,
                 ]
             );
+
+            // Sync events if goals changed
+            if (!empty($data['events'])) {
+                FixtureEvent::where('fixture_id', $fixture->id)->delete();
+                foreach ($data['events'] as $event) {
+                    $team = Team::where('api_team_id', $event['team']['id'] ?? 0)->first();
+                    FixtureEvent::create([
+                        'fixture_id'     => $fixture->id,
+                        'team_id'        => $team?->id,
+                        'player_name'    => $event['player']['name'] ?? null,
+                        'assist_name'    => $event['assist']['name'] ?? null,
+                        'type'           => $event['type'] ?? 'Goal',
+                        'detail'         => $event['detail'] ?? null,
+                        'elapsed_minute' => $event['time']['elapsed'] ?? null,
+                    ]);
+                }
+            }
 
             broadcast(new LiveScoreUpdated($fixture->fresh(['score','homeTeam','awayTeam'])));
         }
