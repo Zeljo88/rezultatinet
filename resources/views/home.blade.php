@@ -4,7 +4,15 @@
 <div class="mb-5 flex items-center justify-between">
     <div>
         <h1 class="text-2xl font-black text-white">Rezultati <span class="text-[#CCFF00]">uzivo</span></h1>
-        <p class="text-gray-500 text-sm mt-0.5">{{ now()->format('l, d. F Y.') }}</p>
+        <p class="text-gray-500 text-sm mt-0.5">
+            @php
+            $days = ['Sunday'=>'Nedjelja','Monday'=>'Ponedjeljak','Tuesday'=>'Utorak','Wednesday'=>'Srijeda','Thursday'=>'Cetvrtak','Friday'=>'Petak','Saturday'=>'Subota'];
+            $months = ['January'=>'januar','February'=>'februar','March'=>'mart','April'=>'april','May'=>'maj','June'=>'juni','July'=>'juli','August'=>'august','September'=>'septembar','October'=>'oktobar','November'=>'novembar','December'=>'decembar'];
+            $day = $days[now()->format('l')];
+            $month = $months[now()->format('F')];
+            echo $day . ', ' . now()->format('j') . '. ' . $month . ' ' . now()->format('Y') . '.';
+            @endphp
+        </p>
     </div>
     <div class="flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2">
         <span class="w-2 h-2 rounded-full bg-[#FF3B30] animate-pulse inline-block"></span>

@@ -23,7 +23,7 @@
                         <span class="mr-1">&#127936;</span> Kosarka
                     </a>
                     <a href="/tenis" class="px-3 py-1.5 rounded text-sm font-semibold {{ request()->is('tenis*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }} transition">
-                        <span class="mr-1">&#127934;</span> Tenis
+                        <span class="mr-1">&#127934;#127934;</span> Tenis
                     </a>
                 </div>
                 <div class="hidden md:flex items-center gap-3 text-sm">
