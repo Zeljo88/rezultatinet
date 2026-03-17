@@ -10,12 +10,12 @@
 
     @if(empty($fixtures))
         <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-12 text-center">
-            <div class="text-5xl mb-3">⚽</div>
+            <div class="text-5xl mb-3">&#9917;</div>
             <p class="text-gray-400 text-lg font-semibold">
                 {{ $tab === 'live' ? 'Trenutno nema zivih utakmica.' : ($tab === 'today' ? 'Nema utakmica za danas.' : 'Nema utakmica za sutra.') }}
             </p>
             @if($tab === 'live')
-                <button wire:click="setTab('today')" class="mt-4 text-[#CCFF00] text-sm hover:underline font-medium">Pogledaj sve utakmice danas →</button>
+                <button wire:click="setTab('today')" class="mt-4 text-[#CCFF00] text-sm hover:underline font-medium">Pogledaj sve utakmice danas &rarr;</button>
             @endif
         </div>
     @else
@@ -33,7 +33,8 @@
                     $isFT = in_array($fixture['status_short'] ?? '', ['FT','AET','PEN']);
                     $hasScore = $isLive || $isHT || $isFT;
                 @endphp
-                <div wire:key="fixture-{{ $fixture['id'] }}" class="flex items-center px-3 py-3 hover:bg-[#222] transition cursor-pointer border-b border-[#2a2a2a] last:border-0 {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
+                <a href="/utakmica/{{ $fixture['id'] }}"
+                   class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                     <div class="w-12 text-center flex-shrink-0">
                         @if($isLive)
                             <span class="text-[#FF3B30] text-xs font-black">{{ $fixture['elapsed_minute'] ?? '' }}'</span>
@@ -67,7 +68,7 @@
                             <span class="inline-block bg-[#FF3B30] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">UZIVO</span>
                         @endif
                     </div>
-                </div>
+                </a>
                 @endforeach
             </div>
         </div>
