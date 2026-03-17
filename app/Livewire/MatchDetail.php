@@ -4,16 +4,22 @@ namespace App\Livewire;
 use App\Models\Fixture;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 
+#[Layout('layouts.app')]
 class MatchDetail extends Component
 {
     public Fixture $fixture;
+    public string $pageTitle = 'Detalji utakmice';
 
     public function mount(int $id): void
     {
         $this->fixture = Fixture::with([
             'homeTeam', 'awayTeam', 'score', 'league', 'events'
         ])->findOrFail($id);
+
+        $this->pageTitle = $this->fixture->homeTeam->name . ' vs ' . $this->fixture->awayTeam->name;
     }
 
     #[On('echo:fixture.{fixture.id},score.updated')]
@@ -24,8 +30,6 @@ class MatchDetail extends Component
 
     public function render()
     {
-        return view('livewire.match-detail')->layout('layouts.app', [
-            'title' => $this->fixture->homeTeam->name . ' vs ' . $this->fixture->awayTeam->name
-        ]);
+        return view('livewire.match-detail');
     }
 }
