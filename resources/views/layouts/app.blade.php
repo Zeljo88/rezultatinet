@@ -7,6 +7,14 @@
     <meta name="description" content="@yield('description', 'Live rezultati fudbala, kosarke i tenisa.')">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag("js", new Date());
+        gtag("config", "G-854YSPE0YX");
+    </script>
 </head>
 <body class="bg-[#0f0f0f] text-white font-sans min-h-full">
     <nav class="bg-[#1a1a1a] border-b border-[#2a2a2a] sticky top-0 z-50">
