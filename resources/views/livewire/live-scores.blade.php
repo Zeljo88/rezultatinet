@@ -47,7 +47,7 @@
                     $isFT   = in_array($fixture['status_short'] ?? '', ['FT','AET','PEN']);
                     $hasScore = $isLive || $isHT || $isFT;
                 @endphp
-                <a href="/utakmica/{{ $fixture['id'] }}"
+                <div onclick="window.location='/utakmica/{{ $fixture['id'] }}'"
                    class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                     <div class="w-12 text-center flex-shrink-0">
                         @if($isLive)
@@ -62,7 +62,7 @@
                     </div>
                     <div class="flex-1 flex items-center px-2">
                         <div class="flex-1 text-right pr-3">
-                            <a href="/tim/{{ $fixture['home_team_id'] }}" wire:navigate class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                            <a href="/tim/{{ $fixture['home_team_id'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
                         </div>
                         <div class="flex items-center gap-1 min-w-[60px] justify-center">
                             @if($hasScore)
@@ -74,7 +74,7 @@
                             @endif
                         </div>
                         <div class="flex-1 pl-3">
-                            <a href="/tim/{{ $fixture['away_team_id'] }}" wire:navigate class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                            <a href="/tim/{{ $fixture['away_team_id'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
                         </div>
                     </div>
                     <div class="w-14 text-right flex-shrink-0">
@@ -82,7 +82,7 @@
                             <span class="inline-block bg-[#FF3B30] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">UZIVO</span>
                         @endif
                     </div>
-                </a>
+                </div>
                 @endforeach
             </div>
         </div>
