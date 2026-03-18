@@ -25,3 +25,13 @@ Schedule::call(function() {
 
 Schedule::command('sync:fixtures --date=' . now()->addDay()->format('Y-m-d'))
     ->dailyAt('06:00');
+
+// Facebook: pre-match post at 10:00 (dry-run until token is configured)
+Schedule::command('facebook:pre-match --dry-run')
+    ->dailyAt('10:00')
+    ->name('facebook-pre-match');
+
+// Facebook: post-match results at 23:30
+Schedule::command('facebook:post-match --dry-run')
+    ->dailyAt('23:30')
+    ->name('facebook-post-match');

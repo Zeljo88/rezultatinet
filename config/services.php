@@ -38,4 +38,10 @@ return [
     'api_football' => [
         'key' => env('API_FOOTBALL_KEY', ''),
     ],
+
+    'facebook' => [
+        'page_id'    => env('FB_PAGE_ID', '61580788364721'),
+        'page_token' => env('FB_PAGE_TOKEN', ''),
+    ],
 ];
+
