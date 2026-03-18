@@ -100,6 +100,7 @@ class LeaguePage extends Component
                 'rank'          => $s->rank,
                 'team_name'     => $s->team?->name ?? 'N/A',
                 'team_logo'     => $s->team?->logo_url,
+                'team_slug'     => $s->team?->slug,
                 'played'        => $s->played,
                 'win'           => $s->win,
                 'draw'          => $s->draw,

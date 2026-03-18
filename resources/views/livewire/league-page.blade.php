@@ -125,7 +125,7 @@
                         @if($row['team_logo'])
                             <img src="{{ $row['team_logo'] }}" class="w-5 h-5 object-contain flex-shrink-0" alt="">
                         @endif
-                        <span class="text-sm font-semibold text-white truncate">{{ $row['team_name'] }}</span>
+                        <a href="/tim/{{ $row['team_slug'] }}" class="text-sm font-semibold text-white hover:text-[#CCFF00] transition truncate" onclick="event.stopPropagation()">{{ $row['team_name'] }}</a>
                     </div>
                     <div class="col-span-1 text-center text-sm text-gray-400">{{ $row['played'] }}</div>
                     <div class="col-span-1 text-center text-sm text-gray-400">{{ $row['win'] }}</div>
