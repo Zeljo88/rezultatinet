@@ -24,21 +24,20 @@ class TeamPage extends Component
     {
         $teamId = $this->team->id;
 
-        // Last 10 finished matches
+        // Last 5 finished matches (regardless of date)
         $this->fixtures = Fixture::with(['homeTeam', 'awayTeam', 'score', 'league'])
             ->where(fn($q) => $q->where('home_team_id', $teamId)->orWhere('away_team_id', $teamId))
             ->whereIn('status_short', ['FT','AET','PEN'])
             ->orderBy('kick_off', 'desc')
-            ->take(10)
+            ->take(5)
             ->get()
             ->map(fn($f) => $this->mapFixture($f))
             ->toArray();
 
-        // Next 5 upcoming matches
+        // Next 5 upcoming matches (regardless of date)
         $this->upcoming = Fixture::with(['homeTeam', 'awayTeam', 'league'])
             ->where(fn($q) => $q->where('home_team_id', $teamId)->orWhere('away_team_id', $teamId))
-            ->where('status_short', 'NS')
-            ->where('kick_off', '>=', now())
+            ->whereIn('status_short', ['NS','TBD'])
             ->orderBy('kick_off')
             ->take(5)
             ->get()
