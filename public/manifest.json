@@ -1,0 +1,19 @@
+{
+  "name": "rezultati.net",
+  "short_name": "Rezultati",
+  "description": "Live rezultati fudbala, košarke i tenisa",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#CCFF00",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Uživo", "url": "/", "description": "Live rezultati" },
+    { "name": "Danas", "url": "/?tab=today", "description": "Danas" },
+    { "name": "HNL", "url": "/liga/hnl", "description": "HNL rezultati" }
+  ]
+}

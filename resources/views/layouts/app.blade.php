@@ -16,6 +16,14 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#CCFF00">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Rezultati">
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @vite(["resources/css/app.css", "resources/js/app.js"])
     @livewireStyles
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX"></script>
@@ -143,7 +151,10 @@
                 </a>
             </div>
 
-                            <a href="/strijelci" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
+                            <a href="/blog" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
+                    📝 Blog
+                </a>
+                <a href="/strijelci" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
                     ⚽ Strijelci
                 </a>
 

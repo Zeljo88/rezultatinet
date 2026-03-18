@@ -47,5 +47,6 @@ $pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDesc
         <span class="text-xs text-gray-500">Azurira se automatski</span>
     </div>
 </div>
+@include('components.derby-countdown')
 @livewire('live-scores', ['initialTab' => $initialTab ?? 'live', 'sport' => $sport ?? 'football'])
 @endsection
