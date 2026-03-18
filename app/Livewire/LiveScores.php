@@ -71,6 +71,8 @@ class LiveScores extends Component
                 'kick_off'       => $fixture->kick_off,
                 'home_team_name' => $fixture->homeTeam?->name ?? 'N/A',
                 'away_team_name' => $fixture->awayTeam?->name ?? 'N/A',
+                'home_team_id'   => $fixture->home_team_id,
+                'away_team_id'   => $fixture->away_team_id,
                 'score_home'     => $scoreHome,
                 'score_away'     => $scoreAway,
             ];
