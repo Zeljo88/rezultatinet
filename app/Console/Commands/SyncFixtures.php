@@ -40,29 +40,19 @@ class SyncFixtures extends Command
         $count = 0;
 
         foreach ($fixtures as $data) {
-            // Find or skip if league not in our DB
             $league = League::where('api_league_id', $data['league']['id'])->first();
             if (!$league) continue;
 
-            // Upsert home team
             $homeTeam = Team::updateOrCreate(
                 ['api_team_id' => $data['teams']['home']['id']],
-                [
-                    'name'    => $data['teams']['home']['name'],
-                    'logo_url'=> $data['teams']['home']['logo'] ?? null,
-                ]
+                ['name' => $data['teams']['home']['name'], 'logo_url' => $data['teams']['home']['logo'] ?? null]
             );
 
-            // Upsert away team
             $awayTeam = Team::updateOrCreate(
                 ['api_team_id' => $data['teams']['away']['id']],
-                [
-                    'name'    => $data['teams']['away']['name'],
-                    'logo_url'=> $data['teams']['away']['logo'] ?? null,
-                ]
+                ['name' => $data['teams']['away']['name'], 'logo_url' => $data['teams']['away']['logo'] ?? null]
             );
 
-            // Upsert fixture
             $fixture = Fixture::updateOrCreate(
                 ['api_fixture_id' => $data['fixture']['id']],
                 [
@@ -79,14 +69,23 @@ class SyncFixtures extends Command
                 ]
             );
 
-            // Upsert score
+            // goals = current live score; fulltime = final score (null during match)
+            $goalsHome    = $data['goals']['home'];
+            $goalsAway    = $data['goals']['away'];
+            $fulltimeHome = $data['score']['fulltime']['home'];
+            $fulltimeAway = $data['score']['fulltime']['away'];
+            $halftimeHome = $data['score']['halftime']['home'] ?? 0;
+            $halftimeAway = $data['score']['halftime']['away'] ?? 0;
+
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
-                    'home_fulltime' => $data['score']['fulltime']['home'] ?? 0,
-                    'away_fulltime' => $data['score']['fulltime']['away'] ?? 0,
-                    'home_halftime' => $data['score']['halftime']['home'] ?? 0,
-                    'away_halftime' => $data['score']['halftime']['away'] ?? 0,
+                    'goals_home'    => $goalsHome,
+                    'goals_away'    => $goalsAway,
+                    'home_fulltime' => $fulltimeHome,
+                    'away_fulltime' => $fulltimeAway,
+                    'home_halftime' => $halftimeHome,
+                    'away_halftime' => $halftimeAway,
                 ]
             );
 

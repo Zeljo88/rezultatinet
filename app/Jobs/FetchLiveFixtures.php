@@ -13,7 +13,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class FetchLiveFixtures implements ShouldQueue
@@ -40,17 +39,19 @@ class FetchLiveFixtures implements ShouldQueue
                 ]
             );
 
+            // goals = current live score, fulltime = final (null during match)
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
-                    'home_fulltime' => $data['score']['fulltime']['home'] ?? 0,
-                    'away_fulltime' => $data['score']['fulltime']['away'] ?? 0,
-                    'home_halftime' => $data['score']['halftime']['home'] ?? 0,
-                    'away_halftime' => $data['score']['halftime']['away'] ?? 0,
+                    'goals_home'    => $data['goals']['home'],
+                    'goals_away'    => $data['goals']['away'],
+                    'home_fulltime' => $data['score']['fulltime']['home'],
+                    'away_fulltime' => $data['score']['fulltime']['away'],
+                    'home_halftime' => $data['score']['halftime']['home'] ?? null,
+                    'away_halftime' => $data['score']['halftime']['away'] ?? null,
                 ]
             );
 
-            // Sync events if goals changed
             if (!empty($data['events'])) {
                 FixtureEvent::where('fixture_id', $fixture->id)->delete();
                 foreach ($data['events'] as $event) {

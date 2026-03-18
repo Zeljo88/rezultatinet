@@ -1,5 +1,33 @@
 @extends('layouts.app')
-@section('title', 'Rezultati uzivo - Fudbal, Kosarka, Tenis')
+
+@php
+$metaTitles = [
+    'football'   => 'Rezultati uživo | Nogomet, Košarka, Tenis',
+    'basketball' => 'Košarka rezultati uživo | ABA liga i više',
+    'tennis'     => 'Tenis rezultati uživo | ATP, WTA, Grand Slam',
+];
+$metaDescs = [
+    'football'   => 'Pratite rezultate uživo za nogomet, košarku i tenis. HNL, Champions liga, ABA liga i još stotine natjecanja — sve na jednom mjestu, u stvarnom vremenu.',
+    'basketball' => 'Košarka rezultati uživo — ABA liga, NBA, Euroliga, HT Premijer liga i sva domaća natjecanja. Ljestvice, statistike i raspored utakmica na jednom mjestu.',
+    'tennis'     => 'Tenis rezultati uživo s ATP i WTA turnira, Grand Slam natjecanja i Davis Cupa. Pratite sve mečeve u realnom vremenu — setovi, gemovi, statistike.',
+];
+$tabTitles = [
+    'yesterday' => 'Jučerašnji rezultati | Sve utakmice',
+    'tomorrow'  => 'Sutrašnje utakmice | Raspored i termini',
+];
+$tabDescs = [
+    'yesterday' => 'Propustili ste jučerašnje utakmice? Pogledajte sve rezultate od juče — nogomet, košarka i tenis. HNL, Premijer liga, ABA liga i stotine liga diljem svijeta.',
+    'tomorrow'  => 'Raspored sutrašnjih utakmica — football, košarka, tenis. Ne propustite nijedan meč. HNL, Champions liga, ABA liga i sve wichtige utakmice u jednom pregledu.',
+];
+$currentSport = $sport ?? 'football';
+$currentTab   = $initialTab ?? 'live';
+$pageTitle = $tabTitles[$currentTab] ?? ($metaTitles[$currentSport] ?? $metaTitles['football']);
+$pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDescs['football']);
+@endphp
+
+@section('title', $pageTitle)
+@section('description', $pageDesc)
+
 @section('content')
 <div class="mb-5 flex items-center justify-between">
     <div>
@@ -19,5 +47,5 @@
         <span class="text-xs text-gray-500">Azurira se automatski</span>
     </div>
 </div>
-@livewire('live-scores')
+@livewire('live-scores', ['initialTab' => $initialTab ?? 'live', 'sport' => $sport ?? 'football'])
 @endsection
