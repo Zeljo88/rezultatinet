@@ -151,7 +151,10 @@
                 </a>
             </div>
 
-                            <a href="/blog" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
+                            <a href="/igraci/balkan" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
+                    🌍 Balkanci u EU
+                </a>
+                <a href="/blog" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
                     📝 Blog
                 </a>
                 <a href="/strijelci" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
