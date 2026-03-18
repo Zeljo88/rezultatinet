@@ -95,6 +95,12 @@
                 <a href="/liga/ligue-1" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/ligue-1') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     <img src="https://media.api-sports.io/football/leagues/61.png" class="w-3.5 h-3.5 object-contain"> Ligue 1
                 </a>
+                <a href="/liga/hnl-2" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl-2') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/946.png" class="w-3.5 h-3.5 object-contain"> HNL 2
+                </a>
+                <a href="/liga/prva-liga-fbih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-fbih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/316.png" class="w-3.5 h-3.5 object-contain"> Prva FBiH
+                </a>
             </div>
         </div>
     </nav>
@@ -122,6 +128,15 @@
                 </a>
                 <a href="/liga/first-nl-hrvatska" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/first-nl-hrvatska') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     <img src="https://media.api-sports.io/football/leagues/211.png" class="w-4 h-4 object-contain" alt=""> Prva NL Hrvatska
+                </a>
+                <a href="/liga/hnl-2" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl-2') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    <img src="https://media.api-sports.io/football/leagues/946.png" class="w-4 h-4 object-contain" alt=""> HNL 2
+                </a>
+                <a href="/liga/prva-liga-fbih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-fbih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    <img src="https://media.api-sports.io/football/leagues/316.png" class="w-4 h-4 object-contain" alt=""> Prva liga FBiH
+                </a>
+                <a href="/liga/prva-liga-rs" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-rs') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    <img src="https://media.api-sports.io/football/leagues/317.png" class="w-4 h-4 object-contain" alt=""> Prva liga RS
                 </a>
 
                 <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Europa</p>

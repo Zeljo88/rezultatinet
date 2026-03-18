@@ -52,7 +52,7 @@
                             <img src="{{ $player->current_club_logo }}" class="w-5 h-5 object-contain absolute top-0 left-0" alt="">
                         @endif
                         <span class="absolute top-0 right-0 text-sm">{{ $player->country_flag }}</span>
-                        <img src="{{ $player->photo_url }}" class="w-16 h-16 rounded-full mx-auto object-cover bg-[#2a2a2a]" alt="{{ $player->name }}" onerror="this.src='https://media.api-sports.io/football/players/0.png'">
+                        <img src="{{ $player->photo_url }}" class="w-16 h-16 rounded-full mx-auto object-cover bg-[#2a2a2a]" alt="{{ $player->name }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
                     </div>
                     <p class="font-bold text-white text-sm group-hover:text-[#CCFF00] transition">{{ $player->name }}</p>
                     <p class="text-gray-500 text-xs mt-0.5">{{ $player->current_club }}</p>
@@ -72,7 +72,7 @@
             @foreach($list as $i => $player)
             <a href="/igraci/{{ $player->slug }}"
                class="flex items-center gap-3 px-4 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
-                <img src="{{ $player->photo_url }}" class="w-9 h-9 rounded-full object-cover bg-[#2a2a2a] flex-shrink-0" alt="" onerror="this.src='https://media.api-sports.io/football/players/0.png'">
+                <img src="{{ $player->photo_url }}" class="w-9 h-9 rounded-full object-cover bg-[#2a2a2a] flex-shrink-0" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                         <span class="font-semibold text-white text-sm">{{ $player->name }}</span>

@@ -12,7 +12,7 @@ class LiveScores extends Component
     public string $sport = 'football';
     public bool $sportAvailable = true;
 
-    protected array $priorityLeagues = [2, 3, 848, 39, 140, 135, 78, 61, 197, 206, 168, 210, 286, 315];
+    protected array $priorityLeagues = [210, 286, 315, 211, 287, 316, 317, 946, 2, 3, 848, 39, 140, 135, 78, 61];
 
     public function mount(string $initialTab = 'live', string $sport = 'football'): void
     {

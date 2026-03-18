@@ -30,6 +30,12 @@ class LeaguePage extends Component
         'ligue-1'           => 61,
         'prva-liga-srbija'  => 287,
         'first-nl-hrvatska' => 211,
+        'hnl-2'             => 946,
+        'prva-liga-fbih'    => 316,
+        'prva-liga-rs'      => 317,
+        'kup-hrvatska'      => 212,
+        'kup-bosna'         => 314,
+        'kup-srbija'        => 732,
     ];
 
     public function mount(string $slug): void
