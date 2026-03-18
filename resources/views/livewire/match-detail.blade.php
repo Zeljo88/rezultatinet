@@ -33,7 +33,7 @@
                 @if($fixture->homeTeam->logo_url)
                     <img src="{{ $fixture->homeTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->homeTeam->name }}">
                 @endif
-                <p class="font-bold text-white text-lg">{{ $fixture->homeTeam->name }}</p>
+                <a href="/tim/{{ $fixture->homeTeam->id }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->homeTeam->name }}</a>
             </div>
             <div class="text-center min-w-[120px]">
                 @if($hasScore)
@@ -64,7 +64,7 @@
                 @if($fixture->awayTeam->logo_url)
                     <img src="{{ $fixture->awayTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->awayTeam->name }}">
                 @endif
-                <p class="font-bold text-white text-lg">{{ $fixture->awayTeam->name }}</p>
+                <a href="/tim/{{ $fixture->awayTeam->id }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->awayTeam->name }}</a>
             </div>
         </div>
     </div>
