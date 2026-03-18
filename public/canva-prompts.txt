@@ -1,0 +1,335 @@
+REZULTATI.NET — 10 CANVA SOCIAL MEDIA PROMPTS
+Paste each prompt into Claude.ai (with computer use) to build in Canva
+================================================
+
+PROMPT 1 — Match Result (1080x1080)
+-------------------------------------
+Please open Canva and create a new design with dimensions 1080x1080 pixels. This is a match result post template for rezultati.net, a Balkan live sports score website.
+
+BACKGROUND: Fill with #0d1b2a (dark navy). Add subtle grain overlay at 8% opacity.
+
+TOP BAR (0-80px): Background #0f0f0f. Left: bold "R" in #CCFF00 inside 48x48px dark rounded square (#1a1a1a), red dot (#FF3B30) top-right. Right: "rezultati.net" Inter 14px #8899AA. Far right: pill badge "KRAJ" filled #FF3B30, Barlow Condensed Black 13px white.
+
+COMPETITION (90-130px): "UEFA CHAMPIONS LEAGUE" centered, Inter 13px #8899AA, letter-spacing 2px, uppercase.
+
+LEFT TEAM (x:0-440px): Team name "MANCHESTER CITY" Barlow Condensed Black 38px white, centered at y=280px. Crest placeholder 120x120px rounded square #1a2a3a centered at x=220px y=380px.
+
+SCORE CENTER (x:440-640px): "3 : 1" Barlow Condensed Black 120px #CCFF00 centered at x=540px y=390px. "FT" badge below: rounded rect 60x28px filled #CCFF00, text Barlow Condensed Black 16px #0d1b2a.
+
+RIGHT TEAM (x:640-1080px): "REAL MADRID" Barlow Condensed Black 38px white centered. Crest placeholder at x=860px y=380px.
+
+SCORERS (y:580-700px): Left column "⚽ Haaland 23'" "⚽ De Bruyne 57'" Inter 15px white. Right column "⚽ Vinicius 45'" same style.
+
+FOOTER: Left "REZULTATI UŽIVO" Barlow Condensed Black 18px #CCFF00. Right "rezultati.net" Inter 13px #8899AA.
+Bottom strip #CCFF00 height 60px: "PRATITE SVE REZULTATE NA REZULTATI.NET" Barlow Condensed Black 16px #0d1b2a.
+
+================================================
+
+PROMPT 2 — Pre-Match Preview (1080x1080)
+------------------------------------------
+Please open Canva and create a new design 1080x1080px. Pre-match preview template for rezultati.net.
+
+BACKGROUND: #0d1b2a with central radial glow #1a3a5c at 30% opacity.
+
+TOP BAR (0-72px): #0f0f0f. Logo "R" #CCFF00 in dark square, red dot. "rezultati.net" Inter 13px #8899AA. Pill badge "NAJAVA" #CCFF00 text #0d1b2a.
+
+VECERAS TAG (y:90-160px): Large pill 260x56px filled #CCFF00 centered. Text "VEČERAS" Barlow Condensed Black 32px #0d1b2a.
+
+COMPETITION (y:170-205px): "UEFA EUROPA LEAGUE · ČETVRTFINALE" Inter 12px #8899AA uppercase centered.
+
+LEFT TEAM (x:0-460px): Crest placeholder 160x160px #162030 at x=230px y=380px. "DINAMO ZAGREB" Barlow Condensed Black 36px white at y=560px.
+
+CENTER VS: "VS" Barlow Condensed Black 80px #CCFF00 at x=540px y=420px.
+
+RIGHT TEAM (x:620-1080px): Crest 160x160px at x=850px y=380px. "FENERBAHČE" Barlow Condensed Black 36px white at y=560px.
+
+INFO CARDS ROW (y:700-820px): 3 cards 260x96px each, #0f0f0f border #1e3a5c radius 12px:
+Card 1: label "POČETAK" #8899AA, value "20:45" Barlow Condensed Black 40px #CCFF00
+Card 2: label "DATUM" #8899AA, value "ČETVRTAK" white, sub "18. MART" #8899AA
+Card 3: label "STADION" #8899AA, value "MAKSIMIR" white, sub "Zagreb" #8899AA
+
+FOOTER: "PRATITE UŽIVO NA" Inter 13px #8899AA left. "rezultati.net" Barlow Condensed Black 20px #CCFF00 right.
+Bottom: 4px lime line + "REZULTATI UŽIVO" Barlow Condensed Black 22px #CCFF00 centered.
+
+================================================
+
+PROMPT 3 — League Standings (1080x1350)
+-----------------------------------------
+Please open Canva, create 1080x1350px design. League standings table for rezultati.net.
+
+BACKGROUND: #0d1b2a subtle diagonal lines texture 3% opacity.
+TOP BAR: #0f0f0f, logo left, "TABELA" badge #CCFF00 right.
+HEADER: "PREMIJER LIGA BIH" Barlow Condensed Black 44px white centered. "SEZONA 2025/26" Inter 14px #8899AA. Lime line separator.
+
+TABLE HEADER ROW (#0f0f0f 40px tall): Columns Inter 12px #8899AA: # | KLUB | OU | PO | NE | POR | GD | BOD(#CCFF00 bold)
+
+10 ROWS (72px each, alternating #0d1b2a / #0e1f30):
+
+ROWS 1-3 (lime left border 4px #CCFF00):
+1. FK BORAC BANJA LUKA | 26 18 5 3 +32 | 59pts — position# and BOD in #CCFF00
+2. FK SARAJEVO | 26 16 7 3 +28 | 55pts
+3. NK ŠIROKI BRIJEG | 26 14 8 4 +18 | 50pts
+
+ROWS 4-8 (gray left border 4px #8899AA):
+4. FK VELEŽ | 26 13 6 7 +11 | 45
+5. FK ZRINJSKI | 26 12 5 9 +8 | 41
+6. FK TUZLA CITY | 26 10 8 8 +2 | 38
+7. NK ČELIK ZENICA | 26 9 7 10 -3 | 34
+8. FK OLIMPIC | 26 8 6 12 -9 | 30
+
+ROWS 9-10 (red left border 4px #FF3B30, red tint overlay 8%):
+9. FK RUDAR PRIJEDOR | 26 5 6 15 -22 | 21 — position# and BOD in #FF3B30
+10. NK POSUŠJE | 26 3 4 19 -35 | 13
+
+LEGEND: 3 colored dots — lime "Kvalifikacije za Europu", gray "Sredina tabele", red "Zona ispadanja"
+FOOTER STRIP: Full width #CCFF00, "REZULTATI.NET · TABELE · STATISTIKE · VIJESTI" Barlow Condensed Black 18px #0d1b2a.
+
+================================================
+
+PROMPT 4 — Da li znaš? Stats (1080x1080)
+------------------------------------------
+Please open Canva, create 1080x1080px. "Da li znaš?" sports stats template for rezultati.net.
+
+BACKGROUND: #0f0f0f with starburst radial lines from top-center in #CCFF00 at 4% opacity (stadium floodlights effect).
+
+TOP BAR (0-72px): #0f0f0f, logo left, pill badge "DA LI ZNAŠ?" #CCFF00 text #0d1b2a right.
+
+HEADLINE TAG (y:100-160px): "💡 DA LI ZNAŠ?" Barlow Condensed Black 36px #CCFF00 centered with lightbulb emoji.
+
+MAIN QUOTE (y:180-520px): Big quote text centered, white:
+"Edin Džeko je jedini bosanski igrač koji je postigao gol na Svjetskom Prvenstvu i u Ligi prvaka iste sezone"
+Font: Barlow Condensed Black, 48px, white, max-width 820px, centered, line-height 1.2.
+Decorative quotation marks " " in #CCFF00 at 120px, positioned top-left and bottom-right of text block.
+
+DIVIDER (y:540px): 2px line full width, gradient from transparent → #CCFF00 → transparent.
+
+STAT BOXES ROW (y:560-720px): 3 cards equally spaced, each 280x140px, rounded 16px, background #0d1b2a, border 1px #CCFF00:
+Box 1: value "36" Barlow Condensed Black 64px #CCFF00, label "Golova za BiH" Inter 16px white
+Box 2: value "7" Barlow Condensed Black 64px #CCFF00, label "Klubova u karijeri" Inter 16px white
+Box 3: value "22" Barlow Condensed Black 64px #CCFF00, label "Godina u profesijama" Inter 16px white
+
+SOURCE TAG (y:740px): "Izvor: rezultati.net statistike" Inter 12px #8899AA italic centered.
+
+FOOTER (y:900-1080px): Background #0d1b2a. "Pratite statistike na rezultati.net" Inter 16px #8899AA centered. Bottom strip #CCFF00 60px: "BALKANSKI SPORT · ŽIVI STATISTIKE" Barlow Condensed Black 18px #0d1b2a.
+
+================================================
+
+PROMPT 5 — Derby Countdown (1080x1920 Story)
+----------------------------------------------
+Please open Canva, create 1080x1920px. Derby countdown story for rezultati.net.
+
+BACKGROUND: Split diagonally — left half very dark teal #0a2030, right half very dark maroon #200a0a. Both merge at center with #0f0f0f. Add noise texture 6% opacity.
+
+TOP LOGO (y:60-140px): rezultati.net logo centered — "R" #CCFF00 in dark rounded square, red dot, 80x80px.
+
+FIRE TAG (y:160-240px): "🔥 DERBI 🔥" Barlow Condensed Black 52px #CCFF00 centered.
+
+TEAM BADGES (y:280-680px):
+Left badge: 200x200px rounded square #1a2a3a border 3px #CCFF00, centered at x=280px y=480px. "DINAMO ZAGREB" Barlow Condensed Black 24px white below at y=600px.
+Center: "VS" Barlow Condensed Black 100px #FFFFFF at x=540px y=480px. #CCFF00 glow: duplicate VS text, blur 20px, place behind at 60% opacity.
+Right badge: 200x200px rounded square #1a2a3a border 3px white, centered at x=800px y=480px. "HAJDUK SPLIT" Barlow Condensed Black 24px white below at y=600px.
+
+DIVIDER LINE (y:710px): Full width 2px #CCFF00.
+
+COUNTDOWN BLOCK (y:740-1000px): Background #0d1b2a rounded 24px, width 900px, centered:
+4 number boxes in row, each 180x140px, background #0f0f0f, rounded 12px:
+Values "02" "14" "33" "20" Barlow Condensed Black 72px #CCFF00
+Labels "DAN" "SAT" "MIN" "SEK" Inter 16px #8899AA below each
+Colon separators ":" between boxes, Barlow Condensed Black 48px #8899AA.
+
+MATCH INFO (y:1020-1180px):
+"SUBOTA, 22. MART 2026" Barlow Condensed Black 32px white centered.
+"⏰ 18:00 CET" Inter 24px #CCFF00 centered.
+"📍 Stadion Poljud, Split" Inter 20px #8899AA centered.
+"HNL · KOLO 28" Inter 18px #8899AA centered.
+
+SWIPE UP CTA (y:1700-1850px): Large rounded button 800x96px filled #CCFF00:
+"PRATI DERBI UŽIVO NA REZULTATI.NET" Barlow Condensed Black 24px #0d1b2a centered.
+
+BOTTOM: "rezultati.net" Barlow Condensed Black 22px #8899AA centered at y=1880px.
+
+================================================
+
+PROMPT 6 — Top Scorer Spotlight (1080x1080)
+---------------------------------------------
+Please open Canva, create 1080x1080px. Top scorer spotlight template for rezultati.net.
+
+BACKGROUND: #0d1b2a base. Add diagonal striped pattern top-right quadrant in #CCFF00 at 6% opacity (like a corner flag pattern).
+
+TOP BAR (0-72px): #0f0f0f, logo left, "🥇 STRIJELAC KOLA" Barlow Condensed Black 18px #CCFF00 right.
+
+PLAYER PHOTO (y:90-550px): Circle frame 360x360px centered at x=540px y=330px.
+Border: 6px #CCFF00 with outer glow effect (duplicate circle, blur 15px, #CCFF00 40% opacity behind).
+Inside circle: placeholder silhouette or solid #1a2a3a fill.
+Club crest badge: 64x64px circle at x=700px y=520px, background #0f0f0f border 3px #CCFF00.
+Country flag badge: 64x64px circle at x=380px y=520px, background #0f0f0f border 3px white.
+
+PLAYER NAME (y:570-640px): "ERMEDIN DEMIROVIĆ" Barlow Condensed Black 52px white centered.
+Club/league (y:650-690px): "VfB STUTTGART · BUNDESLIGA" Inter 20px #8899AA centered.
+
+STAT BOXES ROW (y:710-850px): 3 cards 280x120px each, background #0f0f0f border 1px #CCFF00 radius 12px:
+Box 1: "14" Barlow Condensed Black 56px #CCFF00, "Golova" Inter 16px white
+Box 2: "5" Barlow Condensed Black 56px #CCFF00, "Asistencija" Inter 16px white
+Box 3: "26" Barlow Condensed Black 56px #CCFF00, "Nastupa" Inter 16px white
+
+FORM BAR (y:870-920px): "Forma: " Inter 16px #8899AA left-aligned + 5 small 32x32px circles: P=green #4CAF50, P=green, N=gray #8899AA, P=green, P=green.
+
+FOOTER (y:940-1000px): "PRATITE NA REZULTATI.NET" Inter 14px #8899AA centered.
+Bottom strip 60px #CCFF00: "BALKANSKI IGRAČI U EUROPI" Barlow Condensed Black 18px #0d1b2a.
+
+================================================
+
+PROMPT 7 — Live Match Alert (1080x1080)
+-----------------------------------------
+Please open Canva, create 1080x1080px. Live match alert / goal notification template for rezultati.net.
+
+BACKGROUND: #0f0f0f base. Add red radial glow from center: inner #FF3B30 at 25% opacity, radius ~300px, fading to transparent.
+FULL BORDER: 8px solid #FF3B30 on all 4 edges (use 4 thin rectangles).
+
+TOP BAR (0-80px): #0a0a0a. Left: logo. Center: animated-style LIVE indicator — red filled pill 120x36px, white dot 10px left of text, "● LIVE" Barlow Condensed Black 18px white. Right: match minute "78'" Barlow Condensed Black 24px #FF3B30.
+
+COMPETITION (y:90-125px): League name "SERIE A" Inter 13px #8899AA letter-spacing 2px centered.
+
+TEAMS + SCORE (y:130-450px):
+Home team: "JUVENTUS" Barlow Condensed Black 44px white, right-aligned to x=440px, y=260px.
+Crest: 80x80px rounded square #1a2a3a at x=380px y=320px.
+Score: "3:1" Barlow Condensed Black 110px #CCFF00 centered at x=540px y=300px.
+Away team: "INTER" Barlow Condensed Black 44px white, left-aligned from x=640px y=260px.
+Crest: 80x80px rounded square #1a2a3a at x=700px y=320px.
+
+GOAL ALERT BOX (y:460-700px): Rounded rectangle 900x220px background #1a0505 border 2px #FF3B30, centered:
+"⚽ GOL!" Barlow Condensed Black 96px #FF3B30 centered at top.
+Add red glow behind "GOL!" text: duplicate, blur 30px, #FF3B30 50% opacity.
+"Dušan Vlahović — 78'" Barlow Condensed Black 40px white centered below.
+"Asistencija: Filip Kostić" Inter 22px #8899AA centered below.
+
+SCORERS LIST (y:720-820px):
+"⚽ Vlahović 23' · Vlahović 78' · Bremer 61'" Inter 18px white centered.
+"⚽ Martinez 45'" Inter 18px #8899AA centered.
+
+FOOTER (y:840-920px): "PRATI UTAKMICU UŽIVO" Inter 16px #8899AA centered.
+"rezultati.net" Barlow Condensed Black 24px #CCFF00 centered.
+Bottom strip: #FF3B30 60px. "REZULTATI UŽIVO · SVAKI GOL · SVAKI KARTON" Barlow Condensed Black 16px white.
+
+================================================
+
+PROMPT 8 — Weekend Schedule (1080x1350)
+-----------------------------------------
+Please open Canva, create 1080x1350px. Weekend football schedule template for rezultati.net.
+
+BACKGROUND: #0d1b2a base, very subtle vertical stripes at 3% opacity.
+
+TOP BAR (0-80px): #0f0f0f, logo left, "📅 RASPORED" badge #CCFF00 right.
+
+HEADER (y:90-180px): "VIKEND PROGRAM" Barlow Condensed Black 52px white centered. "22–23. MART 2026" Inter 20px #8899AA centered. Lime line 3px at y=178px.
+
+SATURDAY SECTION HEADER (y:190-238px): Background #CCFF00 strip. "SUBOTA 22. MART" Barlow Condensed Black 26px #0d1b2a centered.
+
+SATURDAY MATCHES (y:238-680px): Each row 80px tall, alternating #0d1b2a / #0e1f30:
+Row 1: "15:00 │ Manchester City │ vs │ Arsenal │ Premier League"
+Row 2: "17:30 │ Barcelona │ vs │ Real Madrid │ La Liga ⭐"
+Row 3: "18:00 │ Dinamo Zagreb │ vs │ Hajduk Split │ HNL 🔥"
+Row 4: "20:00 │ Juventus │ vs │ Inter Milan │ Serie A"
+Row 5: "20:45 │ PSG │ vs │ Monaco │ Ligue 1"
+
+Format per row:
+- Time: Barlow Condensed Black 24px #CCFF00, x=40px
+- Separator "|": #8899AA
+- Home team: Inter 20px white, right of center
+- "vs": Inter 16px #8899AA centered
+- Away team: Inter 20px white
+- League: small pill badge #1a2a3a text Inter 11px #8899AA, far right
+
+SUNDAY SECTION HEADER (y:690-738px): Background #1a3a5c strip. "NEDJELJA 23. MART" Barlow Condensed Black 26px white centered.
+
+SUNDAY MATCHES (y:738-1060px): Same row format, 4 rows:
+Row 1: "14:00 │ Chelsea │ vs │ Liverpool │ Premier League"
+Row 2: "16:30 │ FK Sarajevo │ vs │ FK Borac │ Premijer liga BiH 🇧🇦"
+Row 3: "19:00 │ Partizan │ vs │ Crvena zvezda │ Superliga SRB 🔥"
+Row 4: "21:00 │ Real Madrid │ vs │ Atlético │ Champions Liga ⭐"
+
+CTA SECTION (y:1070-1200px): Background #0f0f0f:
+"Ne propusti nijedan meč!" Barlow Condensed Black 32px #CCFF00 centered.
+"Svi rezultati uživo na" Inter 18px #8899AA centered.
+"REZULTATI.NET" Barlow Condensed Black 44px white centered.
+
+BOTTOM STRIP (y:1290-1350px): #CCFF00 full width. "PRATITE · NOGOMET · KOŠARKA · TENIS" Barlow Condensed Black 20px #0d1b2a centered.
+
+================================================
+
+PROMPT 9 — Player of the Week (1080x1920 Story)
+-------------------------------------------------
+Please open Canva, create 1080x1920px. Player of the week story template for rezultati.net.
+
+BACKGROUND: Top 60% — player photo placeholder (solid #1a2a3a with subtle grid lines). Dark gradient overlay from transparent to #0d1b2a starting at y=700px fading to full navy at y=1100px. Bottom 40% solid #0d1b2a.
+
+TOP OVERLAY (y:0-100px): Semi-transparent bar #0f0f0f at 80% opacity. Logo left. "⭐ IGRAČ SEDMICE" Barlow Condensed Black 20px #CCFF00 right.
+
+PHOTO AREA (y:0-1000px): Full width background photo placeholder. On photo, bottom-left corner: Club crest 80x80px white border 2px. Bottom-right: Country flag circle 80px.
+
+PLAYER NAME BLOCK (y:1000-1160px):
+"JOŠKO" Barlow Condensed Black 96px white (first name, lighter weight visually)
+"GVARDIOL" Barlow Condensed Black 110px #CCFF00 (surname, larger)
+Both left-aligned, x=60px.
+
+CLUB + POSITION STRIP (y:1170-1220px): "MANCHESTER CITY  ·  BRANIČ" Inter 22px #8899AA, x=60px.
+
+RATING BADGE (y:1230-1320px): Large pill 400x80px background #CCFF00, x=60px:
+"⭐ OCJENA: 9.2" Barlow Condensed Black 36px #0d1b2a, centered in pill.
+
+MATCH CONTEXT (y:1330-1420px): "Man City 3:1 Arsenal · Matchday 28" Inter 20px #8899AA, x=60px.
+
+STAT ROW (y:1440-1580px): 3 horizontal boxes 280x120px background #0f0f0f border top 3px #CCFF00, x=60px each spaced 30px:
+"0" Barlow Condensed Black 52px white → "Golova"
+"1" Barlow Condensed Black 52px #CCFF00 → "Asistencija"
+"94%" Barlow Condensed Black 44px white → "Dueli dobijeni"
+
+BIO QUOTE (y:1600-1720px): "Dominantna izvedba s loptom i bez nje — Gvardiol je opet bio nepremostiv." italic Inter 22px #8899AA x=60px max-width 960px.
+
+CTA (y:1760-1860px): Rounded button 960x80px #CCFF00:
+"PRATITE REZULTATE NA REZULTATI.NET" Barlow Condensed Black 26px #0d1b2a centered.
+
+BOTTOM (y:1880-1920px): "rezultati.net" Inter 16px #8899AA centered.
+
+================================================
+
+PROMPT 10 — Blog Article Promo (1080x1080)
+--------------------------------------------
+Please open Canva, create 1080x1080px. Blog article promotion template for rezultati.net.
+
+BACKGROUND: #0d1b2a with very subtle hexagon pattern overlay at 4% opacity in #FFFFFF.
+
+TOP BAR (0-72px): #0f0f0f, logo left, pill badge "BLOG" filled #CCFF00, Barlow Condensed Black 13px #0d1b2a, right side.
+
+ARTICLE CATEGORY TAG (y:100-155px): Pill 200x48px background #CCFF00, centered:
+"HNL ANALIZA" Barlow Condensed Black 20px #0d1b2a.
+
+ARTICLE TITLE (y:170-500px): Large article headline centered, max-width 900px:
+"Dinamo Zagreb: Može li Modra armija odbraniti titulu u sezoni 2025/26?"
+Barlow Condensed Black, 56px, white, line-height 1.15, centered.
+
+EXCERPT (y:510-680px): Article excerpt text centered, max-width 860px:
+"Nakon dominantnog jesenjeg dijela sezone, Dinamo ulazi u proljeće s prednosti od sedam bodova. Analiziramo snage, slabosti i ključne utakmice koje će odlučiti o naslovu prvaka..."
+Inter, 22px, #8899AA, line-height 1.5, centered, italic.
+
+DIVIDER (y:700px): 2px #CCFF00 line, 80% width centered.
+
+AUTHOR/META ROW (y:720-780px): Centered:
+"📝 rezultati.net · 18. MART 2026 · 5 min čitanja" Inter 16px #8899AA.
+
+CTA BUTTON (y:810-910px): Large button 700x80px #CCFF00, centered, radius 16px:
+"PROČITAJ ČLANAK →" Barlow Condensed Black 30px #0d1b2a centered.
+Below button: "rezultati.net/blog" Inter 16px #8899AA centered.
+
+DECORATIVE ELEMENTS:
+- Top-right corner: abstract geometric shape (triangle or diamond) in #CCFF00 at 8% opacity, large ~300px
+- Bottom-left corner: same shape mirrored, same opacity
+- These give a magazine/editorial feel
+
+BOTTOM STRIP (y:980-1080px): Background #0f0f0f. 3px #CCFF00 line at top.
+"VIJESTI · ANALIZE · STATISTIKE · rezultati.net" Barlow Condensed Black 18px #CCFF00 centered at y=1030px.
+"Balkan sport uživo" Inter 14px #8899AA centered at y=1060px.
+
+================================================
+END OF PROMPTS
+Use them one by one in Claude.ai with computer use enabled.

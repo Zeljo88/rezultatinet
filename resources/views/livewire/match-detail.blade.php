@@ -38,7 +38,7 @@
             <div class="text-center min-w-[120px]">
                 @if($hasScore)
                     <div class="text-5xl font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">
-                        {{ $scoreHome }}<span class="text-gray-500 text-3xl mx-1">-</span>{{ $scoreAway }}
+                        <span id="score-home">{{ $scoreHome }}</span><span class="text-gray-500 text-3xl mx-1">-</span><span id="score-away">{{ $scoreAway }}</span>
                     </div>
                     @if($score && $score->home_halftime !== null)
                         <div class="text-xs text-gray-500 mt-1">Poluvrijeme: {{ $score->home_halftime }} - {{ $score->away_halftime }}</div>
@@ -198,6 +198,8 @@
         </div>
     @endif
 
+    <livewire:match-prediction :fixture-id="$fixture->id" :home-team="$fixture->homeTeam->name ?? 'Domacin'" :away-team="$fixture->awayTeam->name ?? 'Gost'" />
+
     {{-- Venue --}}
     @if($fixture->venue_name)
     <div class="text-center text-xs text-gray-500">
@@ -206,3 +208,21 @@
     </div>
     @endif
 </div>
+
+
+@if($isLive)
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.Echo === 'undefined') return;
+    window.Echo.channel('fixture.{{ $fixture->id }}')
+        .listen('.score.updated', (data) => {
+            const homeScore = document.getElementById('score-home');
+            const awayScore = document.getElementById('score-away');
+            const minute = document.getElementById('match-minute');
+            if (homeScore) homeScore.textContent = data.home_goals !== undefined ? data.home_goals : (data.goals_home ?? 0);
+            if (awayScore) awayScore.textContent = data.away_goals !== undefined ? data.away_goals : (data.goals_away ?? 0);
+            if (minute && data.minute !== undefined) minute.textContent = data.minute;
+        });
+});
+</script>
+@endif
