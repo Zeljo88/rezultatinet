@@ -21,6 +21,10 @@
         gtag("js", new Date());
         gtag("config", "G-854YSPE0YX");
     </script>
+    <style>
+        .league-scroll::-webkit-scrollbar { display: none; }
+        .league-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 <body class="bg-[#0f0f0f] text-white font-sans min-h-full">
 
@@ -43,15 +47,50 @@
                 </div>
             </div>
         </div>
+
+        {{-- MOBILE LEAGUE SCROLL BAR --}}
+        <div class="lg:hidden border-t border-[#2a2a2a] overflow-x-auto league-scroll">
+            <div class="flex items-center gap-1 px-3 py-2 w-max">
+                <span class="text-gray-600 text-xs mr-1 flex-shrink-0">Lige:</span>
+                <a href="/liga/hnl" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/210.png" class="w-3.5 h-3.5 object-contain"> HNL
+                </a>
+                <a href="/liga/superliga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/286.png" class="w-3.5 h-3.5 object-contain"> Superliga SRB
+                </a>
+                <a href="/liga/premijer-liga-bih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premijer-liga-bih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/315.png" class="w-3.5 h-3.5 object-contain"> Premijer BiH
+                </a>
+                <a href="/liga/champions-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/champions-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/2.png" class="w-3.5 h-3.5 object-contain"> Champions Liga
+                </a>
+                <a href="/liga/europa-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/europa-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/3.png" class="w-3.5 h-3.5 object-contain"> Europa Liga
+                </a>
+                <a href="/liga/premier-league" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premier-league') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/39.png" class="w-3.5 h-3.5 object-contain"> Premier League
+                </a>
+                <a href="/liga/la-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/la-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/140.png" class="w-3.5 h-3.5 object-contain"> La Liga
+                </a>
+                <a href="/liga/serie-a" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/serie-a') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/135.png" class="w-3.5 h-3.5 object-contain"> Serie A
+                </a>
+                <a href="/liga/bundesliga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/bundesliga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/78.png" class="w-3.5 h-3.5 object-contain"> Bundesliga
+                </a>
+                <a href="/liga/ligue-1" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/ligue-1') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    <img src="https://media.api-sports.io/football/leagues/61.png" class="w-3.5 h-3.5 object-contain"> Ligue 1
+                </a>
+            </div>
+        </div>
     </nav>
 
-    {{-- MAIN LAYOUT: sidebar + content --}}
+    {{-- MAIN LAYOUT --}}
     <div class="max-w-7xl mx-auto px-4 py-4 flex gap-4">
 
-        {{-- LEFT SIDEBAR --}}
+        {{-- LEFT SIDEBAR (desktop only) --}}
         <aside class="hidden lg:block w-56 flex-shrink-0" style="padding-top: 88px">
-
-            {{-- Football leagues --}}
             <div class="mb-4">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">⚽ Fudbal</p>
 
@@ -99,7 +138,6 @@
                 </a>
             </div>
 
-            {{-- Basketball --}}
             <div class="mb-4">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">🏀 Kosarka</p>
                 <a href="/kosarka" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300">ABA Liga</a>
@@ -107,7 +145,6 @@
                 <a href="/kosarka" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300">EuroLeague</a>
             </div>
 
-            {{-- Tennis --}}
             <div>
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">🎾 Tenis</p>
                 <a href="/tenis" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300">ATP</a>

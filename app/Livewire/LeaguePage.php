@@ -3,6 +3,7 @@ namespace App\Livewire;
 
 use App\Models\Fixture;
 use App\Models\League;
+use App\Models\Standing;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -11,23 +12,24 @@ class LeaguePage extends Component
 {
     public League $league;
     public array $fixtures = [];
+    public array $standings = [];
     public string $tab = 'today';
+    public string $view = 'fixtures'; // fixtures | standings
 
-    // Slug to api_league_id map
     protected array $slugMap = [
-        'hnl'              => 210,
-        'superliga-srbija' => 286,
-        'premijer-liga-bih'=> 315,
-        'champions-liga'   => 2,
-        'europa-liga'      => 3,
-        'konferencijska-liga' => 848,
-        'premier-league'   => 39,
-        'la-liga'          => 140,
-        'serie-a'          => 135,
-        'bundesliga'       => 78,
-        'ligue-1'          => 61,
-        'prva-liga-srbija' => 287,
-        'first-nl-hrvatska'=> 211,
+        'hnl'               => 210,
+        'superliga-srbija'  => 286,
+        'premijer-liga-bih' => 315,
+        'champions-liga'    => 2,
+        'europa-liga'       => 3,
+        'konferencijska-liga'=> 848,
+        'premier-league'    => 39,
+        'la-liga'           => 140,
+        'serie-a'           => 135,
+        'bundesliga'        => 78,
+        'ligue-1'           => 61,
+        'prva-liga-srbija'  => 287,
+        'first-nl-hrvatska' => 211,
     ];
 
     public function mount(string $slug): void
@@ -36,6 +38,7 @@ class LeaguePage extends Component
         abort_if(!$leagueId, 404);
         $this->league = League::where('api_league_id', $leagueId)->firstOrFail();
         $this->loadFixtures();
+        $this->loadStandings();
     }
 
     public function loadFixtures(): void
@@ -51,7 +54,6 @@ class LeaguePage extends Component
         } elseif ($this->tab === 'tomorrow') {
             $query->whereDate('kick_off', today()->addDay());
         } else {
-            // recent - last 7 days + next 3 days
             $query->whereBetween('kick_off', [today()->subDays(7), today()->addDays(3)]);
         }
 
@@ -63,15 +65,9 @@ class LeaguePage extends Component
             $isLive = in_array($f->status_short, $liveStatuses);
             $isHT   = $f->status_short === 'HT';
 
-            if ($isFT) {
-                $sh = $f->score?->home_fulltime ?? $f->score?->goals_home;
-                $sa = $f->score?->away_fulltime ?? $f->score?->goals_away;
-            } elseif ($isLive || $isHT) {
-                $sh = $f->score?->goals_home ?? $f->score?->home_fulltime;
-                $sa = $f->score?->goals_away ?? $f->score?->away_fulltime;
-            } else {
-                $sh = null; $sa = null;
-            }
+            if ($isFT) { $sh = $f->score?->home_fulltime ?? $f->score?->goals_home; $sa = $f->score?->away_fulltime ?? $f->score?->goals_away; }
+            elseif ($isLive || $isHT) { $sh = $f->score?->goals_home ?? $f->score?->home_fulltime; $sa = $f->score?->goals_away ?? $f->score?->away_fulltime; }
+            else { $sh = null; $sa = null; }
 
             return [
                 'id'             => $f->id,
@@ -79,7 +75,9 @@ class LeaguePage extends Component
                 'elapsed_minute' => $f->elapsed_minute,
                 'kick_off'       => $f->kick_off,
                 'home_team_name' => $f->homeTeam?->name ?? 'N/A',
+                'home_team_logo' => $f->homeTeam?->logo_url,
                 'away_team_name' => $f->awayTeam?->name ?? 'N/A',
+                'away_team_logo' => $f->awayTeam?->logo_url,
                 'score_home'     => $sh,
                 'score_away'     => $sa,
                 'is_live'        => $isLive || $isHT,
@@ -88,10 +86,34 @@ class LeaguePage extends Component
         })->toArray();
     }
 
+    public function loadStandings(): void
+    {
+        $this->standings = Standing::with('team')
+            ->where('league_id', $this->league->id)
+            ->orderBy('rank')
+            ->get()
+            ->map(fn($s) => [
+                'rank'          => $s->rank,
+                'team_name'     => $s->team?->name ?? 'N/A',
+                'team_logo'     => $s->team?->logo_url,
+                'played'        => $s->played,
+                'win'           => $s->win,
+                'draw'          => $s->draw,
+                'lose'          => $s->lose,
+                'goals_for'     => $s->goals_for,
+                'goals_against' => $s->goals_against,
+                'goal_diff'     => $s->goal_diff,
+                'points'        => $s->points,
+                'form'          => $s->form,
+                'description'   => $s->description,
+            ])->toArray();
+    }
+
     public function setTab(string $tab): void { $this->tab = $tab; $this->loadFixtures(); }
+    public function setView(string $view): void { $this->view = $view; }
 
     public function render()
     {
-        return view('livewire.league-page', ['title' => $this->league->name . ' — rezultati.net']);
+        return view('livewire.league-page');
     }
 }
