@@ -142,6 +142,10 @@
                 </a>
             </div>
 
+                            <a href="/strijelci" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300 mb-1">
+                    ⚽ Strijelci
+                </a>
+
             <div class="mb-4">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">🏀 Kosarka</p>
                 <a href="/kosarka" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm text-gray-300">ABA Liga</a>

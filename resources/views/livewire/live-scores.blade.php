@@ -1,5 +1,5 @@
 <div>
-    @if(!)
+    @if(!$sportAvailable)
     <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-16 text-center">
         <div class="text-6xl mb-4">🚧</div>
         <p class="text-white text-xl font-bold mb-2">Uskoro dostupno!</p>

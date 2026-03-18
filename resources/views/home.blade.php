@@ -31,7 +31,7 @@ $pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDesc
 @section('content')
 <div class="mb-5 flex items-center justify-between">
     <div>
-        <h1 class="text-2xl font-black text-white">Rezultati <span class="text-[#CCFF00]">uzivo</span></h1>
+        <h1 class="text-2xl font-black text-white">Rezultati <span class="text-[#CCFF00]">uživo</span></h1>
         <p class="text-gray-500 text-sm mt-0.5">
             @php
             $days = ['Sunday'=>'Nedjelja','Monday'=>'Ponedjeljak','Tuesday'=>'Utorak','Wednesday'=>'Srijeda','Thursday'=>'Cetvrtak','Friday'=>'Petak','Saturday'=>'Subota'];
