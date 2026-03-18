@@ -66,6 +66,7 @@ class SyncFixtures extends Command
                     'status_short'   => $data['fixture']['status']['short'] ?? null,
                     'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
                     'venue_name'     => $data['fixture']['venue']['name'] ?? null,
+                    'referee'        => $data['fixture']['referee'] ?? null,
                 ]
             );
 
