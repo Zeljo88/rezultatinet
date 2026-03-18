@@ -33,7 +33,7 @@
                 @if($fixture->homeTeam->logo_url)
                     <img src="{{ $fixture->homeTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->homeTeam->name }}">
                 @endif
-                <a href="/tim/{{ $fixture->homeTeam->id }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->homeTeam->name }}</a>
+                <a href="/tim/{{ $fixture->homeTeam->slug }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->homeTeam->name }}</a>
             </div>
             <div class="text-center min-w-[120px]">
                 @if($hasScore)
@@ -64,10 +64,34 @@
                 @if($fixture->awayTeam->logo_url)
                     <img src="{{ $fixture->awayTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->awayTeam->name }}">
                 @endif
-                <a href="/tim/{{ $fixture->awayTeam->id }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->awayTeam->name }}</a>
+                <a href="/tim/{{ $fixture->awayTeam->slug }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->awayTeam->name }}</a>
             </div>
         </div>
     </div>
+
+
+    {{-- Share buttons --}}
+    @if($hasScore || !$hasScore)
+    <div class="flex items-center justify-center gap-3 mt-4 mb-2">
+        @php
+            $matchTitle = $fixture->homeTeam->name . ' ' . ($hasScore ? $scoreHome . ' - ' . $scoreAway : 'vs') . ' ' . $fixture->awayTeam->name;
+            $matchUrl = urlencode('https://rezultati.net/utakmica/' . $fixture->id);
+            $matchText = urlencode($matchTitle . ' | rezultati.net');
+        @endphp
+        <a href="https://wa.me/?text={{ $matchText }}%20{{ $matchUrl }}" target="_blank"
+           class="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white text-sm font-bold rounded-lg hover:opacity-90 transition">
+            📱 WhatsApp
+        </a>
+        <a href="https://twitter.com/intent/tweet?text={{ $matchText }}&url={{ $matchUrl }}" target="_blank"
+           class="flex items-center gap-2 px-4 py-2 bg-[#1DA1F2] text-white text-sm font-bold rounded-lg hover:opacity-90 transition">
+            🐦 Twitter
+        </a>
+        <button onclick="navigator.clipboard.writeText('https://rezultati.net/utakmica/{{ $fixture->id }}').then(() => alert('Link kopiran!'))"
+           class="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] text-gray-300 text-sm font-bold rounded-lg hover:bg-[#333] transition">
+            🔗 Kopiraj link
+        </button>
+    </div>
+    @endif
 
     {{-- Tabs: Dogadjaji / H2H --}}
     <div class="flex gap-2 mb-4">

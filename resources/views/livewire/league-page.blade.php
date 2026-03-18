@@ -60,7 +60,7 @@
                             @if($fixture['home_team_logo'])
                                 <img src="{{ $fixture['home_team_logo'] }}" class="w-5 h-5 object-contain" alt="">
                             @endif
-                            <a href="/tim/{{ $fixture['home_team_id'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                            <a href="/tim/{{ $fixture['home_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
                         </div>
                         <div class="flex items-center gap-1 min-w-[60px] justify-center">
                             @if($hasScore)
@@ -75,7 +75,7 @@
                             @if($fixture['away_team_logo'])
                                 <img src="{{ $fixture['away_team_logo'] }}" class="w-5 h-5 object-contain" alt="">
                             @endif
-                            <a href="/tim/{{ $fixture['away_team_id'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                            <a href="/tim/{{ $fixture['away_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
                         </div>
                     </div>
                     <div class="w-14 text-right flex-shrink-0">

@@ -62,7 +62,7 @@
                     </div>
                     <div class="flex-1 flex items-center px-2">
                         <div class="flex-1 text-right pr-3">
-                            <a href="/tim/{{ $fixture['home_team_id'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                            <a href="/tim/{{ $fixture['home_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
                         </div>
                         <div class="flex items-center gap-1 min-w-[60px] justify-center">
                             @if($hasScore)
@@ -74,7 +74,7 @@
                             @endif
                         </div>
                         <div class="flex-1 pl-3">
-                            <a href="/tim/{{ $fixture['away_team_id'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                            <a href="/tim/{{ $fixture['away_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
                         </div>
                     </div>
                     <div class="w-14 text-right flex-shrink-0">

@@ -80,6 +80,8 @@ class LeaguePage extends Component
                 'away_team_logo' => $f->awayTeam?->logo_url,
                 'home_team_id'   => $f->home_team_id,
                 'away_team_id'   => $f->away_team_id,
+                'home_team_slug' => $f->homeTeam?->slug,
+                'away_team_slug' => $f->awayTeam?->slug,
                 'score_home'     => $sh,
                 'score_away'     => $sa,
                 'is_live'        => $isLive || $isHT,

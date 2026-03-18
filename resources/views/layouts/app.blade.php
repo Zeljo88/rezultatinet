@@ -44,6 +44,7 @@
                     <a href="/kosarka" class="px-3 py-1.5 rounded text-sm font-semibold {{ request()->is('kosarka*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }} transition">🏀 Kosarka</a>
                     <a href="/tenis" class="px-3 py-1.5 rounded text-sm font-semibold {{ request()->is('tenis*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }} transition">🎾 Tenis</a>
                 </div>
+                <a href="/pretraga" class="text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-[#2a2a2a]" title="Pretraga">🔍</a>
                 <div class="hidden md:flex items-center gap-3 text-sm">
                     <a href="/jucer" class="text-gray-400 hover:text-white transition">Jucer</a>
                     <a href="/" class="text-[#CCFF00] font-bold hover:text-white transition">Danas</a>

@@ -14,9 +14,9 @@ class TeamPage extends Component
     public array $upcoming = [];
     public string $tab = 'results';
 
-    public function mount(int $id): void
+    public function mount(string $slug): void
     {
-        $this->team = Team::findOrFail($id);
+        $this->team = Team::where('slug', $slug)->firstOrFail();
         $this->loadFixtures();
     }
 
