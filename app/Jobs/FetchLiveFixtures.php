@@ -21,7 +21,7 @@ class FetchLiveFixtures implements ShouldQueue
 
     public function handle(ApiFootballService $api): void
     {
-        if (ApiCallLog::getTodayCount() >= 75) {
+        if (ApiCallLog::getTodayCount() >= 7000) {
             Log::warning('API daily budget reached, skipping poll');
             return;
         }

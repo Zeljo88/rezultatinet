@@ -2,9 +2,9 @@
 use App\Jobs\FetchLiveFixtures;
 use Illuminate\Support\Facades\Schedule;
 
-// Fetch live scores every 15 min during match hours
+// Fetch live scores every 30 seconds (API-Sports PRO plan)
 Schedule::job(new FetchLiveFixtures)
-    ->everyFifteenMinutes()
+    ->everyThirtySeconds()
     
 
 // Sync today's fixtures every 2 hours
