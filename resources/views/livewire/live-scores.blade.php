@@ -14,14 +14,14 @@
         ══════════════════════════════════════════════════════════════ --}}
         <div class="flex items-center justify-center gap-2 py-3 border-b border-gray-800 mb-2">
             <button wire:click="setDate('{{ $prevDate }}')"
-                    class="text-gray-400 hover:text-white px-2 text-lg leading-none">←</button>
+                    class="cursor-pointer text-gray-400 hover:text-white px-2 text-lg leading-none">←</button>
 
             @foreach([$prevDate, $selectedDate, $nextDate] as $d)
                 @php
                     $label = \Carbon\Carbon::parse($d)->locale('hr')->isoFormat('ddd D.M');
                 @endphp
                 <button wire:click="setDate('{{ $d }}')"
-                    class="px-3 py-1 rounded text-sm transition
+                    class="cursor-pointer px-3 py-1 rounded text-sm transition
                            {{ $d === $selectedDate
                                ? 'bg-[#CCFF00] text-black font-bold'
                                : 'text-gray-400 hover:text-white' }}">
@@ -30,7 +30,7 @@
             @endforeach
 
             <button wire:click="setDate('{{ $nextDate }}')"
-                    class="text-gray-400 hover:text-white px-2 text-lg leading-none">→</button>
+                    class="cursor-pointer text-gray-400 hover:text-white px-2 text-lg leading-none">→</button>
         </div>
 
         {{-- ══════════════════════════════════════════════════════════════
@@ -48,7 +48,7 @@
                     $count = $counts[$countKey] ?? 0;
                 @endphp
                 <button wire:click="setFilter('{{ $key }}')"
-                    class="px-3 py-1 text-xs rounded-full border transition
+                    class="cursor-pointer px-3 py-1 text-xs rounded-full border transition
                            {{ $filter === $key
                                ? 'bg-[#CCFF00] text-black border-[#CCFF00] font-bold'
                                : 'border-gray-600 text-gray-400 hover:border-white hover:text-white' }}">
