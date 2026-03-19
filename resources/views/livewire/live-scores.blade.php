@@ -49,16 +49,23 @@
                 @endphp
                 <div onclick="window.location='/utakmica/{{ $fixture['id'] }}'"
                    class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
+                    @php
+                        $statusDisplay = match(true) {
+                            in_array($fixture['status_short'] ?? '', ['FT', 'AET', 'PEN']) => 'FT',
+                            ($fixture['status_short'] ?? '') === 'HT' => 'HT',
+                            in_array($fixture['status_short'] ?? '', ['PST', 'CANC', 'ABD', 'SUSP', 'INT']) => 'OTK',
+                            in_array($fixture['status_short'] ?? '', ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => ($fixture['elapsed_minute'] ?? '?') . "'",
+                            default => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                        };
+                        $statusClass = match(true) {
+                            in_array($fixture['status_short'] ?? '', ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => 'text-[#FF3B30] font-black',
+                            ($fixture['status_short'] ?? '') === 'HT' => 'text-yellow-400 font-bold',
+                            in_array($fixture['status_short'] ?? '', ['FT', 'AET', 'PEN']) => 'text-gray-500 font-medium',
+                            default => 'text-gray-500',
+                        };
+                    @endphp
                     <div class="w-12 text-center flex-shrink-0">
-                        @if($isLive)
-                            <span class="text-[#FF3B30] text-xs font-black">{{ $fixture['elapsed_minute'] ?? '' }}'</span>
-                        @elseif($isHT)
-                            <span class="text-yellow-400 text-xs font-bold">HT</span>
-                        @elseif($isFT)
-                            <span class="text-gray-500 text-xs font-medium">FT</span>
-                        @else
-                            <span class="text-gray-500 text-xs">{{ isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--' }}</span>
-                        @endif
+                        <span class="text-xs {{ $statusClass }}">{{ $statusDisplay }}</span>
                     </div>
                     <div class="flex-1 flex items-center px-2">
                         <div class="flex-1 text-right pr-3">
