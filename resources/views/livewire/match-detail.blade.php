@@ -41,7 +41,7 @@
                     <div class="text-5xl font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">
                         <span id="score-home">{{ $scoreHome }}</span><span class="text-gray-500 text-3xl mx-1">-</span><span id="score-away">{{ $scoreAway }}</span>
                     </div>
-                    @if($score && $score->home_halftime !== null)
+                    @if($score && $score->home_halftime !== null && !in_array($fixture->status_short, ["1H", "NS"]))
                         <div class="text-xs text-gray-500 mt-1">Poluvrijeme: {{ $score->home_halftime }} - {{ $score->away_halftime }}</div>
                     @endif
                 @else
