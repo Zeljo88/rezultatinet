@@ -12,6 +12,19 @@ $articleSchema = [
     'keywords' => $post->keyword ?? '',
     'inLanguage' => 'bs',
 ];
+
+$kw = strtolower($post->keyword ?? '');
+$titleLower = strtolower($post->title ?? '');
+if (str_contains($kw, 'gdje gledati') || str_contains($kw, 'gdje')) {
+    $category = '📺 TV Vodič';
+} elseif (str_contains($kw, 'champions') || str_contains($titleLower, 'champions')) {
+    $category = '🏆 Champions Liga';
+} elseif (str_contains($kw, 'hnl') || str_contains($titleLower, 'hnl')) {
+    $category = '⚽ HNL';
+} else {
+    $category = '⚽ Fudbal';
+}
+$readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) / 200));
 @endphp
 <script type="application/ld+json">
 {!! json_encode($articleSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
@@ -22,13 +35,22 @@ $articleSchema = [
     </a>
 
     <article class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6">
-        @if($post->keyword)
-            <span class="text-[10px] font-bold text-[#CCFF00] uppercase tracking-wider">{{ $post->keyword }}</span>
-        @endif
-        <h1 class="text-2xl font-black text-white mt-2 mb-1">{{ $post->title }}</h1>
-        <div class="text-xs text-gray-600 mb-6">{{ $post->created_at->format('d.m.Y') }}</div>
+        <div class="flex items-center gap-3 mb-3">
+            <span class="text-xs font-bold text-[#CCFF00] uppercase tracking-wider">{{ $category }}</span>
+            <span class="text-xs text-gray-600">•</span>
+            <span class="text-xs text-gray-600">{{ $readTime }} min čitanja</span>
+            <span class="text-xs text-gray-600">•</span>
+            <span class="text-xs text-gray-600">{{ $post->created_at->format('d. M Y.') }}</span>
+        </div>
+        <h1 class="text-2xl font-black text-white mb-6">{{ $post->title }}</h1>
 
-        <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed space-y-4">
+        <div class="text-gray-300 leading-relaxed space-y-4
+            [&_h1]:text-white [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mt-6 [&_h1]:mb-3
+            [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-[#2a2a2a] [&_h2]:pb-1
+            [&_h3]:text-[#CCFF00] [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-1
+            [&_p]:mb-3 [&_p]:leading-7
+            [&_a]:text-[#CCFF00] [&_a]:underline [&_a]:hover:text-white
+            [&_strong]:text-white [&_strong]:font-bold">
             {!! $post->content !!}
         </div>
     </article>

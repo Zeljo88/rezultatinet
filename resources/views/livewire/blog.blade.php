@@ -1,7 +1,7 @@
 <div>
     <div class="mb-6">
-        <h1 class="text-2xl font-black text-white">Blog <span class="text-[#CCFF00]">& vijesti</span></h1>
-        <p class="text-gray-500 text-sm mt-1">Analize, vodiči i vijesti iz svijeta sporta</p>
+        <h1 class="text-2xl font-black text-white">Blog <span class="text-[#CCFF00]">& Vijesti</span></h1>
+        <p class="text-gray-500 text-sm mt-1">Analize, izvještaji i vijesti iz svijeta fudbala</p>
     </div>
 
     @if($posts->isEmpty())
@@ -10,21 +10,39 @@
             <p class="text-gray-400">Uskoro — prvi članci dolaze!</p>
         </div>
     @else
-        <div class="grid gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @foreach($posts as $post)
-            <a href="/blog/{{ $post->slug }}" class="block bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#CCFF00] transition cursor-pointer">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1">
-                        @if($post->keyword)
-                            <span class="text-[10px] font-bold text-[#CCFF00] uppercase tracking-wider">{{ $post->keyword }}</span>
-                        @endif
-                        <h2 class="text-lg font-bold text-white mt-1 mb-2">{{ $post->title }}</h2>
-                        <p class="text-gray-500 text-sm leading-relaxed">{{ $post->excerpt }}</p>
-                    </div>
-                    <span class="text-[#CCFF00] text-xl flex-shrink-0">→</span>
+            @php
+                $kw = strtolower($post->keyword ?? '');
+                $titleLower = strtolower($post->title ?? '');
+                if (str_contains($kw, 'gdje gledati') || str_contains($kw, 'gdje')) {
+                    $category = 'TV Vodič';
+                    $emoji = '📺';
+                } elseif (str_contains($kw, 'champions') || str_contains($titleLower, 'champions')) {
+                    $category = 'Champions Liga';
+                    $emoji = '🏆';
+                } elseif (str_contains($kw, 'hnl') || str_contains($titleLower, 'hnl')) {
+                    $category = 'HNL';
+                    $emoji = '⚽';
+                } else {
+                    $category = 'Fudbal';
+                    $emoji = '⚽';
+                }
+                $plainContent = strip_tags($post->content ?? '');
+                $excerpt = mb_strimwidth($plainContent, 0, 120, '...');
+                $readTime = max(1, (int) ceil(str_word_count($plainContent) / 200));
+            @endphp
+            <a href="/blog/{{ $post->slug }}" class="block bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#CCFF00] transition group">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-lg">{{ $emoji }}</span>
+                    <span class="text-xs font-bold text-[#CCFF00] uppercase tracking-wider">{{ $category }}</span>
+                    <span class="ml-auto text-xs text-gray-600">{{ $readTime }} min čitanja</span>
                 </div>
-                <div class="mt-3 text-xs text-gray-600">
-                    {{ $post->created_at->format('d.m.Y') }}
+                <h2 class="text-white font-bold text-lg leading-snug mb-2 group-hover:text-[#CCFF00] transition">{{ $post->title }}</h2>
+                <p class="text-gray-400 text-sm leading-relaxed line-clamp-2">{{ $excerpt }}</p>
+                <div class="mt-3 flex items-center justify-between">
+                    <span class="text-xs text-gray-600">{{ $post->created_at->format('d. M Y.') }}</span>
+                    <span class="text-xs text-[#CCFF00] font-bold group-hover:underline">Čitaj više →</span>
                 </div>
             </a>
             @endforeach
