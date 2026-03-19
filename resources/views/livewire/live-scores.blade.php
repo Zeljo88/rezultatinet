@@ -97,7 +97,7 @@
                                 in_array($fixture['status_short'] ?? '', ['FT', 'AET', 'PEN']) => 'FT',
                                 ($fixture['status_short'] ?? '') === 'HT' => 'HT',
                                 in_array($fixture['status_short'] ?? '', ['PST', 'CANC', 'ABD', 'SUSP', 'INT']) => 'OTK',
-                                in_array($fixture['status_short'] ?? '', ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => ($fixture['elapsed_minute'] ?? '?') . "'",
+                                in_array($fixture[status_short] ?? , [1H, 2H, ET, BT, P, LIVE]) => ($fixture[elapsed_minute] ?? ?) . (!empty($fixture[elapsed_extra]) ? + . $fixture[elapsed_extra] : ) . ",",
                                 default => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
                             };
                             $statusClass = match(true) {

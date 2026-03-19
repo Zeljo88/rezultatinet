@@ -50,7 +50,7 @@
                 <div class="mt-2">
                     @if($isLive)
                         <span class="inline-flex items-center gap-1 bg-[#FF3B30] text-white text-xs font-bold px-2 py-1 rounded">
-                            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>{{ $fixture->elapsed_minute }}'
+                            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>{{ $fixture->elapsed_minute }}{{ $fixture->elapsed_extra ? '+' . $fixture->elapsed_extra : '' }}'
                         </span>
                     @elseif($isHT)
                         <span class="text-yellow-400 text-sm font-bold">Poluvrijeme</span>
@@ -137,7 +137,7 @@
                 };
             @endphp
             <div class="flex items-center gap-3 py-2 border-b border-[#2a2a2a] last:border-0">
-                <span class="text-xs text-gray-500 w-8 text-right">{{ $event->elapsed_minute }}'</span>
+                <span class="text-xs text-gray-500 w-8 text-right">{{ $event->elapsed_minute }}{{ $event->elapsed_extra ? '+' . $event->elapsed_extra : '' }}'</span>
                 <span class="text-sm">{{ $icon }}</span>
                 @if($isHome)
                     <div class="flex flex-col flex-1">
