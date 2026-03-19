@@ -35,3 +35,6 @@ Schedule::command('facebook:pre-match --dry-run')
 Schedule::command('facebook:post-match --dry-run')
     ->dailyAt('23:30')
     ->name('facebook-post-match');
+
+// Backfill missing events for finished matches every hour
+Schedule::command('sync:events-backfill')->hourly();
