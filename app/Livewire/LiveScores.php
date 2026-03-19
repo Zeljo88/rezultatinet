@@ -156,7 +156,8 @@ class LiveScores extends Component
                 $scoreAway = null;
             }
 
-            $leagueName = $fixture->league?->name ?? 'Ostale lige';
+            $country = $fixture->league?->country ?? '';
+            $leagueName = ($country ? $country . ' — ' : '') . ($fixture->league?->name ?? 'Ostale lige');
             $grouped[$leagueName][] = [
                 'id'             => $fixture->id,
                 'status_short'   => $fixture->status_short,
