@@ -31,4 +31,11 @@ class ApiFootballService
         if (!$response->successful()) return [];
         return $response->json('response', []);
     }
+
+    public function getFixtureById(int $apiFixtureId): array
+    {
+        $response = $this->client->get('/fixtures', ['id' => $apiFixtureId]);
+        if (!$response->successful()) return [];
+        return $response->json('response', [])[0] ?? [];
+    }
 }
