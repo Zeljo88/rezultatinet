@@ -68,7 +68,13 @@ class FetchLiveFixtures implements ShouldQueue
                 }
             }
 
-            broadcast(new LiveScoreUpdated($fixture->fresh(['score','homeTeam','awayTeam'])));
+            // Broadcast score update — wrapped in try/catch so a Reverb failure
+            // does NOT prevent DB scores from being saved
+            try {
+                broadcast(new LiveScoreUpdated($fixture->fresh(['score','homeTeam','awayTeam'])));
+            } catch (\Throwable $broadcastError) {
+                Log::warning('Broadcast failed (scores already saved): ' . $broadcastError->getMessage());
+            }
         }
     }
 }
