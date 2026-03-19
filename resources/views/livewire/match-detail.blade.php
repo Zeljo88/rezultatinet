@@ -112,22 +112,45 @@
             @foreach($fixture->events->sortBy('elapsed_minute') as $event)
             @php
                 $isHome = isset($event->team_id) && $event->team_id === $fixture->home_team_id;
-                $icon = match($event->type) {
-                    'Goal' => $event->detail === 'Own Goal' ? '⚽️' : '⚽',
-                    'Card' => $event->detail === 'Yellow Card' ? '🟨' : '🟥',
-                    'subst' => '🔄',
-                    default => '•'
+                $icon = match(true) {
+                    $event->type === 'Goal' && $event->detail === 'Own Goal' => '⚽️',
+                    $event->type === 'Goal' && $event->detail === 'Penalty' => '🅿️',
+                    $event->type === 'Goal' && $event->detail === 'Missed Penalty' => '❌',
+                    $event->type === 'Goal' => '⚽',
+                    $event->type === 'Card' && $event->detail === 'Yellow Card' => '🟨',
+                    $event->type === 'Card' => '🟥',
+                    $event->type === 'subst' => '🔄',
+                    $event->type === 'Var' => '📺',
+                    default => '📋'
+                };
+                $label = match(true) {
+                    $event->type === 'Goal' && $event->detail === 'Own Goal' => 'Autogol',
+                    $event->type === 'Goal' && $event->detail === 'Penalty' => 'Penal (Gol)',
+                    $event->type === 'Goal' && $event->detail === 'Missed Penalty' => 'Promašen penal',
+                    $event->type === 'Goal' => 'Gol',
+                    $event->type === 'Card' && $event->detail === 'Yellow Card' => 'Žuti karton',
+                    $event->type === 'Card' && $event->detail === 'Red Card' => 'Crveni karton',
+                    $event->type === 'Card' => 'Karton',
+                    $event->type === 'subst' => 'Zamjena',
+                    $event->type === 'Var' => 'VAR',
+                    default => $event->type
                 };
             @endphp
             <div class="flex items-center gap-3 py-2 border-b border-[#2a2a2a] last:border-0">
                 <span class="text-xs text-gray-500 w-8 text-right">{{ $event->elapsed_minute }}'</span>
                 <span class="text-sm">{{ $icon }}</span>
                 @if($isHome)
-                    <span class="text-sm text-white flex-1">{{ $event->player_name }}</span>
+                    <div class="flex flex-col flex-1">
+                        <span class="text-sm text-white">{{ $event->player_name }}</span>
+                        <span class="text-xs text-gray-400">{{ $label }}</span>
+                    </div>
                     <span class="flex-1"></span>
                 @else
                     <span class="flex-1"></span>
-                    <span class="text-sm text-white flex-1 text-right">{{ $event->player_name }}</span>
+                    <div class="flex flex-col flex-1 text-right">
+                        <span class="text-sm text-white">{{ $event->player_name }}</span>
+                        <span class="text-xs text-gray-400">{{ $label }}</span>
+                    </div>
                 @endif
             </div>
             @endforeach
