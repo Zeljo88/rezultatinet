@@ -45,7 +45,7 @@ $readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) /
         <h1 class="text-2xl font-black text-white mb-6">{{ $post->title }}</h1>
 
         <div class="text-gray-300 leading-relaxed space-y-4
-            [&_h1]:text-white [&_h1]:text-2xl [&_h1]:font-black [&_h1]:mt-6 [&_h1]:mb-3
+            [&_h1]:hidden
             [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-[#2a2a2a] [&_h2]:pb-1
             [&_h3]:text-[#CCFF00] [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-1
             [&_p]:mb-3 [&_p]:leading-7
