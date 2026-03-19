@@ -199,20 +199,124 @@
         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Postave ekipa</h3>
 
         @if($homeLineup || $awayLineup)
-        {{-- Formations row --}}
-        @if($homeLineup?->formation || $awayLineup?->formation)
-        <div class="flex justify-between items-center mb-4 px-2">
-            <span class="text-sm font-bold text-[#CCFF00]">{{ $homeLineup?->formation ?? '—' }}</span>
-            <span class="text-xs text-gray-500">Formacija</span>
-            <span class="text-sm font-bold text-[#CCFF00]">{{ $awayLineup?->formation ?? '—' }}</span>
+
+        {{-- Team headers with formations --}}
+        <div class="flex justify-between items-center mb-3 px-1">
+            <div class="text-left">
+                <p class="text-xs font-bold text-[#CCFF00] truncate max-w-[120px]">{{ $fixture->homeTeam->name }}</p>
+                @if($homeLineup?->formation)
+                    <p class="text-xs text-gray-500">{{ $homeLineup->formation }}</p>
+                @endif
+            </div>
+            <span class="text-xs text-gray-600">vs</span>
+            <div class="text-right">
+                <p class="text-xs font-bold text-white truncate max-w-[120px]">{{ $fixture->awayTeam->name }}</p>
+                @if($awayLineup?->formation)
+                    <p class="text-xs text-gray-500">{{ $awayLineup->formation }}</p>
+                @endif
+            </div>
+        </div>
+
+        {{-- Visual pitch --}}
+        @if($homeLineup && $awayLineup)
+        <div class="relative w-full rounded-xl overflow-hidden mb-6" style="background: #1a5c1a; aspect-ratio: 2/3;">
+            {{-- Pitch markings --}}
+            {{-- Center line --}}
+            <div class="absolute top-1/2 left-0 right-0 h-px bg-white opacity-30"></div>
+            {{-- Center circle --}}
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white opacity-30" style="width: 20%; padding-bottom: 20%;"></div>
+            {{-- Center dot --}}
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white opacity-40"></div>
+            {{-- Home penalty box (top) --}}
+            <div class="absolute top-0 left-1/4 right-1/4 border-b border-l border-r border-white opacity-20" style="height: 12%;"></div>
+            {{-- Home goal (top) --}}
+            <div class="absolute top-0 left-[38%] right-[38%] border-b border-l border-r border-white opacity-25" style="height: 4%;"></div>
+            {{-- Away penalty box (bottom) --}}
+            <div class="absolute bottom-0 left-1/4 right-1/4 border-t border-l border-r border-white opacity-20" style="height: 12%;"></div>
+            {{-- Away goal (bottom) --}}
+            <div class="absolute bottom-0 left-[38%] right-[38%] border-t border-l border-r border-white opacity-25" style="height: 4%;"></div>
+            {{-- Outer border --}}
+            <div class="absolute inset-1 border border-white opacity-20 rounded"></div>
+
+            {{-- Home team (top half) --}}
+            @php
+                $homeFormation = $homeLineup?->formation ?? '4-4-2';
+                $homeFormationRows = explode('-', $homeFormation);
+                array_unshift($homeFormationRows, '1');
+                $homeRows = count($homeFormationRows);
+                $homePlayers = $homeLineup->startxi ?? [];
+                $homePlayerIdx = 0;
+            @endphp
+            @foreach($homeFormationRows as $homeRowNum => $homeCount)
+                @php
+                    $homeRowPlayers = array_slice($homePlayers, $homePlayerIdx, (int)$homeCount);
+                    $homePlayerIdx += (int)$homeCount;
+                    $homeRowPos = ($homeRowNum + 0.5) / $homeRows * 50;
+                @endphp
+                <div class="absolute left-0 right-0 flex justify-around items-center px-1"
+                     style="top: {{ $homeRowPos }}%; transform: translateY(-50%);">
+                    @foreach($homeRowPlayers as $player)
+                    <div class="flex flex-col items-center" style="min-width: 0;">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black text-black flex-shrink-0"
+                             style="background: #CCFF00;">
+                            {{ $player['number'] ?? '?' }}
+                        </div>
+                        @php
+                            $nameParts = explode(' ', $player['name'] ?? '');
+                            $lastName = end($nameParts);
+                        @endphp
+                        <span class="text-white mt-0.5 text-center leading-tight truncate" style="font-size: 8px; max-width: 40px;">
+                            {{ $lastName }}
+                        </span>
+                    </div>
+                    @endforeach
+                </div>
+            @endforeach
+
+            {{-- Away team (bottom half) --}}
+            @php
+                $awayFormation = $awayLineup?->formation ?? '4-4-2';
+                $awayFormationRows = array_reverse(explode('-', $awayFormation));
+                array_unshift($awayFormationRows, '1');
+                $awayRows = count($awayFormationRows);
+                $awayPlayers = $awayLineup->startxi ?? [];
+                $awayPlayerIdx = 0;
+            @endphp
+            @foreach($awayFormationRows as $awayRowNum => $awayCount)
+                @php
+                    $awayRowPlayers = array_slice($awayPlayers, $awayPlayerIdx, (int)$awayCount);
+                    $awayPlayerIdx += (int)$awayCount;
+                    $awayRowPos = 50 + ($awayRowNum + 0.5) / $awayRows * 50;
+                @endphp
+                <div class="absolute left-0 right-0 flex justify-around items-center px-1"
+                     style="top: {{ $awayRowPos }}%; transform: translateY(-50%);">
+                    @foreach($awayRowPlayers as $player)
+                    <div class="flex flex-col items-center" style="min-width: 0;">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black text-black bg-white flex-shrink-0">
+                            {{ $player['number'] ?? '?' }}
+                        </div>
+                        @php
+                            $nameParts = explode(' ', $player['name'] ?? '');
+                            $lastName = end($nameParts);
+                        @endphp
+                        <span class="text-white mt-0.5 text-center leading-tight truncate" style="font-size: 8px; max-width: 40px;">
+                            {{ $lastName }}
+                        </span>
+                    </div>
+                    @endforeach
+                </div>
+            @endforeach
         </div>
         @endif
 
-        {{-- Starting XI --}}
+        {{-- Starting XI text list --}}
         <div class="grid grid-cols-2 gap-4 mb-6">
             {{-- Home team --}}
             <div>
-                <p class="text-xs text-[#CCFF00] font-bold mb-3 truncate">{{ $fixture->homeTeam->name }}</p>
+                <p class="text-xs text-[#CCFF00] font-bold mb-3 truncate">
+                    {{ $fixture->homeTeam->name }}
+                    @if($homeLineup?->formation) <span class="text-gray-500">({{ $homeLineup->formation }})</span> @endif
+                </p>
                 @if($homeLineup)
                     @foreach($homeLineup->startxi ?? [] as $player)
                     <div class="flex items-center gap-2 py-1.5 border-b border-[#2a2a2a]">
@@ -234,7 +338,10 @@
 
             {{-- Away team --}}
             <div>
-                <p class="text-xs text-[#CCFF00] font-bold mb-3 truncate">{{ $fixture->awayTeam->name }}</p>
+                <p class="text-xs text-white font-bold mb-3 truncate">
+                    {{ $fixture->awayTeam->name }}
+                    @if($awayLineup?->formation) <span class="text-gray-500">({{ $awayLineup->formation }})</span> @endif
+                </p>
                 @if($awayLineup)
                     @foreach($awayLineup->startxi ?? [] as $player)
                     <div class="flex items-center gap-2 py-1.5 border-b border-[#2a2a2a]">
