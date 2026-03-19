@@ -11,7 +11,7 @@
         <div class="text-xs text-gray-600 mb-6">{{ $post->created_at->format('d.m.Y') }}</div>
 
         <div class="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed space-y-4">
-            {!! nl2br(e($post->content)) !!}
+            {!! $post->content !!}
         </div>
     </article>
 
