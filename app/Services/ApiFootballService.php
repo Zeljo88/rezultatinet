@@ -38,4 +38,14 @@ class ApiFootballService
         if (!$response->successful()) return [];
         return $response->json('response', [])[0] ?? [];
     }
+
+    public function getTopScorers(int $leagueId, int $season): array
+    {
+        $response = $this->client->get('/players/topscorers', [
+            'league' => $leagueId,
+            'season' => $season,
+        ]);
+        if (!$response->successful()) return [];
+        return $response->json('response', []);
+    }
 }

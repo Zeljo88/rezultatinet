@@ -44,3 +44,6 @@ Schedule::command('facebook:post-match --dry-run')
 
 // Backfill missing events for finished matches every hour
 Schedule::command('sync:events-backfill')->hourly();
+
+// Sync top scorers weekly (Monday 3am)
+Schedule::command('sync:top-scorers')->weeklyOn(1, '03:00')->name('sync-top-scorers');

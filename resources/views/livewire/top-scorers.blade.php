@@ -1,8 +1,8 @@
 <div>
     <div class="flex items-center gap-3 mb-5">
         <div>
-            <h1 class="text-2xl font-black text-white">Strijelci <span class="text-[#CCFF00]">uživo</span></h1>
-            <p class="text-gray-500 text-sm">{{ $leagueName }} — sezona 2024/25</p>
+            <h1 class="text-2xl font-black text-white">Strijelci <span class="text-[#CCFF00]">2024/25</span></h1>
+            <p class="text-gray-500 text-sm">{{ $leagueName }} — top strijelci sezone</p>
         </div>
     </div>
 
@@ -26,12 +26,15 @@
             {{-- Header --}}
             <div class="grid grid-cols-12 px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-[#2a2a2a]">
                 <div class="col-span-1 text-center">#</div>
-                <div class="col-span-6">Igrač</div>
+                <div class="col-span-5">Igrač</div>
                 <div class="col-span-3">Klub</div>
-                <div class="col-span-2 text-center">⚽ Gol</div>
+                <div class="col-span-1 text-center">⚽</div>
+                <div class="col-span-1 text-center">🅰️</div>
+                <div class="col-span-1 text-center">Ut.</div>
             </div>
             @foreach($scorers as $i => $scorer)
             <div class="grid grid-cols-12 px-4 py-3 items-center {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }} border-b border-[#2a2a2a] last:border-0">
+                {{-- Rank --}}
                 <div class="col-span-1 text-center">
                     @if($i === 0)
                         <span class="text-yellow-400 font-black text-sm">🥇</span>
@@ -43,17 +46,38 @@
                         <span class="text-gray-500 text-sm">{{ $i + 1 }}</span>
                     @endif
                 </div>
-                <div class="col-span-6">
-                    <span class="text-sm font-semibold text-white">{{ $scorer['player_name'] }}</span>
+                {{-- Player --}}
+                <div class="col-span-5 flex items-center gap-2">
+                    @if($scorer['player_photo'])
+                        <img src="{{ $scorer['player_photo'] }}" class="w-8 h-8 rounded-full object-cover bg-[#2a2a2a]" alt="">
+                    @else
+                        <div class="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-600 text-xs">?</div>
+                    @endif
+                    <div>
+                        <span class="text-sm font-semibold text-white block leading-tight">{{ $scorer['player_name'] }}</span>
+                        @if($scorer['nationality'])
+                            <span class="text-xs text-gray-500">{{ $scorer['nationality'] }}</span>
+                        @endif
+                    </div>
                 </div>
+                {{-- Club --}}
                 <div class="col-span-3 flex items-center gap-1.5">
                     @if($scorer['team_logo'])
                         <img src="{{ $scorer['team_logo'] }}" class="w-4 h-4 object-contain" alt="">
                     @endif
                     <span class="text-xs text-gray-400 truncate">{{ $scorer['team_name'] }}</span>
                 </div>
-                <div class="col-span-2 text-center">
+                {{-- Goals --}}
+                <div class="col-span-1 text-center">
                     <span class="text-lg font-black {{ $i < 3 ? 'text-[#CCFF00]' : 'text-white' }}">{{ $scorer['goals'] }}</span>
+                </div>
+                {{-- Assists --}}
+                <div class="col-span-1 text-center">
+                    <span class="text-sm text-gray-400">{{ $scorer['assists'] }}</span>
+                </div>
+                {{-- Appearances --}}
+                <div class="col-span-1 text-center">
+                    <span class="text-sm text-gray-500">{{ $scorer['appearances'] }}</span>
                 </div>
             </div>
             @endforeach

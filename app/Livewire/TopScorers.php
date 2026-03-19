@@ -1,9 +1,8 @@
 <?php
 namespace App\Livewire;
 
-use App\Models\FixtureEvent;
 use App\Models\League;
-use Illuminate\Support\Facades\DB;
+use App\Models\PlayerStat;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -16,15 +15,16 @@ class TopScorers extends Component
     public string $leagueName = 'Premier League';
 
     protected array $availableLeagues = [
-        210 => 'HNL',
-        286 => 'Superliga Srbija',
-        315 => 'Premijer Liga BiH',
+        2   => 'Champions Liga',
+        3   => 'Europa Liga',
         39  => 'Premier League',
         140 => 'La Liga',
         135 => 'Serie A',
         78  => 'Bundesliga',
         61  => 'Ligue 1',
-        2   => 'Champions Liga',
+        210 => 'HNL',
+        286 => 'Superliga Srbija',
+        315 => 'Premijer Liga BiH',
     ];
 
     public function mount(int $league = 39): void
@@ -45,24 +45,26 @@ class TopScorers extends Component
 
     public function loadScorers(): void
     {
-        if (!$this->league) { $this->scorers = []; return; }
+        if (!$this->league) {
+            $this->scorers = [];
+            return;
+        }
 
-        $this->scorers = FixtureEvent::where('type', 'Goal')
-            ->where('detail', '!=', 'Own Goal')
-            ->whereNotNull('player_name')
-            ->where('player_name', '!=', '')
-            ->whereHas('fixture', fn($q) => $q->where('league_id', $this->league->id))
-            ->select('player_name', 'team_id', DB::raw('count(*) as goals'))
-            ->groupBy('player_name', 'team_id')
+        $this->scorers = PlayerStat::with('player')
+            ->where('league_id', $this->league->id)
+            ->where('season', '2024')
             ->orderByDesc('goals')
-            ->take(20)
-            ->with('team')
+            ->limit(20)
             ->get()
-            ->map(fn($s) => [
-                'player_name' => $s->player_name,
-                'team_name'   => $s->team?->name ?? 'N/A',
-                'team_logo'   => $s->team?->logo_url,
-                'goals'       => $s->goals,
+            ->map(fn($stat) => [
+                'player_name' => $stat->player?->name ?? 'Unknown',
+                'player_photo'=> $stat->player?->photo_url,
+                'team_name'   => $stat->player?->current_club ?? 'N/A',
+                'team_logo'   => $stat->player?->current_club_logo,
+                'nationality' => $stat->player?->nationality,
+                'goals'       => $stat->goals,
+                'assists'     => $stat->assists,
+                'appearances' => $stat->appearances,
             ])->toArray();
     }
 
