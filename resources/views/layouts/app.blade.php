@@ -23,7 +23,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Rezultati">
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     @vite(["resources/css/app.css", "resources/js/app.js"])
     @livewireStyles
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX"></script>

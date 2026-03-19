@@ -11,20 +11,26 @@ Schedule::job(new FetchLiveFixtures)
 Schedule::command('sync:fixtures')
     ->everyTwoHours();
 
-// Sync tomorrow's fixtures daily at 6am
 // Backfill last 14 days of fixtures (for team pages history)
 // Runs daily at 4am, uses ~14 API calls
 Schedule::call(function() {
     for ($i = 1; $i <= 14; $i++) {
-        if (\App\Models\ApiCallLog::getTodayCount() >= 70) break;
+        if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
         \Illuminate\Support\Facades\Artisan::call('sync:fixtures', [
             '--date' => now()->subDays($i)->format('Y-m-d')
         ]);
     }
 })->dailyAt('04:00')->name('backfill-fixtures');
 
-Schedule::command('sync:fixtures --date=' . now()->addDay()->format('Y-m-d'))
-    ->dailyAt('06:00');
+// Sync next 7 days of fixtures daily at 6:30am
+Schedule::call(function() {
+    for ($i = 0; $i <= 7; $i++) {
+        if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
+        \Illuminate\Support\Facades\Artisan::call('sync:fixtures', [
+            '--date' => now()->addDays($i)->format('Y-m-d')
+        ]);
+    }
+})->dailyAt('06:30')->name('sync-future-fixtures');
 
 // Facebook: pre-match post at 10:00 (dry-run until token is configured)
 Schedule::command('facebook:pre-match --dry-run')

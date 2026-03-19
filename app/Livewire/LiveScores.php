@@ -43,8 +43,13 @@ class LiveScores extends Component
 
     public function setDate(string $date): void
     {
-        $this->selectedDate = $date;
-        $this->loadFixtures();
+        $d = Carbon::parse($date);
+        $min = today()->subDays(3);
+        $max = today()->addDays(7);
+        if ($d->between($min, $max)) {
+            $this->selectedDate = $date;
+            $this->loadFixtures();
+        }
     }
 
     // ─── Filter ──────────────────────────────────────────────────────────────
