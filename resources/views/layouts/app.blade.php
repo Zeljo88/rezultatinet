@@ -66,40 +66,46 @@
             <div class="flex items-center gap-1 px-3 py-2 w-max">
                 <span class="text-gray-600 text-xs mr-1 flex-shrink-0">Lige:</span>
                 <a href="/liga/hnl" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/210.png" class="w-3.5 h-3.5 object-contain"> HNL
+                    🇭🇷 HNL
                 </a>
                 <a href="/liga/superliga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/286.png" class="w-3.5 h-3.5 object-contain"> Superliga SRB
+                    🇷🇸 Superliga Srbija
                 </a>
                 <a href="/liga/premijer-liga-bih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premijer-liga-bih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/315.png" class="w-3.5 h-3.5 object-contain"> Premijer BiH
-                </a>
-                <a href="/liga/champions-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/champions-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/2.png" class="w-3.5 h-3.5 object-contain"> Champions Liga
-                </a>
-                <a href="/liga/europa-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/europa-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/3.png" class="w-3.5 h-3.5 object-contain"> Europa Liga
-                </a>
-                <a href="/liga/premier-league" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premier-league') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/39.png" class="w-3.5 h-3.5 object-contain"> Premier League
-                </a>
-                <a href="/liga/la-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/la-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/140.png" class="w-3.5 h-3.5 object-contain"> La Liga
-                </a>
-                <a href="/liga/serie-a" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/serie-a') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/135.png" class="w-3.5 h-3.5 object-contain"> Serie A
-                </a>
-                <a href="/liga/bundesliga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/bundesliga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/78.png" class="w-3.5 h-3.5 object-contain"> Bundesliga
-                </a>
-                <a href="/liga/ligue-1" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/ligue-1') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/61.png" class="w-3.5 h-3.5 object-contain"> Ligue 1
+                    🇧🇦 Premijer Liga BiH
                 </a>
                 <a href="/liga/hnl-2" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl-2') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/946.png" class="w-3.5 h-3.5 object-contain"> HNL 2
+                    🇭🇷 HNL 2
                 </a>
                 <a href="/liga/prva-liga-fbih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-fbih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    <img src="https://media.api-sports.io/football/leagues/316.png" class="w-3.5 h-3.5 object-contain"> Prva FBiH
+                    🇧🇦 Prva liga FBiH
+                </a>
+                <a href="/liga/prva-liga-rs" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-rs') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇷🇸 Prva liga RS
+                </a>
+                <a href="/liga/champions-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/champions-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    ⭐ Champions Liga
+                </a>
+                <a href="/liga/europa-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/europa-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🔶 Europa Liga
+                </a>
+                <a href="/liga/konferencijska-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/konferencijska-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    ⚪ Konferencijska liga
+                </a>
+                <a href="/liga/premier-league" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premier-league') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League
+                </a>
+                <a href="/liga/la-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/la-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇪🇸 La Liga
+                </a>
+                <a href="/liga/bundesliga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/bundesliga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇩🇪 Bundesliga
+                </a>
+                <a href="/liga/serie-a" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/serie-a') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇮🇹 Serie A
+                </a>
+                <a href="/liga/ligue-1" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/ligue-1') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇫🇷 Ligue 1
                 </a>
             </div>
         </div>
@@ -115,54 +121,50 @@
 
                 <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Balkan</p>
                 <a href="/liga/hnl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/210.png" class="w-4 h-4 object-contain" alt=""> HNL
+                    🇭🇷 HNL
                 </a>
                 <a href="/liga/superliga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/286.png" class="w-4 h-4 object-contain" alt=""> Superliga Srbija
+                    🇷🇸 Superliga Srbija
                 </a>
                 <a href="/liga/premijer-liga-bih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/premijer-liga-bih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/315.png" class="w-4 h-4 object-contain" alt=""> Premijer Liga BiH
-                </a>
-                <a href="/liga/prva-liga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/287.png" class="w-4 h-4 object-contain" alt=""> Prva Liga Srbija
-                </a>
-                <a href="/liga/first-nl-hrvatska" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/first-nl-hrvatska') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/211.png" class="w-4 h-4 object-contain" alt=""> Prva NL Hrvatska
+                    🇧🇦 Premijer Liga BiH
                 </a>
                 <a href="/liga/hnl-2" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl-2') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/946.png" class="w-4 h-4 object-contain" alt=""> HNL 2
+                    🇭🇷 HNL 2
                 </a>
                 <a href="/liga/prva-liga-fbih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-fbih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/316.png" class="w-4 h-4 object-contain" alt=""> Prva liga FBiH
+                    🇧🇦 Prva liga FBiH
                 </a>
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-rs') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/317.png" class="w-4 h-4 object-contain" alt=""> Prva liga RS
+                    🇷🇸 Prva liga RS
                 </a>
 
-                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Europa</p>
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Evropa</p>
                 <a href="/liga/champions-liga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/champions-liga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/2.png" class="w-4 h-4 object-contain" alt=""> Champions Liga
+                    ⭐ Champions Liga
                 </a>
                 <a href="/liga/europa-liga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/europa-liga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/3.png" class="w-4 h-4 object-contain" alt=""> Europa Liga
+                    🔶 Europa Liga
                 </a>
                 <a href="/liga/konferencijska-liga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/konferencijska-liga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/848.png" class="w-4 h-4 object-contain" alt=""> Konferencijska
+                    ⚪ Konferencijska liga
                 </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Lige petice</p>
                 <a href="/liga/premier-league" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/premier-league') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/39.png" class="w-4 h-4 object-contain" alt=""> Premier League
+                    🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League
                 </a>
                 <a href="/liga/la-liga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/la-liga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/140.png" class="w-4 h-4 object-contain" alt=""> La Liga
-                </a>
-                <a href="/liga/serie-a" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/serie-a') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/135.png" class="w-4 h-4 object-contain" alt=""> Serie A
+                    🇪🇸 La Liga
                 </a>
                 <a href="/liga/bundesliga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/bundesliga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/78.png" class="w-4 h-4 object-contain" alt=""> Bundesliga
+                    🇩🇪 Bundesliga
+                </a>
+                <a href="/liga/serie-a" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/serie-a') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇮🇹 Serie A
                 </a>
                 <a href="/liga/ligue-1" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/ligue-1') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    <img src="https://media.api-sports.io/football/leagues/61.png" class="w-4 h-4 object-contain" alt=""> Ligue 1
+                    🇫🇷 Ligue 1
                 </a>
             </div>
 
