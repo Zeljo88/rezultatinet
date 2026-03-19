@@ -2,6 +2,7 @@
 namespace App\Livewire;
 
 use App\Models\Fixture;
+use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\Attributes\On;
 
@@ -11,13 +12,16 @@ class LiveScores extends Component
     public string $tab = 'today';
     public string $sport = 'football';
     public bool $sportAvailable = true;
+    public string $selectedDate;
+    public string $filter = 'sve';
 
     protected array $priorityLeagues = [210, 286, 315, 211, 287, 316, 317, 946, 2, 3, 848, 39, 140, 135, 78, 61];
 
     public function mount(string $initialTab = 'today', string $sport = 'football'): void
     {
-        $this->tab   = $initialTab;
-        $this->sport = $sport;
+        $this->tab          = $initialTab;
+        $this->sport        = $sport;
+        $this->selectedDate = today()->toDateString();
         // Basketball and tennis not yet synced from API
         $this->sportAvailable = ($sport === 'football');
         if ($this->sportAvailable) {
@@ -25,24 +29,71 @@ class LiveScores extends Component
         }
     }
 
-    public function loadFixtures(): void
+    // ─── Date helpers ────────────────────────────────────────────────────────
+
+    public function getPrevDate(): string
     {
-        $query = Fixture::with(['homeTeam', 'awayTeam', 'score', 'league'])
+        return Carbon::parse($this->selectedDate)->subDay()->toDateString();
+    }
+
+    public function getNextDate(): string
+    {
+        return Carbon::parse($this->selectedDate)->addDay()->toDateString();
+    }
+
+    public function setDate(string $date): void
+    {
+        $this->selectedDate = $date;
+        $this->loadFixtures();
+    }
+
+    // ─── Filter ──────────────────────────────────────────────────────────────
+
+    public function setFilter(string $filter): void
+    {
+        $this->filter = $filter;
+        $this->loadFixtures();
+    }
+
+    // ─── Base query (all fixtures for selected date, no status filter) ───────
+
+    protected function baseQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return Fixture::with(['homeTeam', 'awayTeam', 'score', 'league'])
             ->join('leagues', 'fixtures.league_id', '=', 'leagues.id')
             ->select('fixtures.*')
+            ->whereDate('fixtures.kick_off', $this->selectedDate)
             ->orderByRaw('FIELD(leagues.api_league_id, ' . implode(',', $this->priorityLeagues) . ') DESC')
             ->orderBy('fixtures.kick_off');
+    }
 
-        // All leagues in DB are football for now
-        if ($this->tab === 'live') {
-            $query->whereIn('fixtures.status_short', ['1H','2H','HT','ET','BT','P','SUSP','INT','LIVE']);
-        } elseif ($this->tab === 'yesterday') {
-            $query->whereDate('fixtures.kick_off', today()->subDay());
-        } elseif ($this->tab === 'tomorrow') {
-            $query->whereDate('fixtures.kick_off', today()->addDay());
-        } else {
-            $query->whereDate('fixtures.kick_off', today());
-        }
+    // ─── Counts for pills (runs one query, counts in PHP) ────────────────────
+
+    public function getCounts(): array
+    {
+        $all = $this->baseQuery()->get();
+
+        return [
+            'all'      => $all->count(),
+            'live'     => $all->whereIn('status_short', ['1H','2H','HT','ET','BT','P'])->count(),
+            'upcoming' => $all->where('status_short', 'NS')->count(),
+            'finished' => $all->whereIn('status_short', ['FT','AET','PEN'])->count(),
+        ];
+    }
+
+    // ─── Main fixture loader ──────────────────────────────────────────────────
+
+    public function loadFixtures(): void
+    {
+        $query = $this->baseQuery();
+
+        // Apply status filter
+        match ($this->filter) {
+            'uzivo'    => $query->whereIn('fixtures.status_short', ['1H','2H','HT','ET','BT','P']),
+            'zakazano' => $query->where('fixtures.status_short', 'NS'),
+            'zavrseno' => $query->whereIn('fixtures.status_short', ['FT','AET','PEN']),
+            default    => null, // 'sve' — no extra constraint
+        };
 
         $liveStatuses = ['1H','2H','ET','BT','P','LIVE','HT'];
         $ftStatuses   = ['FT','AET','PEN'];
@@ -82,10 +133,30 @@ class LiveScores extends Component
         $this->fixtures = $grouped;
     }
 
-    public function setTab(string $tab): void { $this->tab = $tab; $this->loadFixtures(); }
+    // ─── Legacy tab support (kept for any external calls) ────────────────────
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = $tab;
+        $this->loadFixtures();
+    }
+
+    // ─── Real-time score updates ──────────────────────────────────────────────
 
     #[On('echo:live-scores,score.updated')]
-    public function handleScoreUpdate(array $data): void { $this->loadFixtures(); }
+    public function handleScoreUpdate(array $data): void
+    {
+        $this->loadFixtures();
+    }
 
-    public function render() { return view('livewire.live-scores'); }
+    // ─── Render ──────────────────────────────────────────────────────────────
+
+    public function render()
+    {
+        return view('livewire.live-scores', [
+            'prevDate' => $this->getPrevDate(),
+            'nextDate' => $this->getNextDate(),
+            'counts'   => $this->getCounts(),
+        ]);
+    }
 }
