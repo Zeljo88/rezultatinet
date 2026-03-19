@@ -5,6 +5,7 @@ use App\Events\LiveScoreUpdated;
 use App\Models\ApiCallLog;
 use App\Models\Fixture;
 use App\Models\FixtureEvent;
+use App\Models\FixtureLineup;
 use App\Models\FixtureScore;
 use App\Models\Team;
 use App\Services\ApiFootballService;
@@ -67,6 +68,57 @@ class FetchLiveFixtures implements ShouldQueue
                         'elapsed_minute' => $event['time']['elapsed'] ?? null,
                         'elapsed_extra'  => $event['time']['extra'] ?: null,
                     ]);
+                }
+            }
+
+            // Sync lineups if not already saved (budget check: max 7000)
+            if (ApiCallLog::getTodayCount() < 7000) {
+                $hasLineups = FixtureLineup::where('fixture_id', $fixture->id)->exists();
+                if (!$hasLineups && $fixture->api_fixture_id) {
+                    try {
+                        $lineupData = $api->getLineups($fixture->api_fixture_id);
+                        ApiCallLog::create(['endpoint' => '/fixtures/lineups', 'called_date' => today()]);
+
+                        $fixture->load(['homeTeam', 'awayTeam']);
+
+                        foreach ($lineupData as $teamLineup) {
+                            $side = null;
+                            $teamApiId = $teamLineup['team']['id'] ?? null;
+                            if ($teamApiId) {
+                                if ($fixture->homeTeam && $fixture->homeTeam->api_team_id == $teamApiId) {
+                                    $side = 'home';
+                                } elseif ($fixture->awayTeam && $fixture->awayTeam->api_team_id == $teamApiId) {
+                                    $side = 'away';
+                                }
+                            }
+                            if (!$side) continue;
+
+                            $startxi = collect($teamLineup['startXI'] ?? [])->map(fn($p) => [
+                                'number' => $p['player']['number'] ?? null,
+                                'name'   => $p['player']['name'] ?? null,
+                                'pos'    => $p['player']['pos'] ?? null,
+                                'grid'   => $p['player']['grid'] ?? null,
+                            ])->toArray();
+
+                            $substitutes = collect($teamLineup['substitutes'] ?? [])->map(fn($p) => [
+                                'number' => $p['player']['number'] ?? null,
+                                'name'   => $p['player']['name'] ?? null,
+                                'pos'    => $p['player']['pos'] ?? null,
+                            ])->toArray();
+
+                            FixtureLineup::updateOrCreate(
+                                ['fixture_id' => $fixture->id, 'team_side' => $side],
+                                [
+                                    'formation'   => $teamLineup['formation'] ?? null,
+                                    'coach_name'  => $teamLineup['coach']['name'] ?? null,
+                                    'startxi'     => $startxi,
+                                    'substitutes' => $substitutes,
+                                ]
+                            );
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Lineup sync failed in FetchLiveFixtures: ' . $e->getMessage());
+                    }
                 }
             }
 

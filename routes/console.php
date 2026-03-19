@@ -47,3 +47,6 @@ Schedule::command('sync:events-backfill')->hourly();
 
 // Sync top scorers weekly (Monday 3am)
 Schedule::command('sync:top-scorers')->weeklyOn(1, '03:00')->name('sync-top-scorers');
+
+// Sync match lineups every 30 minutes
+Schedule::command('sync:lineups')->everyThirtyMinutes()->name('sync-lineups');

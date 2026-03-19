@@ -18,6 +18,7 @@ class Fixture extends Model
     public function awayTeam()  { return $this->belongsTo(Team::class, 'away_team_id'); }
     public function score()     { return $this->hasOne(FixtureScore::class); }
     public function events()    { return $this->hasMany(FixtureEvent::class); }
+    public function lineups()   { return $this->hasMany(FixtureLineup::class); }
 
     public function scopeLive($q) {
         return $q->whereIn('status_short', ['1H','2H','HT','ET','BT','P','SUSP','INT','LIVE']);

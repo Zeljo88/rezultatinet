@@ -2,6 +2,7 @@
 namespace App\Livewire;
 
 use App\Models\Fixture;
+use App\Models\FixtureLineup;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Layout;
@@ -13,7 +14,9 @@ class MatchDetail extends Component
     public Fixture $fixture;
     public string $pageTitle = 'Detalji utakmice';
     public array $h2h = [];
-    public string $activeTab = 'events'; // events | h2h
+    public string $activeTab = 'events'; // events | lineups | h2h
+    public ?FixtureLineup $homeLineup = null;
+    public ?FixtureLineup $awayLineup = null;
 
     public function mount(int $id): void
     {
@@ -23,6 +26,17 @@ class MatchDetail extends Component
 
         $this->pageTitle = $this->fixture->homeTeam->name . ' vs ' . $this->fixture->awayTeam->name;
         $this->loadH2H();
+        $this->loadLineups();
+    }
+
+    public function loadLineups(): void
+    {
+        $this->homeLineup = FixtureLineup::where('fixture_id', $this->fixture->id)
+            ->where('team_side', 'home')
+            ->first();
+        $this->awayLineup = FixtureLineup::where('fixture_id', $this->fixture->id)
+            ->where('team_side', 'away')
+            ->first();
     }
 
     public function loadH2H(): void
@@ -65,6 +79,7 @@ class MatchDetail extends Component
     public function refresh(): void
     {
         $this->fixture = $this->fixture->fresh(['homeTeam','awayTeam','score','league','events']);
+        $this->loadLineups();
     }
 
     public function render()

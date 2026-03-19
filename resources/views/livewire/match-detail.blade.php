@@ -1,23 +1,52 @@
 <div>
-<div>
-    @php
-        $liveStatuses = ['1H','2H','ET','BT','P','LIVE'];
-        $isLive = in_array($fixture->status_short, $liveStatuses);
-        $isHT   = $fixture->status_short === 'HT';
-        $isFT   = in_array($fixture->status_short, ['FT','AET','PEN']);
-        $hasScore = $isLive || $isHT || $isFT;
-        $score = $fixture->score;
-        if ($isLive || $isHT) {
-            $scoreHome = $score ? ($score->goals_home !== null ? $score->goals_home : ($score->home_fulltime !== null ? $score->home_fulltime : 0)) : 0;
-            $scoreAway = $score ? ($score->goals_away !== null ? $score->goals_away : ($score->away_fulltime !== null ? $score->away_fulltime : 0)) : 0;
-        } elseif ($isFT) {
-            $scoreHome = $score ? ($score->home_fulltime !== null ? $score->home_fulltime : ($score->goals_home !== null ? $score->goals_home : 0)) : 0;
-            $scoreAway = $score ? ($score->away_fulltime !== null ? $score->away_fulltime : ($score->goals_away !== null ? $score->goals_away : 0)) : 0;
-        } else {
-            $scoreHome = 0;
-            $scoreAway = 0;
+@php
+    $liveStatuses = ['1H','2H','ET','BT','P','LIVE'];
+    $isLive = in_array($fixture->status_short, $liveStatuses);
+    $isHT   = $fixture->status_short === 'HT';
+    $isFT   = in_array($fixture->status_short, ['FT','AET','PEN']);
+    $hasScore = $isLive || $isHT || $isFT;
+    $score = $fixture->score;
+    if ($isLive || $isHT) {
+        $scoreHome = $score ? ($score->goals_home !== null ? $score->goals_home : ($score->home_fulltime !== null ? $score->home_fulltime : 0)) : 0;
+        $scoreAway = $score ? ($score->goals_away !== null ? $score->goals_away : ($score->away_fulltime !== null ? $score->away_fulltime : 0)) : 0;
+    } elseif ($isFT) {
+        $scoreHome = $score ? ($score->home_fulltime !== null ? $score->home_fulltime : ($score->goals_home !== null ? $score->goals_home : 0)) : 0;
+        $scoreAway = $score ? ($score->away_fulltime !== null ? $score->away_fulltime : ($score->goals_away !== null ? $score->goals_away : 0)) : 0;
+    } else {
+        $scoreHome = 0;
+        $scoreAway = 0;
+    }
+
+    // SportsEvent JSON-LD Schema
+    $schemaData = [
+        '@context'   => 'https://schema.org',
+        '@type'      => 'SportsEvent',
+        'name'       => $fixture->homeTeam->name . ' vs ' . $fixture->awayTeam->name,
+        'startDate'  => \Carbon\Carbon::parse($fixture->kick_off)->toIso8601String(),
+        'location'   => [
+            '@type' => 'Place',
+            'name'  => $fixture->venue_name ?? 'Unknown Venue',
+        ],
+        'competitor' => [
+            ['@type' => 'SportsTeam', 'name' => $fixture->homeTeam->name],
+            ['@type' => 'SportsTeam', 'name' => $fixture->awayTeam->name],
+        ],
+        'sport' => 'Football',
+        'url'   => url()->current(),
+    ];
+    if ($fixture->score) {
+        $schemaData['homeTeam'] = ['@type' => 'SportsTeam', 'name' => $fixture->homeTeam->name];
+        $schemaData['awayTeam'] = ['@type' => 'SportsTeam', 'name' => $fixture->awayTeam->name];
+        if ($isFT) {
+            $schemaData['name'] .= ' ' . $scoreHome . '-' . $scoreAway;
         }
-    @endphp
+    }
+@endphp
+
+    {{-- SportsEvent JSON-LD — injected as first child, stays inside root div --}}
+    <script type="application/ld+json">
+    {!! json_encode($schemaData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) !!}
+    </script>
 
     {{-- Back --}}
     <a href="/" class="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-4 transition cursor-pointer">
@@ -70,9 +99,7 @@
         </div>
     </div>
 
-
     {{-- Share buttons --}}
-    @if($hasScore || !$hasScore)
     <div class="flex items-center justify-center gap-3 mt-4 mb-2">
         @php
             $matchTitle = $fixture->homeTeam->name . ' ' . ($hasScore ? $scoreHome . ' - ' . $scoreAway : 'vs') . ' ' . $fixture->awayTeam->name;
@@ -92,13 +119,17 @@
             🔗 Kopiraj link
         </button>
     </div>
-    @endif
 
-    {{-- Tabs: Dogadjaji / H2H --}}
-    <div class="flex gap-2 mb-4">
+    {{-- Tabs: Dogadjaji / Sastavi / H2H --}}
+    <div class="flex gap-2 mb-4 flex-wrap">
         <button wire:click="setTab('events')" class="px-4 py-2 rounded-lg text-sm font-bold transition cursor-pointer {{ $activeTab === 'events' ? 'bg-[#CCFF00] text-black' : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-[#2a2a2a]' }}">
             📋 Dogadjaji
         </button>
+        @if($homeLineup || $awayLineup)
+        <button wire:click="setTab('lineups')" class="px-4 py-2 rounded-lg text-sm font-bold transition cursor-pointer {{ $activeTab === 'lineups' ? 'bg-[#CCFF00] text-black' : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-[#2a2a2a]' }}">
+            👥 Sastavi
+        </button>
+        @endif
         <button wire:click="setTab('h2h')" class="px-4 py-2 rounded-lg text-sm font-bold transition cursor-pointer {{ $activeTab === 'h2h' ? 'bg-[#CCFF00] text-black' : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-[#2a2a2a]' }}">
             ⚔️ H2H
         </button>
@@ -160,6 +191,106 @@
             <p class="text-gray-500 text-sm">Nema dostupnih dogadjaja.</p>
         </div>
         @endif
+    @endif
+
+    {{-- SASTAVI (LINEUPS) TAB --}}
+    @if($activeTab === 'lineups')
+    <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4 mb-4">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Postave ekipa</h3>
+
+        @if($homeLineup || $awayLineup)
+        {{-- Formations row --}}
+        @if($homeLineup?->formation || $awayLineup?->formation)
+        <div class="flex justify-between items-center mb-4 px-2">
+            <span class="text-sm font-bold text-[#CCFF00]">{{ $homeLineup?->formation ?? '—' }}</span>
+            <span class="text-xs text-gray-500">Formacija</span>
+            <span class="text-sm font-bold text-[#CCFF00]">{{ $awayLineup?->formation ?? '—' }}</span>
+        </div>
+        @endif
+
+        {{-- Starting XI --}}
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            {{-- Home team --}}
+            <div>
+                <p class="text-xs text-[#CCFF00] font-bold mb-3 truncate">{{ $fixture->homeTeam->name }}</p>
+                @if($homeLineup)
+                    @foreach($homeLineup->startxi ?? [] as $player)
+                    <div class="flex items-center gap-2 py-1.5 border-b border-[#2a2a2a]">
+                        <span class="text-xs text-gray-500 w-5 text-right flex-shrink-0">{{ $player['number'] ?? '' }}</span>
+                        <span class="text-sm text-white truncate flex-1">{{ $player['name'] ?? '' }}</span>
+                        <span class="text-xs text-gray-600 flex-shrink-0">{{ $player['pos'] ?? '' }}</span>
+                    </div>
+                    @endforeach
+                    @if($homeLineup->coach_name)
+                        <div class="flex items-center gap-2 pt-2 mt-1">
+                            <span class="text-xs text-gray-600">🧑‍💼</span>
+                            <span class="text-xs text-gray-500 truncate">{{ $homeLineup->coach_name }}</span>
+                        </div>
+                    @endif
+                @else
+                    <p class="text-xs text-gray-600 italic">Nema podataka</p>
+                @endif
+            </div>
+
+            {{-- Away team --}}
+            <div>
+                <p class="text-xs text-[#CCFF00] font-bold mb-3 truncate">{{ $fixture->awayTeam->name }}</p>
+                @if($awayLineup)
+                    @foreach($awayLineup->startxi ?? [] as $player)
+                    <div class="flex items-center gap-2 py-1.5 border-b border-[#2a2a2a]">
+                        <span class="text-xs text-gray-500 w-5 text-right flex-shrink-0">{{ $player['number'] ?? '' }}</span>
+                        <span class="text-sm text-white truncate flex-1">{{ $player['name'] ?? '' }}</span>
+                        <span class="text-xs text-gray-600 flex-shrink-0">{{ $player['pos'] ?? '' }}</span>
+                    </div>
+                    @endforeach
+                    @if($awayLineup->coach_name)
+                        <div class="flex items-center gap-2 pt-2 mt-1">
+                            <span class="text-xs text-gray-600">🧑‍💼</span>
+                            <span class="text-xs text-gray-500 truncate">{{ $awayLineup->coach_name }}</span>
+                        </div>
+                    @endif
+                @else
+                    <p class="text-xs text-gray-600 italic">Nema podataka</p>
+                @endif
+            </div>
+        </div>
+
+        {{-- Substitutes --}}
+        @php
+            $homeSubs = $homeLineup?->substitutes ?? [];
+            $awaySubs = $awayLineup?->substitutes ?? [];
+            $hasSubs  = count($homeSubs) > 0 || count($awaySubs) > 0;
+        @endphp
+        @if($hasSubs)
+        <div class="border-t border-[#2a2a2a] pt-4">
+            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Rezerve</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    @foreach($homeSubs as $player)
+                    <div class="flex items-center gap-2 py-1 border-b border-[#222]">
+                        <span class="text-xs text-gray-600 w-5 text-right flex-shrink-0">{{ $player['number'] ?? '' }}</span>
+                        <span class="text-xs text-gray-400 truncate flex-1">{{ $player['name'] ?? '' }}</span>
+                        <span class="text-xs text-gray-700 flex-shrink-0">{{ $player['pos'] ?? '' }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                <div>
+                    @foreach($awaySubs as $player)
+                    <div class="flex items-center gap-2 py-1 border-b border-[#222]">
+                        <span class="text-xs text-gray-600 w-5 text-right flex-shrink-0">{{ $player['number'] ?? '' }}</span>
+                        <span class="text-xs text-gray-400 truncate flex-1">{{ $player['name'] ?? '' }}</span>
+                        <span class="text-xs text-gray-700 flex-shrink-0">{{ $player['pos'] ?? '' }}</span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
+
+        @else
+        <p class="text-gray-500 text-sm text-center py-4">Postave još nisu objavljene.</p>
+        @endif
+    </div>
     @endif
 
     {{-- H2H TAB --}}
@@ -231,26 +362,24 @@
         @if($fixture->referee) &bull; Sudija: {{ $fixture->referee }} @endif
     </div>
     @endif
-</div>
-
 
     <x-affiliate-banner ad-slot="match-bottom" extra-class="mt-4" />
 
+    @if($isLive)
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.Echo === 'undefined') return;
+        window.Echo.channel('fixture.{{ $fixture->id }}')
+            .listen('.score.updated', (data) => {
+                const homeScore = document.getElementById('score-home');
+                const awayScore = document.getElementById('score-away');
+                const minute = document.getElementById('match-minute');
+                if (homeScore) homeScore.textContent = data.home_goals !== undefined ? data.home_goals : (data.goals_home ?? 0);
+                if (awayScore) awayScore.textContent = data.away_goals !== undefined ? data.away_goals : (data.goals_away ?? 0);
+                if (minute && data.minute !== undefined) minute.textContent = data.minute;
+            });
+    });
+    </script>
+    @endif
 
-@if($isLive)
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.Echo === 'undefined') return;
-    window.Echo.channel('fixture.{{ $fixture->id }}')
-        .listen('.score.updated', (data) => {
-            const homeScore = document.getElementById('score-home');
-            const awayScore = document.getElementById('score-away');
-            const minute = document.getElementById('match-minute');
-            if (homeScore) homeScore.textContent = data.home_goals !== undefined ? data.home_goals : (data.goals_home ?? 0);
-            if (awayScore) awayScore.textContent = data.away_goals !== undefined ? data.away_goals : (data.goals_away ?? 0);
-            if (minute && data.minute !== undefined) minute.textContent = data.minute;
-        });
-});
-</script>
-@endif
 </div>

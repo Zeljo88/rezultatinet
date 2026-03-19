@@ -48,4 +48,11 @@ class ApiFootballService
         if (!$response->successful()) return [];
         return $response->json('response', []);
     }
+
+    public function getLineups(int $apiFixtureId): array
+    {
+        $response = $this->client->get('/fixtures/lineups', ['fixture' => $apiFixtureId]);
+        if (!$response->successful()) return [];
+        return $response->json('response', []);
+    }
 }
