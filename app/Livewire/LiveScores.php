@@ -160,6 +160,7 @@ class LiveScores extends Component
             $leagueName = ($country ? $country . ' — ' : '') . ($fixture->league?->name ?? 'Ostale lige');
             $grouped[$leagueName][] = [
                 'id'             => $fixture->id,
+                'league_api_id'  => $fixture->league?->api_league_id,
                 'status_short'   => $fixture->status_short,
                 'elapsed_minute' => $fixture->elapsed_minute,
                 'kick_off'       => $fixture->kick_off,
@@ -173,6 +174,20 @@ class LiveScores extends Component
                 'score_away'     => $scoreAway,
             ];
         }
+        // Sort grouped fixtures — priority leagues first
+        $priorityLeagueIds = [2, 3, 848, 210, 286, 315, 39, 140, 135, 78, 61, 211, 316, 317, 287];
+        $priorityGrouped = [];
+        $otherGrouped = [];
+        foreach ($grouped as $leagueName => $leagueFixtures) {
+            $leagueApiId = $leagueFixtures[0]['league_api_id'] ?? null;
+            if ($leagueApiId && in_array($leagueApiId, $priorityLeagueIds)) {
+                $priorityGrouped[$leagueName] = $leagueFixtures;
+            } else {
+                $otherGrouped[$leagueName] = $leagueFixtures;
+            }
+        }
+        $grouped = array_merge($priorityGrouped, $otherGrouped);
+
         $this->fixtures = $grouped;
     }
 
