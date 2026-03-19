@@ -1,3 +1,21 @@
+@php
+$articleSchema = [
+    '@context' => 'https://schema.org',
+    '@type' => 'NewsArticle',
+    'headline' => $post->title,
+    'description' => $post->meta_description ?? '',
+    'datePublished' => $post->created_at->toIso8601String(),
+    'dateModified' => $post->updated_at->toIso8601String(),
+    'author' => ['@type' => 'Organization', 'name' => 'rezultati.net', 'url' => 'https://rezultati.net'],
+    'publisher' => ['@type' => 'Organization', 'name' => 'rezultati.net', 'url' => 'https://rezultati.net'],
+    'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => 'https://rezultati.net/blog/' . $post->slug],
+    'keywords' => $post->keyword ?? '',
+    'inLanguage' => 'bs',
+];
+@endphp
+<script type="application/ld+json">
+{!! json_encode($articleSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+</script>
 <div>
     <a href="/blog" class="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-4 transition">
         &larr; Nazad na blog
