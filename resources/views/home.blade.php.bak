@@ -48,6 +48,5 @@ $pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDesc
     </div>
 </div>
 @include('components.derby-countdown')
-<x-affiliate-banner ad-slot="homepage-top" extra-class="mb-4" />
 @livewire('live-scores', ['initialTab' => $initialTab ?? 'live', 'sport' => $sport ?? 'football'])
 @endsection
