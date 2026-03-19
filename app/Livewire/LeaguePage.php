@@ -60,7 +60,7 @@ class LeaguePage extends Component
         } elseif ($this->tab === 'tomorrow') {
             $query->whereDate('kick_off', today()->addDay());
         } else {
-            $query->whereBetween('kick_off', [today()->subDays(7), today()->addDays(3)]);
+            $query->whereBetween("kick_off", [now()->subDays(7), now()])->whereIn("status_short", ["FT","AET","PEN","PST","CANC"]);
         }
 
         $ftStatuses   = ['FT','AET','PEN'];
