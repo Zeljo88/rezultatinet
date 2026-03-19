@@ -1,12 +1,4 @@
 <div>
-    @if(!$sportAvailable)
-    <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-16 text-center">
-        <div class="text-6xl mb-4">🚧</div>
-        <p class="text-white text-xl font-bold mb-2">Uskoro dostupno!</p>
-        <p class="text-gray-500 text-sm">Košarka i tenis rezultati uskoro stižu na rezultati.net.</p>
-        <a href="/" class="inline-block mt-6 px-4 py-2 bg-[#CCFF00] text-black text-sm font-bold rounded-lg hover:opacity-90 transition">Pogledaj fudbal &rarr;</a>
-    </div>
-    @else
     <div>
 
         {{-- ══════════════════════════════════════════════════════════════
@@ -63,7 +55,12 @@
         ══════════════════════════════════════════════════════════════ --}}
         @if(empty($fixtures))
             <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-12 text-center">
-                <div class="text-5xl mb-3">&#9917;</div>
+                <div class="text-5xl mb-3">
+                    @if($sport === 'basketball') 🏀
+                    @elseif($sport === 'tennis') 🎾
+                    @else ⚽
+                    @endif
+                </div>
                 <p class="text-gray-400 text-lg font-semibold">
                     @if($filter === 'uzivo') Trenutno nema živih utakmica.
                     @elseif($filter === 'zakazano') Nema zakazanih utakmica za ovaj datum.
@@ -85,51 +82,103 @@
                 <div class="border border-t-0 border-[#2a2a2a] rounded-b-xl overflow-hidden">
                     @foreach($leagueFixtures as $i => $fixture)
                     @php
-                        $isLive = in_array($fixture['status_short'] ?? '', ['1H','2H','ET','BT','P','LIVE']);
-                        $isHT   = ($fixture['status_short'] ?? '') === 'HT';
-                        $isFT   = in_array($fixture['status_short'] ?? '', ['FT','AET','PEN']);
-                        $hasScore = $isLive || $isHT || $isFT;
-                    @endphp
-                    <div onclick="window.location='/utakmica/{{ $fixture['id'] }}'"
-                       class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
-                        @php
+                        $fixtureType = $fixture['type'] ?? 'football';
+                        $statusShort = $fixture['status_short'] ?? '';
+
+                        if ($fixtureType === 'basketball') {
+                            $bballLive = in_array($statusShort, ['Q1','Q2','Q3','Q4','OT','LIVE','BP','BT']);
+                            $bballHT   = $statusShort === 'HT';
+                            $bballFT   = in_array($statusShort, ['FT','AOT']);
+                            $isLive    = $bballLive;
+                            $hasScore  = $bballLive || $bballHT || $bballFT;
                             $statusDisplay = match(true) {
-                                in_array($fixture['status_short'] ?? '', ['FT', 'AET', 'PEN']) => 'FT',
-                                ($fixture['status_short'] ?? '') === 'HT' => 'HT',
-                                in_array($fixture['status_short'] ?? '', ['PST', 'CANC', 'ABD', 'SUSP', 'INT']) => 'OTK',
-                                in_array($fixture['status_short'] ?? '', ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => ($fixture['elapsed_minute'] ?? '?') . (!empty($fixture['elapsed_extra']) ? '+' . $fixture['elapsed_extra'] : '') . "'",
+                                $bballFT   => 'FT',
+                                $bballHT   => 'HT',
+                                $bballLive => ($fixture['status_label'] ?? $statusShort),
+                                $statusShort === 'NS' => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                                default    => $fixture['status_label'] ?? $statusShort,
+                            };
+                            $statusClass = match(true) {
+                                $bballLive => 'text-[#FF3B30] font-black',
+                                $bballHT   => 'text-yellow-400 font-bold',
+                                $bballFT   => 'text-gray-500 font-medium',
+                                default    => 'text-gray-500',
+                            };
+                        } elseif ($fixtureType === 'tennis') {
+                            $isLive    = ($fixture['is_live'] ?? false);
+                            $isFT      = $statusShort === 'FT';
+                            $hasScore  = !empty($fixture['score_sets']);
+                            $statusDisplay = match(true) {
+                                $isFT    => 'FT',
+                                $isLive  => 'LIVE',
+                                default  => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                            };
+                            $statusClass = match(true) {
+                                $isLive => 'text-[#FF3B30] font-black',
+                                $isFT   => 'text-gray-500 font-medium',
+                                default => 'text-gray-500',
+                            };
+                        } else {
+                            // football
+                            $isLive = in_array($statusShort, ['1H','2H','ET','BT','P','LIVE']);
+                            $isHT   = $statusShort === 'HT';
+                            $isFT   = in_array($statusShort, ['FT','AET','PEN']);
+                            $hasScore = $isLive || $isHT || $isFT;
+                            $statusDisplay = match(true) {
+                                in_array($statusShort, ['FT', 'AET', 'PEN']) => 'FT',
+                                $statusShort === 'HT' => 'HT',
+                                in_array($statusShort, ['PST', 'CANC', 'ABD', 'SUSP', 'INT']) => 'OTK',
+                                in_array($statusShort, ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => ($fixture['elapsed_minute'] ?? '?') . "'",
                                 default => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
                             };
                             $statusClass = match(true) {
-                                in_array($fixture['status_short'] ?? '', ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => 'text-[#FF3B30] font-black',
-                                ($fixture['status_short'] ?? '') === 'HT' => 'text-yellow-400 font-bold',
-                                in_array($fixture['status_short'] ?? '', ['FT', 'AET', 'PEN']) => 'text-gray-500 font-medium',
+                                in_array($statusShort, ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => 'text-[#FF3B30] font-black',
+                                $statusShort === 'HT' => 'text-yellow-400 font-bold',
+                                in_array($statusShort, ['FT', 'AET', 'PEN']) => 'text-gray-500 font-medium',
                                 default => 'text-gray-500',
                             };
-                        @endphp
-                        <div class="w-12 text-center flex-shrink-0">
+                        }
+                    @endphp
+                    <div class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0
+                        {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}
+                        {{ ($fixtureType === 'football') ? 'cursor-pointer' : '' }}"
+                        @if($fixtureType === 'football')
+                            onclick="window.location='/utakmica/{{ $fixture['id'] }}'"
+                        @endif
+                        >
+                        <div class="w-14 text-center flex-shrink-0">
                             <span class="text-xs {{ $statusClass }}">{{ $statusDisplay }}</span>
                         </div>
                         <div class="flex-1 flex items-center px-2">
                             <div class="flex-1 text-right pr-3">
-                                <a href="/tim/{{ $fixture['home_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                                @if($fixtureType === 'football')
+                                    <a href="/tim/{{ $fixture['home_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                                @else
+                                    <span class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['home_team_name'] }}</span>
+                                @endif
                             </div>
-                            <div class="flex items-center gap-1 min-w-[60px] justify-center">
-                                @if($hasScore)
+                            <div class="flex items-center gap-1 min-w-[80px] justify-center">
+                                @if($fixtureType === 'tennis' && !empty($fixture['score_sets']))
+                                    <span class="text-sm font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_sets'] }}</span>
+                                @elseif($hasScore && $fixtureType !== 'tennis')
                                     <span class="text-lg font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_home'] ?? '0' }}</span>
                                     <span class="text-gray-500 text-sm">-</span>
                                     <span class="text-lg font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_away'] ?? '0' }}</span>
                                 @else
-                                    <span class="text-gray-500 text-sm font-bold">-</span>
+                                    <span class="text-gray-500 text-sm font-bold">vs</span>
                                 @endif
                             </div>
                             <div class="flex-1 pl-3">
-                                <a href="/tim/{{ $fixture['away_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                                @if($fixtureType === 'football')
+                                    <a href="/tim/{{ $fixture['away_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                                @else
+                                    <span class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['away_team_name'] }}</span>
+                                @endif
                             </div>
                         </div>
                         <div class="w-14 text-right flex-shrink-0">
                             @if($isLive)
-                                <span class="inline-block bg-[#FF3B30] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">UZIVO</span>
+                                <span class="inline-block bg-[#FF3B30] text-white text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">UŽIVO</span>
                             @endif
                         </div>
                     </div>
@@ -140,5 +189,4 @@
         @endif
 
     </div>
-    @endif
 </div>

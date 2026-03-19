@@ -2,17 +2,15 @@
 use App\Jobs\FetchLiveFixtures;
 use Illuminate\Support\Facades\Schedule;
 
-// Fetch live scores every 30 seconds (API-Sports PRO plan)
+// Fetch live football scores every 30 seconds (API-Sports PRO plan)
 Schedule::job(new FetchLiveFixtures)
     ->everyThirtySeconds();
-    
 
-// Sync today's fixtures every 2 hours
+// Sync today's football fixtures every 2 hours
 Schedule::command('sync:fixtures')
     ->everyTwoHours();
 
 // Backfill last 14 days of fixtures (for team pages history)
-// Runs daily at 4am, uses ~14 API calls
 Schedule::call(function() {
     for ($i = 1; $i <= 14; $i++) {
         if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
@@ -50,3 +48,29 @@ Schedule::command('sync:top-scorers')->weeklyOn(1, '03:00')->name('sync-top-scor
 
 // Sync match lineups every 30 minutes
 Schedule::command('sync:lineups')->everyThirtyMinutes()->name('sync-lineups');
+
+// ──────────────────────────────────────────────────────────────────────────────
+// BASKETBALL — Smart sync: every 15min if live games exist, always once/hour
+// ──────────────────────────────────────────────────────────────────────────────
+Schedule::call(function() {
+    $hasLive = \App\Models\BasketballGame::whereIn('status_short',
+        ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'])->exists();
+    if ($hasLive) {
+        \Illuminate\Support\Facades\Artisan::call('sync:basketball');
+    }
+})->everyFifteenMinutes()->name('basketball-live-check');
+
+Schedule::command('sync:basketball')->hourly()->name('basketball-hourly');
+
+// ──────────────────────────────────────────────────────────────────────────────
+// TENNIS — Smart sync: every 15min if live matches exist, always once/hour
+// ──────────────────────────────────────────────────────────────────────────────
+Schedule::call(function() {
+    $liveStatuses = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
+    $hasLive = \App\Models\TennisMatch::whereIn('status', $liveStatuses)->exists();
+    if ($hasLive) {
+        \Illuminate\Support\Facades\Artisan::call('sync:tennis');
+    }
+})->everyFifteenMinutes()->name('tennis-live-check');
+
+Schedule::command('sync:tennis')->hourly()->name('tennis-hourly');
