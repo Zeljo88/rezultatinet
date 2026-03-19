@@ -1,4 +1,5 @@
 <div>
+<div>
     @php
         $liveStatuses = ['1H','2H','ET','BT','P','LIVE'];
         $isLive = in_array($fixture->status_short, $liveStatuses);
@@ -210,6 +211,9 @@
 </div>
 
 
+    <x-affiliate-banner ad-slot="match-bottom" extra-class="mt-4" />
+
+
 @if($isLive)
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -226,3 +230,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endif
+</div>
