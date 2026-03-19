@@ -36,6 +36,7 @@ class FetchLiveFixtures implements ShouldQueue
                     'status_long'    => $data['fixture']['status']['long'] ?? null,
                     'status_short'   => $data['fixture']['status']['short'] ?? null,
                     'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
+                    'elapsed_extra'  => $data['fixture']['status']['extra'] ?? null,
                 ]
             );
 
@@ -64,6 +65,7 @@ class FetchLiveFixtures implements ShouldQueue
                         'type'           => $event['type'] ?? 'Goal',
                         'detail'         => $event['detail'] ?? null,
                         'elapsed_minute' => $event['time']['elapsed'] ?? null,
+                        'elapsed_extra'  => $event['time']['extra'] ?? null,
                     ]);
                 }
             }
