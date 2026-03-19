@@ -1,4 +1,16 @@
-<div>
+<div
+    x-data="{
+        updateLiveTitle() {
+            const liveCount = {{ $counts['live'] ?? 0 }};
+            if (liveCount > 0) {
+                document.title = '\u26BD U\u017DIVO (' + liveCount + ') | rezultati.net';
+            } else {
+                document.title = 'rezultati.net';
+            }
+        }
+    }"
+    x-init="updateLiveTitle()"
+>
     <div>
 
         {{-- ══════════════════════════════════════════════════════════════

@@ -25,3 +25,22 @@ self.addEventListener('fetch', e => {
       .catch(() => caches.match(e.request).then(r => r || caches.match('/')))
   );
 });
+
+self.addEventListener('push', event => {
+    const data = event.data?.json() || {};
+    event.waitUntil(
+        self.registration.showNotification(data.title || '⚽ GOL!', {
+            body: data.body || '',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-72.png',
+            tag: data.tag || 'goal',
+            renotify: true,
+            data: { url: data.url || '/' }
+        })
+    );
+});
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    event.waitUntil(clients.openWindow(event.notification.data.url));
+});

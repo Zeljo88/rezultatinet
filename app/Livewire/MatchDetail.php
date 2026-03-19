@@ -80,6 +80,10 @@ class MatchDetail extends Component
     {
         $this->fixture = $this->fixture->fresh(['homeTeam','awayTeam','score','league','events']);
         $this->loadLineups();
+        $this->dispatch('scoreUpdated',
+            home: $this->fixture->score?->goals_home ?? 0,
+            away: $this->fixture->score?->goals_away ?? 0
+        );
     }
 
     public function render()

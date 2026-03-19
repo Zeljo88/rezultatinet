@@ -1,4 +1,21 @@
-<div>
+<div
+    x-data="{
+        originalTitle: document.title,
+        updateTitle() {
+            const home = document.getElementById('score-home')?.textContent?.trim();
+            const away = document.getElementById('score-away')?.textContent?.trim();
+            const minute = '{{ $fixture->elapsed_minute ?? '' }}';
+            const extra = '{{ $fixture->elapsed_extra ?? '' }}';
+            const isLive = {{ in_array($fixture->status_short ?? '', ['1H','2H','HT','ET','BT','P']) ? 'true' : 'false' }};
+            if (isLive && home !== undefined && away !== undefined) {
+                const minDisplay = extra ? minute + '+' + extra : minute;
+                document.title = '\u26BD ' + home + ':' + away + ' ' + minDisplay + '\' | rezultati.net';
+            }
+        }
+    }"
+    x-init="updateTitle(); setInterval(() => updateTitle(), 30000)"
+    x-on:score-updated.window="checkForGoal($event.detail.home, $event.detail.away)"
+>
 @php
     $liveStatuses = ['1H','2H','ET','BT','P','LIVE'];
     $isLive = in_array($fixture->status_short, $liveStatuses);
@@ -488,5 +505,52 @@
     });
     </script>
     @endif
+
+    {{-- ⚽ Push Notifications + Tab Title JS --}}
+    <script>
+    // Restore title on navigate away
+    window.addEventListener('beforeunload', () => { document.title = 'rezultati.net'; });
+
+    @if(in_array($fixture->status_short ?? '', ['1H','2H','HT','ET','BT','P','NS']))
+    // Request notification permission after 5s (less annoying)
+    document.addEventListener('DOMContentLoaded', function() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            setTimeout(() => { Notification.requestPermission(); }, 5000);
+        }
+    });
+    @endif
+
+    // Track score to detect goals
+    window._lastScoreHome = {{ $fixture->score?->goals_home ?? 'null' }};
+    window._lastScoreAway = {{ $fixture->score?->goals_away ?? 'null' }};
+    window._homeTeam = '{{ addslashes($fixture->homeTeam->name ?? '') }}';
+    window._awayTeam = '{{ addslashes($fixture->awayTeam->name ?? '') }}';
+    window._fixtureUrl = '/utakmica/{{ $fixture->id }}';
+
+    // Called when Livewire dispatches scoreUpdated
+    window.checkForGoal = function(newHome, newAway) {
+        if (window._lastScoreHome === null || window._lastScoreAway === null) {
+            window._lastScoreHome = newHome;
+            window._lastScoreAway = newAway;
+            return;
+        }
+        if (newHome > window._lastScoreHome) {
+            sendGoalNotification(window._homeTeam, newHome, newAway);
+        } else if (newAway > window._lastScoreAway) {
+            sendGoalNotification(window._awayTeam, newHome, newAway);
+        }
+        window._lastScoreHome = newHome;
+        window._lastScoreAway = newAway;
+    };
+
+    function sendGoalNotification(scoringTeam, home, away) {
+        if (Notification.permission !== 'granted') return;
+        new Notification('⚽ GOL! ' + scoringTeam, {
+            body: window._homeTeam + ' ' + home + ':' + away + ' ' + window._awayTeam,
+            icon: '/icons/icon-192.png',
+            tag: 'goal-' + Date.now(),
+        });
+    }
+    </script>
 
 </div>
