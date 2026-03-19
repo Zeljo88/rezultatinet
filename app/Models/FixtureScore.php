@@ -7,6 +7,7 @@ class FixtureScore extends Model
 {
     public $timestamps = false;
     protected $fillable = [
+        'goals_home','goals_away',
         'fixture_id','home_halftime','away_halftime',
         'home_fulltime','away_fulltime',
         'home_extratime','away_extratime',
