@@ -8,10 +8,13 @@ class Fixture extends Model
     protected $fillable = [
         'api_fixture_id','league_id','home_team_id','away_team_id',
         'season','round','kick_off','status_long','status_short',
-        'elapsed_minute','venue_name','referee'
+        'elapsed_minute','venue_name','referee','lineups_fetched_at'
     ];
 
-    protected $casts = ['kick_off' => 'datetime'];
+    protected $casts = [
+        'kick_off' => 'datetime',
+        'lineups_fetched_at' => 'datetime',
+    ];
 
     public function league()    { return $this->belongsTo(League::class); }
     public function homeTeam()  { return $this->belongsTo(Team::class, 'home_team_id'); }

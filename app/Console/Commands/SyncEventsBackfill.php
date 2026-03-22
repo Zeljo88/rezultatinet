@@ -25,7 +25,7 @@ class SyncEventsBackfill extends Command
         $this->info("Found {$fixtures->count()} fixtures missing events");
 
         foreach ($fixtures as $fixture) {
-            if (ApiCallLog::getTodayCount() >= 6500) {
+            if (ApiCallLog::getTodayCount() >= 7400) {
                 $this->warn('API budget limit reached, stopping');
                 break;
             }

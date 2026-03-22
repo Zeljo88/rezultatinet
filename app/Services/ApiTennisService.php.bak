@@ -10,9 +10,6 @@ class ApiTennisService
 
     public function getLiveMatches(): array
     {
-        // DISABLED: Tennis API not in current API-Sports plan — re-enable when plan is upgraded
-        return [];
-
         try {
             $response = Http::baseUrl($this->baseUrl)
                 ->withHeaders(['x-apisports-key' => config('services.api_football.key')])

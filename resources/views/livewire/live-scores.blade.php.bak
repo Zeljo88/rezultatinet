@@ -1,6 +1,5 @@
 <div
     x-data="{
-        activeFilter: 'sve',
         updateLiveTitle() {
             const liveCount = {{ $counts['live'] ?? 0 }};
             if (liveCount > 0) {
@@ -40,7 +39,6 @@
 
         {{-- ══════════════════════════════════════════════════════════════
              FILTER PILLS — SVE | UŽIVO | ZAKAZANO | ZAVRŠENO
-             Client-side Alpine.js filtering — zero server round-trips
         ══════════════════════════════════════════════════════════════ --}}
         <div class="flex gap-2 flex-wrap px-2 py-2 mb-3">
             @foreach(['sve' => 'SVE', 'uzivo' => 'UŽIVO', 'zakazano' => 'ZAKAZANO', 'zavrseno' => 'ZAVRŠENO'] as $key => $label)
@@ -52,14 +50,12 @@
                         'zavrseno' => 'finished',
                     };
                     $count = $counts[$countKey] ?? 0;
-                    $filterKey = $key;
                 @endphp
-                <button
-                    @click="activeFilter = '{{ $filterKey }}'"
-                    :class="activeFilter === '{{ $filterKey }}'
-                        ? 'bg-[#CCFF00] text-black border-[#CCFF00] font-bold'
-                        : 'border-gray-600 text-gray-400 hover:border-white hover:text-white'"
-                    class="cursor-pointer px-3 py-1 text-xs rounded-full border transition">
+                <button wire:click="setFilter('{{ $key }}')"
+                    class="cursor-pointer px-3 py-1 text-xs rounded-full border transition
+                           {{ $filter === $key
+                               ? 'bg-[#CCFF00] text-black border-[#CCFF00] font-bold'
+                               : 'border-gray-600 text-gray-400 hover:border-white hover:text-white' }}">
                     {{ $label }}
                     <span class="opacity-70">({{ $count }})</span>
                 </button>
@@ -78,8 +74,15 @@
                     @endif
                 </div>
                 <p class="text-gray-400 text-lg font-semibold">
-                    Nema utakmica za odabrani datum.
+                    @if($filter === 'uzivo') Trenutno nema živih utakmica.
+                    @elseif($filter === 'zakazano') Nema zakazanih utakmica za ovaj datum.
+                    @elseif($filter === 'zavrseno') Nema završenih utakmica za ovaj datum.
+                    @else Nema utakmica za odabrani datum.
+                    @endif
                 </p>
+                @if($filter !== 'sve')
+                    <button wire:click="setFilter('sve')" class="mt-4 text-[#CCFF00] text-sm hover:underline font-medium cursor-pointer">Pogledaj sve utakmice &rarr;</button>
+                @endif
             </div>
         @else
             @php
@@ -94,39 +97,12 @@
                         $otherFixtures[$leagueName] = $leagueFixtures;
                     }
                 }
+                $otherCount = count($otherFixtures);
             @endphp
 
-            {{-- Macro to render a league group --}}
-            @php
-                $allLeagueGroups = array_merge($priorityFixtures, $otherFixtures);
-            @endphp
-
-            @foreach($allLeagueGroups as $leagueName => $leagueFixtures)
-            @php
-                // Build comma-separated list of data-status values for this league group
-                // Used by x-show to know if any fixture in this group matches the active filter
-                $statusList = collect($leagueFixtures)->map(function($f) {
-                    $s = $f['status_short'] ?? '';
-                    $type = $f['type'] ?? 'football';
-                    if ($type === 'basketball') {
-                        $liveB = in_array($s, ['Q1','Q2','Q3','Q4','OT','LIVE','BP','BT','HT']);
-                        $ftB   = in_array($s, ['FT','AOT']);
-                        return $liveB ? 'uzivo' : ($ftB ? 'zavrseno' : 'zakazano');
-                    } elseif ($type === 'tennis') {
-                        $liveT = in_array($f['status_label'] ?? $s, ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time']);
-                        $ftT   = in_array($f['status_label'] ?? $s, ['Finished','Retired','Walkover','Default','FT']);
-                        return $liveT ? 'uzivo' : ($ftT ? 'zavrseno' : 'zakazano');
-                    } else {
-                        // football
-                        $isLive = in_array($s, ['1H','2H','HT','ET','BT','P']);
-                        $isFT   = in_array($s, ['FT','AET','PEN']);
-                        return $isLive ? 'uzivo' : ($isFT ? 'zavrseno' : 'zakazano');
-                    }
-                })->unique()->values()->implode(',');
-            @endphp
-            <div class="mb-3"
-                 x-show="activeFilter === 'sve' || '{{ $statusList }}'.split(',').includes(activeFilter)"
-                 x-cloak>
+            {{-- Priority leagues — always visible --}}
+            @foreach($priorityFixtures as $leagueName => $leagueFixtures)
+            <div class="mb-3">
                 <div class="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-t-xl">
                     <span class="text-white text-sm font-bold">{{ $leagueName ?: 'Ostale lige' }}</span>
                     <span class="ml-auto text-gray-500 text-xs">{{ count($leagueFixtures) }} utakmica</span>
@@ -156,8 +132,6 @@
                                 $bballFT   => 'text-gray-500 font-medium',
                                 default    => 'text-gray-500',
                             };
-                            // data-status for Alpine filtering
-                            $dataStatus = $bballLive || $bballHT ? 'uzivo' : ($bballFT ? 'zavrseno' : 'zakazano');
                         } elseif ($fixtureType === 'tennis') {
                             $isLive    = ($fixture['is_live'] ?? false);
                             $isFT      = $statusShort === 'FT';
@@ -172,7 +146,6 @@
                                 $isFT   => 'text-gray-500 font-medium',
                                 default => 'text-gray-500',
                             };
-                            $dataStatus = $isLive ? 'uzivo' : ($isFT ? 'zavrseno' : 'zakazano');
                         } else {
                             // football
                             $isLive = in_array($statusShort, ['1H','2H','ET','BT','P','LIVE']);
@@ -192,16 +165,126 @@
                                 in_array($statusShort, ['FT', 'AET', 'PEN']) => 'text-gray-500 font-medium',
                                 default => 'text-gray-500',
                             };
-                            // data-status for Alpine filtering
-                            $dataStatus = ($isLive || $isHT) ? 'uzivo' : ($isFT ? 'zavrseno' : 'zakazano');
                         }
                     @endphp
                     <div class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0
                         {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}
                         {{ ($fixtureType === 'football') ? 'cursor-pointer' : '' }}"
-                        data-status="{{ $dataStatus }}"
-                        x-show="activeFilter === 'sve' || activeFilter === '{{ $dataStatus }}'"
-                        x-cloak
+                        @if($fixtureType === 'football')
+                            onclick="window.location='/utakmica/{{ $fixture['id'] }}'"
+                        @endif
+                        >
+                        <div class="w-14 text-center flex-shrink-0">
+                            <span class="text-xs {{ $statusClass }}">{{ $statusDisplay }}</span>
+                        </div>
+                        <div class="flex-1 flex items-center px-2">
+                            <div class="flex-1 text-right pr-3">
+                                @if($fixtureType === 'football')
+                                    <a href="/tim/{{ $fixture['home_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                                @else
+                                    <span class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['home_team_name'] }}</span>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-1 min-w-[80px] justify-center">
+                                @if($fixtureType === 'tennis' && !empty($fixture['score_sets']))
+                                    <span class="text-sm font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_sets'] }}</span>
+                                @elseif($hasScore && $fixtureType !== 'tennis')
+                                    <span class="text-lg font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_home'] ?? '0' }}</span>
+                                    <span class="text-gray-500 text-sm">-</span>
+                                    <span class="text-lg font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_away'] ?? '0' }}</span>
+                                @else
+                                    <span class="text-gray-500 text-sm font-bold">vs</span>
+                                @endif
+                            </div>
+                            <div class="flex-1 pl-3">
+                                @if($fixtureType === 'football')
+                                    <a href="/tim/{{ $fixture['away_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                                @else
+                                    <span class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['away_team_name'] }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="w-14 text-right flex-shrink-0">
+                            @if($isLive)
+                                <span class="inline-block bg-[#FF3B30] text-white text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">UŽIVO</span>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endforeach
+
+            {{-- Other leagues — always visible, sorted below priority leagues --}}
+            @foreach($otherFixtures as $leagueName => $leagueFixtures)
+            <div class="mb-3">
+                <div class="flex items-center gap-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-t-xl">
+                    <span class="text-white text-sm font-bold">{{ $leagueName ?: 'Ostale lige' }}</span>
+                    <span class="ml-auto text-gray-500 text-xs">{{ count($leagueFixtures) }} utakmica</span>
+                </div>
+                <div class="border border-t-0 border-[#2a2a2a] rounded-b-xl overflow-hidden">
+                    @foreach($leagueFixtures as $i => $fixture)
+                    @php
+                        $fixtureType = $fixture['type'] ?? 'football';
+                        $statusShort = $fixture['status_short'] ?? '';
+
+                        if ($fixtureType === 'basketball') {
+                            $bballLive = in_array($statusShort, ['Q1','Q2','Q3','Q4','OT','LIVE','BP','BT']);
+                            $bballHT   = $statusShort === 'HT';
+                            $bballFT   = in_array($statusShort, ['FT','AOT']);
+                            $isLive    = $bballLive;
+                            $hasScore  = $bballLive || $bballHT || $bballFT;
+                            $statusDisplay = match(true) {
+                                $bballFT   => 'FT',
+                                $bballHT   => 'HT',
+                                $bballLive => ($fixture['status_label'] ?? $statusShort),
+                                $statusShort === 'NS' => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                                default    => $fixture['status_label'] ?? $statusShort,
+                            };
+                            $statusClass = match(true) {
+                                $bballLive => 'text-[#FF3B30] font-black',
+                                $bballHT   => 'text-yellow-400 font-bold',
+                                $bballFT   => 'text-gray-500 font-medium',
+                                default    => 'text-gray-500',
+                            };
+                        } elseif ($fixtureType === 'tennis') {
+                            $isLive    = ($fixture['is_live'] ?? false);
+                            $isFT      = $statusShort === 'FT';
+                            $hasScore  = !empty($fixture['score_sets']);
+                            $statusDisplay = match(true) {
+                                $isFT    => 'FT',
+                                $isLive  => 'LIVE',
+                                default  => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                            };
+                            $statusClass = match(true) {
+                                $isLive => 'text-[#FF3B30] font-black',
+                                $isFT   => 'text-gray-500 font-medium',
+                                default => 'text-gray-500',
+                            };
+                        } else {
+                            // football
+                            $isLive = in_array($statusShort, ['1H','2H','ET','BT','P','LIVE']);
+                            $isHT   = $statusShort === 'HT';
+                            $isFT   = in_array($statusShort, ['FT','AET','PEN']);
+                            $hasScore = $isLive || $isHT || $isFT;
+                            $statusDisplay = match(true) {
+                                in_array($statusShort, ['FT', 'AET', 'PEN']) => 'FT',
+                                $statusShort === 'HT' => 'HT',
+                                in_array($statusShort, ['PST', 'CANC', 'ABD', 'SUSP', 'INT']) => 'OTK',
+                                in_array($statusShort, ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => ($fixture['elapsed_minute'] ?? '?') . "'",
+                                default => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                            };
+                            $statusClass = match(true) {
+                                in_array($statusShort, ['1H', '2H', 'ET', 'BT', 'P', 'LIVE']) => 'text-[#FF3B30] font-black',
+                                $statusShort === 'HT' => 'text-yellow-400 font-bold',
+                                in_array($statusShort, ['FT', 'AET', 'PEN']) => 'text-gray-500 font-medium',
+                                default => 'text-gray-500',
+                            };
+                        }
+                    @endphp
+                    <div class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0
+                        {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}
+                        {{ ($fixtureType === 'football') ? 'cursor-pointer' : '' }}"
                         @if($fixtureType === 'football')
                             onclick="window.location='/utakmica/{{ $fixture['id'] }}'"
                         @endif

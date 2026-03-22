@@ -17,7 +17,7 @@ class SyncLineups extends Command
 
     public function handle(ApiFootballService $api): int
     {
-        $budget = 6500;
+        $budget = 7400;
 
         if (ApiCallLog::getTodayCount() >= $budget) {
             $this->warn('Daily API budget reached. Skipping lineup sync.');

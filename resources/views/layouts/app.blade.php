@@ -26,6 +26,7 @@
 
     @vite(["resources/css/app.css", "resources/js/app.js"])
     @livewireStyles
+    <style>[x-cloak] { display: none !important; }</style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX"></script>
     <script>
         window.dataLayer = window.dataLayer || [];

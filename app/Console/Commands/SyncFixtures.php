@@ -19,8 +19,8 @@ class SyncFixtures extends Command
         $date = $this->option('date') ?? now()->format('Y-m-d');
         $this->info("Fetching fixtures for {$date}...");
 
-        if (ApiCallLog::getTodayCount() >= 6500) {
-            $this->error('Daily API budget reached (6500 calls).');
+        if (ApiCallLog::getTodayCount() >= 7400) {
+            $this->error('Daily API budget reached (7400 calls).');
             return;
         }
 

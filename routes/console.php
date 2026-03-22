@@ -2,75 +2,89 @@
 use App\Jobs\FetchLiveFixtures;
 use Illuminate\Support\Facades\Schedule;
 
-// Fetch live football scores every 30 seconds (API-Sports PRO plan)
+// ✅ ACTIVE — Fetch live football scores every 30 seconds (~2,880/day)
 Schedule::job(new FetchLiveFixtures)
     ->everyThirtySeconds();
 
-// Sync today's football fixtures every 2 hours
-Schedule::command('sync:fixtures')
-    ->everyTwoHours();
+// ──────────────────────────────────────────────────────────────────────────────
+// PAUSED — API kvota hitno. Sve jobove pausirati osim FetchLiveFixtures.
+// Re-enable after implementing per-day dedup and smarter throttling.
+// ──────────────────────────────────────────────────────────────────────────────
 
-// Backfill last 14 days of fixtures (for team pages history)
-Schedule::call(function() {
-    for ($i = 1; $i <= 14; $i++) {
-        if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
-        \Illuminate\Support\Facades\Artisan::call('sync:fixtures', [
-            '--date' => now()->subDays($i)->format('Y-m-d')
-        ]);
-    }
-})->dailyAt('04:00')->name('backfill-fixtures');
+// ❌ PAUSED — sync:fixtures every 2h (uses API calls per date)
+// Schedule::command('sync:fixtures')
+//     ->everyTwoHours();
 
-// Sync next 7 days of fixtures daily at 6:30am
-Schedule::call(function() {
-    for ($i = 0; $i <= 7; $i++) {
-        if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
-        \Illuminate\Support\Facades\Artisan::call('sync:fixtures', [
-            '--date' => now()->addDays($i)->format('Y-m-d')
-        ]);
-    }
-})->dailyAt('06:30')->name('sync-future-fixtures');
+// ❌ PAUSED — backfill 14 days of fixtures at 04:00
+// Schedule::call(function() {
+//     for ($i = 1; $i <= 14; $i++) {
+//         if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
+//         \Illuminate\Support\Facades\Artisan::call('sync:fixtures', [
+//             '--date' => now()->subDays($i)->format('Y-m-d')
+//         ]);
+//     }
+// })->dailyAt('04:00')->name('backfill-fixtures');
 
-// Facebook: pre-match post at 10:00 (dry-run until token is configured)
-Schedule::command('facebook:pre-match --dry-run')
-    ->dailyAt('10:00')
-    ->name('facebook-pre-match');
+// ❌ PAUSED — sync next 7 days of fixtures at 06:30
+// Schedule::call(function() {
+//     for ($i = 0; $i <= 7; $i++) {
+//         if (\App\Models\ApiCallLog::getTodayCount() >= 6500) break;
+//         \Illuminate\Support\Facades\Artisan::call('sync:fixtures', [
+//             '--date' => now()->addDays($i)->format('Y-m-d')
+//         ]);
+//     }
+// })->dailyAt('06:30')->name('sync-future-fixtures');
 
-// Facebook: post-match results at 23:30
-Schedule::command('facebook:post-match --dry-run')
-    ->dailyAt('23:30')
-    ->name('facebook-post-match');
+// ❌ PAUSED — Facebook pre-match post
+// Schedule::command('facebook:pre-match --dry-run')
+//     ->dailyAt('10:00')
+//     ->name('facebook-pre-match');
 
-// Backfill missing events for finished matches every hour
-Schedule::command('sync:events-backfill')->hourly();
+// ❌ PAUSED — Facebook post-match results
+// Schedule::command('facebook:post-match --dry-run')
+//     ->dailyAt('23:30')
+//     ->name('facebook-post-match');
 
-// Sync top scorers weekly (Monday 3am)
-Schedule::command('sync:top-scorers')->weeklyOn(1, '03:00')->name('sync-top-scorers');
+// ❌ PAUSED — events backfill every hour (MAIN CAUSE of 5000+ individual fixture calls)
+// This runs hourly and calls getFixtureById for EVERY fixture without events.
+// Re-enable only as dailyAt('03:00') with --days=1 limit.
+// Schedule::command('sync:events-backfill')->hourly();
 
-// Sync match lineups every 30 minutes
-Schedule::command('sync:lineups')->everyThirtyMinutes()->name('sync-lineups');
+// ❌ PAUSED — top scorers weekly (low priority)
+// Schedule::command('sync:top-scorers')->weeklyOn(1, '03:00')->name('sync-top-scorers');
+
+// ❌ PAUSED — lineups every 30 min (1,100+ calls/day, filter not sufficient)
+// Lineups are now dispatched only from FetchLiveFixtures for live top-league matches.
+// Schedule::command('sync:lineups')->everyThirtyMinutes()->name('sync-lineups');
 
 // ──────────────────────────────────────────────────────────────────────────────
-// BASKETBALL — Smart sync: every 15min if live games exist, always once/hour
+// BASKETBALL — PAUSED (44 calls today, should be 0)
 // ──────────────────────────────────────────────────────────────────────────────
-Schedule::call(function() {
-    $hasLive = \App\Models\BasketballGame::whereIn('status_short',
-        ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'])->exists();
-    if ($hasLive) {
-        \Illuminate\Support\Facades\Artisan::call('sync:basketball');
-    }
-})->everyFifteenMinutes()->name('basketball-live-check');
+// Schedule::call(function() {
+//     $hasLive = \App\Models\BasketballGame::whereIn('status_short',
+//         ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'])->exists();
+//     if ($hasLive) {
+//         \Illuminate\Support\Facades\Artisan::call('sync:basketball');
+//     }
+// })->everyFifteenMinutes()->name('basketball-live-check');
 
-Schedule::command('sync:basketball')->hourly()->name('basketball-hourly');
+// Schedule::command('sync:basketball')->hourly()->name('basketball-hourly');
 
-// ──────────────────────────────────────────────────────────────────────────────
-// TENNIS — Smart sync: every 15min if live matches exist, always once/hour
-// ──────────────────────────────────────────────────────────────────────────────
-Schedule::call(function() {
-    $liveStatuses = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
-    $hasLive = \App\Models\TennisMatch::whereIn('status', $liveStatuses)->exists();
-    if ($hasLive) {
-        \Illuminate\Support\Facades\Artisan::call('sync:tennis');
-    }
-})->everyFifteenMinutes()->name('tennis-live-check');
+//// ──────────────────────────────────────────────────────────────────────────────
+//// TENNIS — already paused
+//// ──────────────────────────────────────────────────────────────────────────────
+//Schedule::call(function() {
+//    $liveStatuses = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
+//    $hasLive = \App\Models\TennisMatch::whereIn('status', $liveStatuses)->exists();
+//    if ($hasLive) {
+//        \Illuminate\Support\Facades\Artisan::call('sync:tennis');
+//    }
+//})->everyFifteenMinutes()->name('tennis-live-check');
+//
+//Schedule::command('sync:tennis')->hourly()->name('tennis-hourly');
 
-Schedule::command('sync:tennis')->hourly()->name('tennis-hourly');
+// ❌ PAUSED — fix stuck fixtures every 30 min
+// Schedule::command('sync:fix-stuck')
+//     ->everyThirtyMinutes()
+//     ->name('sync-fix-stuck')
+//     ->withoutOverlapping();

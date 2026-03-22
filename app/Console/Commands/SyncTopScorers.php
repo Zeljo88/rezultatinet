@@ -30,7 +30,7 @@ class SyncTopScorers extends Command
     public function handle(ApiFootballService $api): void
     {
         foreach ($this->leagueApiIds as $apiLeagueId) {
-            if (ApiCallLog::getTodayCount() >= 6500) {
+            if (ApiCallLog::getTodayCount() >= 7400) {
                 $this->warn('API budget reached, stopping');
                 break;
             }

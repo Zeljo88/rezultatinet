@@ -26,6 +26,12 @@ class ApiBasketballService
 
     public function getGamesByDate(string $date): array
     {
+        // PAUSED — API quota emergency. Re-enable when daily budget is fixed.
+        return [];
+    }
+
+    public function getGamesByDate_DISABLED(string $date): array
+    {
         $response = $this->client->get('/games', ['date' => $date]);
         if (!$response->successful()) return [];
         $errors = $response->json('errors', []);
