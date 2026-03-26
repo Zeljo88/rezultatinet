@@ -40,6 +40,7 @@ return [
     */
 
     'debug' => (bool) env('APP_DEBUG', false),
+    'admin_token' => env('ADMIN_TOKEN', 'changeme'),
 
     /*
     |--------------------------------------------------------------------------

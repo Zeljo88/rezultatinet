@@ -281,3 +281,28 @@ use App\Http\Controllers\FeedController;
 Route::get('/feed', [FeedController::class, 'rss'])->name('feed.rss');
 Route::get('/rss', [FeedController::class, 'rss'])->name('feed.rss.alt');
 Route::get('/feed.xml', [FeedController::class, 'rss'])->name('feed.xml');
+
+// ─────────────────────────────────────────
+// ADMIN PANEL
+// ─────────────────────────────────────────
+use App\Http\Controllers\Admin\PostController;
+use App\Http\Middleware\AdminAuth;
+
+Route::get('/admin/login', fn() => view('admin.login'))->name('admin.login');
+Route::post('/admin/login', function(\Illuminate\Http\Request $request) {
+    $token = config('app.admin_token');
+    if ($request->input('password') === $token) {
+        session(['admin_authenticated' => true]);
+        return redirect()->route('admin.posts.index');
+    }
+    return back()->withErrors(['password' => 'Pogresna lozinka.']);
+})->name('admin.login.post');
+
+Route::post('/admin/logout', function() {
+    session()->forget('admin_authenticated');
+    return redirect()->route('admin.login');
+})->name('admin.logout');
+
+Route::middleware(AdminAuth::class)->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('posts', PostController::class);
+});

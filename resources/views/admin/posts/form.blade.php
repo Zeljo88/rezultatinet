@@ -1,0 +1,290 @@
+@extends('admin.layout')
+
+@section('title', $post->exists ? 'Uredi post' : 'Novi post')
+
+@section('content')
+<div class="flex items-center gap-3 mb-6">
+    <a href="{{ route('admin.posts.index') }}" class="text-gray-400 hover:text-gray-600 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    </a>
+    <h1 class="text-2xl font-bold text-gray-800">
+        {{ $post->exists ? 'Uredi post' : 'Novi post' }}
+    </h1>
+</div>
+
+@if($errors->any())
+<div class="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+    <ul class="list-disc list-inside space-y-1">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
+<form method="POST"
+      action="{{ $post->exists ? route('admin.posts.update', $post->id) : route('admin.posts.store') }}"
+      enctype="multipart/form-data"
+      id="postForm">
+    @csrf
+    @if($post->exists) @method('PUT') @endif
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {{-- Main column --}}
+        <div class="lg:col-span-2 space-y-6">
+
+            {{-- Title --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Naslov *</label>
+                <input type="text" name="title" id="title"
+                       value="{{ old('title', $post->title) }}"
+                       placeholder="Unesite naslov posta..."
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       required>
+
+                <label class="block text-sm font-semibold text-gray-700 mt-4 mb-2">Slug *</label>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-400 whitespace-nowrap">/blog/</span>
+                    <input type="text" name="slug" id="slug"
+                           value="{{ old('slug', $post->slug) }}"
+                           class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                           required>
+                </div>
+            </div>
+
+            {{-- Content --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Sadržaj *</label>
+                <div id="editor-toolbar" class="border border-gray-300 rounded-t-lg bg-gray-50 px-3 py-2 flex flex-wrap gap-1">
+                    <button type="button" onclick="execCmd('bold')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 font-bold text-sm w-8 h-8 flex items-center justify-center" title="Bold">B</button>
+                    <button type="button" onclick="execCmd('italic')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 italic text-sm w-8 h-8 flex items-center justify-center" title="Italic">I</button>
+                    <button type="button" onclick="execCmd('underline')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 underline text-sm w-8 h-8 flex items-center justify-center" title="Underline">U</button>
+                    <div class="w-px bg-gray-300 mx-1"></div>
+                    <button type="button" onclick="execCmd('insertUnorderedList')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 text-sm w-8 h-8 flex items-center justify-center" title="Lista">≡</button>
+                    <button type="button" onclick="execCmd('insertOrderedList')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 text-sm w-8 h-8 flex items-center justify-center" title="Numerisana lista">1.</button>
+                    <div class="w-px bg-gray-300 mx-1"></div>
+                    <button type="button" onclick="insertHeading('h2')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 text-xs font-bold w-8 h-8 flex items-center justify-center" title="H2">H2</button>
+                    <button type="button" onclick="insertHeading('h3')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 text-xs font-semibold w-8 h-8 flex items-center justify-center" title="H3">H3</button>
+                    <div class="w-px bg-gray-300 mx-1"></div>
+                    <button type="button" onclick="insertLink()" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 text-sm w-8 h-8 flex items-center justify-center" title="Link">🔗</button>
+                    <button type="button" onclick="execCmd('removeFormat')" class="p-1.5 rounded hover:bg-gray-200 transition text-gray-600 text-sm px-2 h-8 flex items-center justify-center text-xs" title="Ukloni formatiranje">Clear</button>
+                </div>
+                <div id="editor"
+                     contenteditable="true"
+                     class="border border-gray-300 border-t-0 rounded-b-lg px-4 py-3 min-h-[320px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 prose max-w-none"
+                     style="line-height:1.7">
+                    {!! old('content', $post->content) !!}
+                </div>
+                <input type="hidden" name="content" id="content_input">
+            </div>
+
+        </div>
+
+        {{-- Sidebar column --}}
+        <div class="space-y-6">
+
+            {{-- Publish --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 class="font-semibold text-gray-700 mb-4">Objava</h3>
+
+                <label class="flex items-center gap-3 cursor-pointer mb-5">
+                    <div class="relative">
+                        <input type="checkbox" name="published" id="published" class="sr-only"
+                               {{ old('published', $post->published) ? 'checked' : '' }}>
+                        <div id="toggle-bg" class="w-11 h-6 rounded-full transition-colors {{ old('published', $post->published) ? 'bg-blue-600' : 'bg-gray-300' }}"></div>
+                        <div id="toggle-dot" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform {{ old('published', $post->published) ? 'translate-x-5' : '' }}"></div>
+                    </div>
+                    <span id="toggle-label" class="text-sm font-medium text-gray-700">
+                        {{ old('published', $post->published) ? 'Objavljeno' : 'Nacrt' }}
+                    </span>
+                </label>
+
+                <div class="flex flex-col gap-2">
+                    <button type="submit" onclick="document.getElementById('published').checked=true"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-4 py-2.5 text-sm transition">
+                        {{ $post->exists ? 'Spremi izmjene' : 'Objavi post' }}
+                    </button>
+                    <button type="submit" onclick="document.getElementById('published').checked=false"
+                            class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg px-4 py-2.5 text-sm transition">
+                        Spremi kao nacrt
+                    </button>
+                    <a href="{{ route('admin.posts.index') }}"
+                       class="w-full text-center text-gray-500 hover:text-gray-700 text-sm py-2 transition">
+                        Odustani
+                    </a>
+                </div>
+            </div>
+
+            {{-- Featured Image --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 class="font-semibold text-gray-700 mb-3">Naslovna slika</h3>
+
+                @if($post->featured_image)
+                <div class="mb-3 rounded-lg overflow-hidden border border-gray-200">
+                    <img src="{{ asset($post->featured_image) }}" class="w-full h-36 object-cover" alt="Featured">
+                </div>
+                @endif
+
+                <label class="block cursor-pointer">
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 hover:bg-blue-50 transition" id="upload-area">
+                        <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <p class="text-sm text-gray-500" id="upload-text">Kliknite za upload slike</p>
+                        <p class="text-xs text-gray-400 mt-1">JPG, PNG, WebP</p>
+                    </div>
+                    <input type="file" name="featured_image" id="featured_image_input" class="hidden" accept="image/*">
+                </label>
+            </div>
+
+            {{-- SEO --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 class="font-semibold text-gray-700 mb-4">SEO</h3>
+
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-sm font-medium text-gray-700">Meta naslov</label>
+                        <span id="meta_title_count" class="text-xs text-gray-400">0/60</span>
+                    </div>
+                    <input type="text" name="meta_title" id="meta_title"
+                           value="{{ old('meta_title', $post->meta_title) }}"
+                           maxlength="60"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Meta naslov (do 60 znakova)">
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-sm font-medium text-gray-700">Meta opis</label>
+                        <span id="meta_desc_count" class="text-xs text-gray-400">0/155</span>
+                    </div>
+                    <textarea name="meta_description" id="meta_description"
+                              maxlength="155" rows="3"
+                              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              placeholder="Meta opis (do 155 znakova)">{{ old('meta_description', $post->meta_description) }}</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Keyword</label>
+                    <input type="text" name="keyword"
+                           value="{{ old('keyword', $post->keyword) }}"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="npr. football, Premier League">
+                </div>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+<script>
+// Slug generator
+function slugify(text) {
+    const map = {
+        'č':'c','ć':'c','š':'s','ž':'z','đ':'d',
+        'Č':'c','Ć':'c','Š':'s','Ž':'z','Đ':'d'
+    };
+    return text.toLowerCase()
+        .replace(/[čćšžđČĆŠŽĐ]/g, m => map[m])
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+let slugManuallyEdited = {{ $post->exists ? 'true' : 'false' }};
+
+document.getElementById('title').addEventListener('input', function() {
+    if (!slugManuallyEdited) {
+        document.getElementById('slug').value = slugify(this.value);
+    }
+});
+
+document.getElementById('slug').addEventListener('input', function() {
+    slugManuallyEdited = true;
+});
+
+// Toggle
+const checkbox = document.getElementById('published');
+const toggleBg = document.getElementById('toggle-bg');
+const toggleDot = document.getElementById('toggle-dot');
+const toggleLabel = document.getElementById('toggle-label');
+
+document.querySelector('label[for="published"]') && document.querySelector('.relative').addEventListener('click', function() {
+    checkbox.checked = !checkbox.checked;
+    updateToggle();
+});
+
+function updateToggle() {
+    if (checkbox.checked) {
+        toggleBg.classList.replace('bg-gray-300', 'bg-blue-600');
+        toggleDot.classList.add('translate-x-5');
+        toggleLabel.textContent = 'Objavljeno';
+    } else {
+        toggleBg.classList.replace('bg-blue-600', 'bg-gray-300');
+        toggleDot.classList.remove('translate-x-5');
+        toggleLabel.textContent = 'Nacrt';
+    }
+}
+
+document.querySelector('.relative').addEventListener('click', function() {
+    checkbox.checked = !checkbox.checked;
+    updateToggle();
+});
+
+// Character counters
+function setupCounter(inputId, counterId, max) {
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(counterId);
+    if (!input || !counter) return;
+    function update() {
+        const len = input.value.length;
+        counter.textContent = len + '/' + max;
+        counter.className = 'text-xs ' + (len > max * 0.9 ? 'text-red-500' : len > max * 0.7 ? 'text-yellow-500' : 'text-gray-400');
+    }
+    input.addEventListener('input', update);
+    update();
+}
+setupCounter('meta_title', 'meta_title_count', 60);
+setupCounter('meta_description', 'meta_desc_count', 155);
+
+// Rich text editor
+function execCmd(cmd) {
+    document.getElementById('editor').focus();
+    document.execCommand(cmd, false, null);
+}
+
+function insertHeading(tag) {
+    document.getElementById('editor').focus();
+    document.execCommand('formatBlock', false, tag);
+}
+
+function insertLink() {
+    const url = prompt('Unesite URL:');
+    if (url) {
+        document.getElementById('editor').focus();
+        document.execCommand('createLink', false, url);
+    }
+}
+
+// Sync editor content to hidden input on form submit
+document.getElementById('postForm').addEventListener('submit', function() {
+    document.getElementById('content_input').value = document.getElementById('editor').innerHTML;
+});
+
+// File upload preview
+document.getElementById('featured_image_input').addEventListener('change', function(e) {
+    if (e.target.files[0]) {
+        document.getElementById('upload-text').textContent = e.target.files[0].name;
+    }
+});
+</script>
+
+<style>
+#editor h2 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+#editor h3 { font-size: 1.25rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+#editor ul { list-style: disc; margin-left: 1.5rem; }
+#editor ol { list-style: decimal; margin-left: 1.5rem; }
+#editor a { color: #2563eb; text-decoration: underline; }
+#editor p { margin-bottom: 0.5rem; }
+</style>
+@endsection
