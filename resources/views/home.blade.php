@@ -2,12 +2,12 @@
 
 @php
 $metaTitles = [
-    'football'   => 'Rezultati uživo | Nogomet, Košarka, Tenis',
+    'football'   => 'Rezultati Uživo ⚽ Danas | HNL, Liga Prvaka, Bundesliga — rezultati.net',
     'basketball' => 'Košarka rezultati uživo | ABA liga i više',
     'tennis'     => 'Tenis rezultati uživo | ATP, WTA, Grand Slam',
 ];
 $metaDescs = [
-    'football'   => 'Pratite rezultate uživo za nogomet, košarku i tenis. HNL, Champions liga, ABA liga i još stotine natjecanja — sve na jednom mjestu, u stvarnom vremenu.',
+    'football'   => 'Prati football rezultate uživo. HNL, SuperLiga Srbije, Premijer Liga BiH, Liga prvaka i 500+ liga. Live score, tablice i statistike na jednom mjestu.',
     'basketball' => 'Košarka rezultati uživo — ABA liga, NBA, Euroliga, HT Premijer liga i sva domaća natjecanja. Ljestvice, statistike i raspored utakmica na jednom mjestu.',
     'tennis'     => 'Tenis rezultati uživo s ATP i WTA turnira, Grand Slam natjecanja i Davis Cupa. Pratite sve mečeve u realnom vremenu — setovi, gemovi, statistike.',
 ];
@@ -26,7 +26,7 @@ $pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDesc
 @endphp
 
 @section('title', $pageTitle)
-@section('description', $pageDesc)
+@section('meta_description', $pageDesc)
 
 @section('content')
 <div class="mb-5 flex items-center justify-between">

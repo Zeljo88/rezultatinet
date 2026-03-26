@@ -2,10 +2,10 @@
     {{-- League header --}}
     <div class="flex items-center gap-3 mb-5">
         @if($league->logo_url)
-            <img src="{{ $league->logo_url }}" class="w-10 h-10 object-contain" alt="{{ $league->name }}">
+            <img src="{{ $league->logo_url }}" class="w-10 h-10 object-contain" alt="{{ $league->name }}" loading="lazy">
         @endif
         <div>
-            <h1 class="text-2xl font-black text-white">{{ $league->name }}</h1>
+            <h1 class="text-2xl font-black text-white">{{ $seoH1 }}</h1>
             <p class="text-gray-500 text-sm">{{ $league->country }}</p>
         </div>
     </div>
@@ -42,7 +42,14 @@
                     $isFT   = $fixture['is_ft'];
                     $hasScore = $isLive || $isFT;
                 @endphp
-                <a href="/utakmica/{{ $fixture['id'] }}"
+                @php
+                $matchUrl = '/utakmica/' . $fixture['id'];
+                if (!empty($fixture['home_team_slug']) && !empty($fixture['away_team_slug']) && !empty($fixture['kick_off'])) {
+                    $matchDate = \Carbon\Carbon::parse($fixture['kick_off'])->format('d-m-Y');
+                    $matchUrl = '/utakmica/' . $fixture['home_team_slug'] . '-vs-' . $fixture['away_team_slug'] . '-' . $matchDate;
+                }
+            @endphp
+            <a href="{{ $matchUrl }}"
                    class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                     <div class="w-12 text-center flex-shrink-0">
                         @if($isLive)
@@ -58,7 +65,7 @@
                     <div class="flex-1 flex items-center px-2">
                         <div class="flex-1 flex items-center justify-end gap-2 pr-3">
                             @if($fixture['home_team_logo'])
-                                <img src="{{ $fixture['home_team_logo'] }}" class="w-5 h-5 object-contain" alt="">
+                                <img src="{{ $fixture['home_team_logo'] }}" class="w-5 h-5 object-contain" alt="" loading="lazy">
                             @endif
                             <a href="/tim/{{ $fixture['home_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
                         </div>
@@ -73,7 +80,7 @@
                         </div>
                         <div class="flex-1 flex items-center gap-2 pl-3">
                             @if($fixture['away_team_logo'])
-                                <img src="{{ $fixture['away_team_logo'] }}" class="w-5 h-5 object-contain" alt="">
+                                <img src="{{ $fixture['away_team_logo'] }}" class="w-5 h-5 object-contain" alt="" loading="lazy">
                             @endif
                             <a href="/tim/{{ $fixture['away_team_slug'] }}" class="text-sm font-semibold {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition" onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
                         </div>
@@ -123,7 +130,7 @@
                     <div class="col-span-1 text-center text-sm text-gray-400 font-bold">{{ $row['rank'] }}</div>
                     <div class="col-span-5 flex items-center gap-2">
                         @if($row['team_logo'])
-                            <img src="{{ $row['team_logo'] }}" class="w-5 h-5 object-contain flex-shrink-0" alt="">
+                            <img src="{{ $row['team_logo'] }}" class="w-5 h-5 object-contain flex-shrink-0" alt="" loading="lazy">
                         @endif
                         <a href="/tim/{{ $row['team_slug'] }}" class="text-sm font-semibold text-white hover:text-[#CCFF00] transition truncate" onclick="event.stopPropagation()">{{ $row['team_name'] }}</a>
                     </div>
@@ -145,4 +152,53 @@
             </div>
         @endif
     @endif
+
+    {{-- ============================================================ --}}
+    {{-- SEO CONTENT BLOCKS — SSR rendered, Google-indexable          --}}
+    {{-- ============================================================ --}}
+    <div class="mt-10 space-y-8">
+
+        {{-- League description + link to full standings --}}
+        <section class="bg-[#111] border border-[#2a2a2a] rounded-xl px-5 py-4">
+            <p class="text-gray-300 text-sm leading-relaxed">{{ $seoDescription }}</p>
+            <div class="mt-3">
+                <a href="/tablica/{{ $slug }}" class="inline-flex items-center gap-1 text-[#CCFF00] hover:underline text-sm font-semibold">
+                    📊 Pogledaj punu tablicu →
+                </a>
+            </div>
+        </section>
+
+        {{-- D) Upcoming fixtures --}}
+        @if(!empty($seoUpcoming))
+        <section class="bg-[#111] border border-[#2a2a2a] rounded-xl overflow-hidden">
+            <h2 class="text-lg font-bold text-white px-4 py-3 border-b border-[#2a2a2a] bg-[#0f0f0f]">
+                Naredne utakmice — {{ $league->name }}
+            </h2>
+            <ul class="divide-y divide-[#2a2a2a]">
+                @foreach($seoUpcoming as $i => $f)
+                <li class="flex items-center gap-4 px-4 py-3 {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
+                    <span class="text-gray-500 text-xs w-24 flex-shrink-0">
+                        {{ \Carbon\Carbon::parse($f['kick_off'])->format('d.m.Y H:i') }}
+                    </span>
+                    <span class="text-sm text-white font-semibold">
+                        @if($f['home_team_slug'])
+                            <a href="/tim/{{ $f['home_team_slug'] }}" class="hover:text-[#CCFF00] transition">{{ $f['home_team_name'] }}</a>
+                        @else
+                            {{ $f['home_team_name'] }}
+                        @endif
+                        <span class="text-gray-500 mx-2">vs</span>
+                        @if($f['away_team_slug'])
+                            <a href="/tim/{{ $f['away_team_slug'] }}" class="hover:text-[#CCFF00] transition">{{ $f['away_team_name'] }}</a>
+                        @else
+                            {{ $f['away_team_name'] }}
+                        @endif
+                    </span>
+                </li>
+                @endforeach
+            </ul>
+        </section>
+        @endif
+
+    </div>
+    {{-- END SEO CONTENT BLOCKS --}}
 </div>

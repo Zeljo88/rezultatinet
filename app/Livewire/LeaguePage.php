@@ -3,6 +3,7 @@ namespace App\Livewire;
 
 use App\Models\Fixture;
 use App\Models\League;
+use App\Models\PlayerStat;
 use App\Models\Standing;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
@@ -15,6 +16,7 @@ class LeaguePage extends Component
     public array $standings = [];
     public string $tab = 'today';
     public string $view = 'fixtures'; // fixtures | standings
+    public string $slug = '';
 
     protected array $slugMap = [
         'hnl'               => 210,
@@ -38,8 +40,47 @@ class LeaguePage extends Component
         'kup-srbija'        => 732,
     ];
 
+    /** SEO-rich H1 labels (without season, appended dynamically) */
+    protected array $seoH1Labels = [
+        'hnl'                => 'HNL Rezultati Uživo — Hrvatska Nogometna Liga',
+        'superliga-srbija'   => 'Super liga Srbije — Rezultati Uživo i Tablica',
+        'premijer-liga-bih'  => 'Premijer liga BiH — Živirezultati i Tablica',
+        'champions-liga'     => 'UEFA Liga prvaka — Rezultati Uživo i Sudionici',
+        'europa-liga'        => 'UEFA Europa liga — Rezultati Uživo i Sudionici',
+        'konferencijska-liga'=> 'UEFA Konferencijska liga — Rezultati Uživo',
+        'premier-league'     => 'Premier League Rezultati Uživo — Engleska Premier liga',
+        'la-liga'            => 'La Liga Rezultati Uživo — Španjolska Primera Division',
+        'serie-a'            => 'Serie A Rezultati Uživo — Talijanska Serie A',
+        'bundesliga'         => 'Bundesliga Rezultati Uživo — Njemačka Bundesliga',
+        'ligue-1'            => 'Ligue 1 Rezultati Uživo — Francuska Ligue 1',
+        'prva-liga-srbija'   => 'Prva liga Srbije — Rezultati Uživo i Tablica',
+        'first-nl-hrvatska'  => 'Prva NL Hrvatska — Rezultati Uživo i Tablica',
+        'hnl-2'              => 'HNL 2 Rezultati Uživo — Druga hrvatska liga',
+        'prva-liga-fbih'     => 'Prva liga FBiH — Rezultati Uživo i Tablica',
+        'prva-liga-rs'       => 'Prva liga RS — Rezultati Uživo i Tablica',
+        'kup-hrvatska'       => 'Kup Hrvatske — Rezultati i Raspored',
+        'kup-bosna'          => 'Kup Bosne i Hercegovine — Rezultati i Raspored',
+        'kup-srbija'         => 'Kup Srbije — Rezultati i Raspored',
+    ];
+
+    /** SEO descriptive paragraphs per league slug */
+    protected array $seoDescriptions = [
+        'hnl'                => 'Hrvatska nogometna liga (HNL) je najviši razred klupskog nogometa u Hrvatskoj. Prati sve HNL rezultate uživo, tablicu, strijelce i raspored utakmica na rezultati.net.',
+        'superliga-srbija'   => 'Super liga Srbije je vrhunsko fudbalsko takmičenje u Srbiji. Pratite rezultate uživo, tablicu i statistike Super lige na rezultati.net.',
+        'premijer-liga-bih'  => 'Premijer liga Bosne i Hercegovine je najviši rang fudbalskog takmičenja u BiH. Pratite live rezultate, tablicu i raspored Premijer lige BiH na rezultati.net.',
+        'champions-liga'     => 'UEFA Liga prvaka je najprestižnije klupsko nogometno natjecanje u Europi. Pratite sve rezultate Lige prvaka uživo, strijelce i statistike na rezultati.net.',
+        'europa-liga'        => 'UEFA Europa liga je drugo najprestižnije klupsko natjecanje u Europi. Pratite rezultate Europske lige uživo, strijelce i statistike na rezultati.net.',
+        'konferencijska-liga'=> 'UEFA Konferencijska liga nudi uzbudljive utakmice klupskog nogometa širom Europe. Pratite rezultate i statistike na rezultati.net.',
+        'premier-league'     => 'Engleska Premier liga je jedna od najpopularnijih ligaških natjecanja na svijetu. Prati Premier League rezultate uživo, tablicu i statistike na rezultati.net.',
+        'la-liga'            => 'Španjolska La Liga je jedno od najprestižnijih ligaških natjecanja na svijetu. Pratite La Liga rezultate uživo, tablicu i statistike na rezultati.net.',
+        'serie-a'            => 'Talijanska Serie A je vrhunski razred klupskog nogometa u Italiji. Pratite Serie A rezultate uživo, tablicu i statistike na rezultati.net.',
+        'bundesliga'         => 'Njemačka Bundesliga je najpraćenija liga u Europi. Pratite sve Bundesliga rezultate uživo, tablicu i statistike na rezultati.net.',
+        'ligue-1'            => 'Francuska Ligue 1 je vrhunski razred klupskog nogometa u Francuskoj. Pratite Ligue 1 rezultate uživo, tablicu i statistike na rezultati.net.',
+    ];
+
     public function mount(string $slug): void
     {
+        $this->slug = $slug;
         $leagueId = $this->slugMap[$slug] ?? null;
         abort_if(!$leagueId, 404);
         $this->league = League::where('api_league_id', $leagueId)->firstOrFail();
@@ -123,8 +164,136 @@ class LeaguePage extends Component
     public function setTab(string $tab): void { $this->tab = $tab; $this->loadFixtures(); }
     public function setView(string $view): void { $this->view = $view; }
 
+    /** Format current_season (e.g. 2025 → "2025/26") */
+    protected function seasonLabel(): string
+    {
+        $s = (int) ($this->league->current_season ?? date('Y'));
+        return $s . '/' . substr((string)($s + 1), -2);
+    }
+
+    /** Return SEO-rich H1 string */
+    protected function getSeoH1(): string
+    {
+        $season = $this->seasonLabel();
+        if (isset($this->seoH1Labels[$this->slug])) {
+            return $this->seoH1Labels[$this->slug] . ' ' . $season;
+        }
+        return $this->league->name . ' — Rezultati Uživo i Tablica ' . $season;
+    }
+
+    /** Return SEO description for the league */
+    protected function getSeoDescription(): string
+    {
+        if (isset($this->seoDescriptions[$this->slug])) {
+            return $this->seoDescriptions[$this->slug];
+        }
+        return $this->league->name . ' — pratite sve rezultate uživo, tablicu i statistike na rezultati.net.';
+    }
+
+    /** Upcoming fixtures for SEO content block (SSR, no polling) */
+    protected function getUpcomingFixtures(): array
+    {
+        return Fixture::with(['homeTeam', 'awayTeam'])
+            ->where('league_id', $this->league->id)
+            ->whereIn('status_short', ['NS', 'TBD'])
+            ->orderBy('kick_off')
+            ->take(5)
+            ->get()
+            ->map(fn($f) => [
+                'kick_off'       => $f->kick_off,
+                'home_team_name' => $f->homeTeam?->name ?? 'N/A',
+                'away_team_name' => $f->awayTeam?->name ?? 'N/A',
+                'home_team_slug' => $f->homeTeam?->slug,
+                'away_team_slug' => $f->awayTeam?->slug,
+            ])
+            ->toArray();
+    }
+
+    /** Top scorers for this league (SSR, no polling) */
+    protected function getTopScorers(): array
+    {
+        return PlayerStat::with('player')
+            ->where('league_id', $this->league->id)
+            ->where('goals', '>', 0)
+            ->orderByDesc('goals')
+            ->take(5)
+            ->get()
+            ->map(fn($s) => [
+                'player_name' => $s->player?->name ?? 'N/A',
+                'player_slug' => $s->player?->slug,
+                'club'        => $s->player?->current_club,
+                'goals'       => $s->goals,
+                'assists'     => $s->assists,
+            ])
+            ->toArray();
+    }
+
+    protected function buildSchemaBlocks(): array
+    {
+        $blocks = [];
+        $leagueName = $this->league->name;
+        $slug = $this->slug;
+        $season = $this->league->current_season ?? date('Y');
+        $leagueUrl = "https://rezultati.net/liga/{$slug}";
+
+        // BreadcrumbList schema
+        $breadcrumb = [
+            '@context' => 'https://schema.org',
+            '@type'    => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Rezultati', 'item' => 'https://rezultati.net'],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => $leagueName, 'item' => $leagueUrl],
+            ],
+        ];
+        $blocks[] = json_encode($breadcrumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+
+        // SportsEvent schema for today's scheduled fixtures
+        $todayFixtures = Fixture::with(['homeTeam', 'awayTeam'])
+            ->where('league_id', $this->league->id)
+            ->whereDate('kick_off', today())
+            ->whereIn('status_short', ['NS', 'TBD', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE'])
+            ->orderBy('kick_off')
+            ->take(10)
+            ->get();
+
+        foreach ($todayFixtures as $fixture) {
+            $event = [
+                '@context'    => 'https://schema.org',
+                '@type'       => 'SportsEvent',
+                'name'        => ($fixture->homeTeam?->name ?? '') . ' vs ' . ($fixture->awayTeam?->name ?? ''),
+                'startDate'   => $fixture->kick_off ? \Carbon\Carbon::parse($fixture->kick_off)->toIso8601String() : '',
+                'homeTeam'    => ['@type' => 'SportsTeam', 'name' => $fixture->homeTeam?->name ?? ''],
+                'awayTeam'    => ['@type' => 'SportsTeam', 'name' => $fixture->awayTeam?->name ?? ''],
+                'eventStatus' => 'https://schema.org/EventScheduled',
+                'sport'       => 'Football',
+                'url'         => $leagueUrl,
+            ];
+            $blocks[] = json_encode($event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        }
+
+        return $blocks;
+    }
+
     public function render()
     {
-        return view('livewire.league-page');
+        $leagueName = $this->league->name;
+        $season = $this->seasonLabel();
+        $metaTitle = "{$leagueName} {$season} — Rezultati Uživo & Tablica | rezultati.net";
+        $metaDescription = "Pratite {$leagueName} rezultate uživo, tablicu, strijelce i raspored. Sve o {$leagueName} na jednom mjestu.";
+        $ogImage = $this->league->logo_url ?: null;
+
+        return view('livewire.league-page', [
+            'seoH1'            => $this->getSeoH1(),
+            'seasonLabel'      => $this->seasonLabel(),
+            'seoDescription'   => $this->getSeoDescription(),
+            'seoUpcoming'      => $this->getUpcomingFixtures(),
+            'seoTopScorers'    => $this->getTopScorers(),
+            'seoStandings'     => array_slice($this->standings, 0, 8),
+        ])->layout('layouts.app', [
+            'metaTitle'       => $metaTitle,
+            'metaDescription' => $metaDescription,
+            'ogImage'         => $ogImage,
+            'schemaBlocks'    => $this->buildSchemaBlocks(),
+        ]);
     }
 }

@@ -27,19 +27,19 @@ class SyncLineups extends Command
         // Fixtures from today and tomorrow that need lineups
         $fixtures = Fixture::whereBetween('kick_off', [
                 now()->startOfDay(),
-                now()->addDay()->endOfDay(),
+                now()->addHours(1),
             ])
             ->whereNotNull('api_fixture_id')
             // Only fetch lineups for matches that are NOT "NS" (Not Started)
-            // OR for NS matches within 2 hours of kick-off
+            // OR for NS matches within 1 hour of kick-off
             ->where(function ($q) {
                 $q->where(function ($q2) {
                     // Non-NS statuses: lineups may be available
                     $q2->whereNotIn('status_short', ['NS', 'TBD', 'CANC', 'ABD', 'AWD', 'WO']);
                 })->orWhere(function ($q2) {
-                    // NS fixtures kicking off within 2 hours
+                    // NS fixtures kicking off within 1 hour
                     $q2->where('status_short', 'NS')
-                       ->where('kick_off', '<=', now()->addHours(2));
+                       ->where('kick_off', '<=', now()->addHours(1));
                 });
             })
             // Not already synced

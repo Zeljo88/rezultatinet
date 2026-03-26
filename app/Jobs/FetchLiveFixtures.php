@@ -48,6 +48,7 @@ class FetchLiveFixtures implements ShouldQueue
                     'status_short'   => $data['fixture']['status']['short'] ?? null,
                     'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
                     'elapsed_extra'  => $data['fixture']['status']['extra'] ?: null,
+                    'season'         => $data['league']['season'],
                     'league_id'      => $league->id,
                     'home_team_id'   => $homeTeam?->id,
                     'away_team_id'   => $awayTeam?->id,
@@ -85,13 +86,13 @@ class FetchLiveFixtures implements ShouldQueue
                 }
             }
 
-            // Dispatch lineup fetch only for top leagues + within 90 min of kickoff (or already live)
+            // Dispatch lineup fetch only for top leagues + within 60 min of kickoff (or already live)
             // This prevents burning API quota on lineup fetches for minor leagues / distant matches
             $topLeagueIds = [2, 3, 848, 39, 140, 135, 78, 61, 210, 286, 315];
             $isTopLeague  = in_array($league->api_league_id, $topLeagueIds);
 
             $isLive       = in_array($fixture->status_short, ['1H', 'HT', '2H', 'ET', 'P', 'BT']);
-            $kickoffSoon  = $fixture->kick_off && now()->diffInMinutes($fixture->kick_off, false) <= 90;
+            $kickoffSoon  = $fixture->kick_off && now()->diffInMinutes($fixture->kick_off, false) <= 60;
 
             $needsLineups = !$fixture->lineups_fetched_at || !$fixture->lineups_fetched_at->isToday();
 

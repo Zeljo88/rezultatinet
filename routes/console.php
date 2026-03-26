@@ -1,10 +1,16 @@
 <?php
 use App\Jobs\FetchLiveFixtures;
+use App\Jobs\FinalizeFinishedFixtures;
 use Illuminate\Support\Facades\Schedule;
 
 // ✅ ACTIVE — Fetch live football scores every 30 seconds (~2,880/day)
 Schedule::job(new FetchLiveFixtures)
     ->everyThirtySeconds();
+
+// ✅ ACTIVE — Finalize fixtures stuck in 2H/ET after 15+ min (FT cleanup)
+Schedule::job(new FinalizeFinishedFixtures)
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
 
 // ──────────────────────────────────────────────────────────────────────────────
 // PAUSED — API kvota hitno. Sve jobove pausirati osim FetchLiveFixtures.

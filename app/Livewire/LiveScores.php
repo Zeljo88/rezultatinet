@@ -170,6 +170,9 @@ class LiveScores extends Component
                 'away_team_slug' => $fixture->awayTeam?->slug,
                 'score_home'     => $scoreHome,
                 'score_away'     => $scoreAway,
+                'home_team_logo' => $fixture->homeTeam?->logo_url,
+                'away_team_logo' => $fixture->awayTeam?->logo_url,
+                'league_logo'    => $fixture->league?->logo_url,
             ];
         }
         // Sort grouped fixtures — priority leagues first

@@ -1,0 +1,79 @@
+@php
+$articleSchema = [
+    '@context' => 'https://schema.org',
+    '@type' => 'NewsArticle',
+    'headline' => $post->title,
+    'description' => $post->meta_description ?? '',
+    'datePublished' => $post->created_at->toIso8601String(),
+    'dateModified' => $post->updated_at->toIso8601String(),
+    'author' => ['@type' => 'Organization', 'name' => 'rezultati.net', 'url' => 'https://rezultati.net'],
+    'publisher' => ['@type' => 'Organization', 'name' => 'rezultati.net', 'url' => 'https://rezultati.net'],
+    'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => 'https://rezultati.net/blog/' . $post->slug],
+    'keywords' => $post->keyword ?? '',
+    'inLanguage' => 'bs',
+];
+
+if ($post->featured_image) {
+    $articleSchema['image'] = asset($post->featured_image);
+} else {
+    $articleSchema['image'] = asset('images/og/default.jpg');
+}
+
+$kw = strtolower($post->keyword ?? '');
+$titleLower = strtolower($post->title ?? '');
+if (str_contains($kw, 'gdje gledati') || str_contains($kw, 'gdje')) {
+    $category = '📺 TV Vodič';
+} elseif (str_contains($kw, 'champions') || str_contains($titleLower, 'champions')) {
+    $category = '🏆 Champions Liga';
+} elseif (str_contains($kw, 'hnl') || str_contains($titleLower, 'hnl')) {
+    $category = '⚽ HNL';
+} else {
+    $category = '⚽ Fudbal';
+}
+$readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) / 200));
+@endphp
+<script type="application/ld+json">
+{!! json_encode($articleSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+</script>
+<div>
+    <a href="/blog" class="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-4 transition">
+        &larr; Nazad na blog
+    </a>
+
+    <article class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6">
+        <div class="flex items-center gap-3 mb-3">
+            <span class="text-xs font-bold text-[#CCFF00] uppercase tracking-wider">{{ $category }}</span>
+            <span class="text-xs text-gray-600">•</span>
+            <span class="text-xs text-gray-600">{{ $readTime }} min čitanja</span>
+            <span class="text-xs text-gray-600">•</span>
+            <span class="text-xs text-gray-600">{{ $post->created_at->format('d. M Y.') }}</span>
+        </div>
+        <h1 class="text-2xl font-black text-white mb-6">{{ $post->title }}</h1>
+
+        <div class="text-gray-300 leading-relaxed space-y-4
+            [&_h1]:hidden
+            [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-[#2a2a2a] [&_h2]:pb-1
+            [&_h3]:text-[#CCFF00] [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-1
+            [&_p]:mb-3 [&_p]:leading-7
+            [&_a]:text-[#CCFF00] [&_a]:underline [&_a]:hover:text-white
+            [&_strong]:text-white [&_strong]:font-bold">
+            {!! $post->content !!}
+        </div>
+    </article>
+
+    {{-- Share --}}
+    <div class="flex items-center gap-3 mt-4">
+        @php
+            $url = urlencode('https://rezultati.net/blog/' . $post->slug);
+            $text = urlencode($post->title . ' | rezultati.net');
+        @endphp
+        <a href="https://wa.me/?text={{ $text }}%20{{ $url }}" target="_blank"
+           class="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white text-sm font-bold rounded-lg hover:opacity-90 transition">
+            📱 Podijeli na WhatsApp
+        </a>
+        <button onclick="navigator.clipboard.writeText('https://rezultati.net/blog/{{ $post->slug }}').then(() => alert('Link kopiran!'))"
+           class="px-4 py-2 bg-[#2a2a2a] text-gray-300 text-sm font-bold rounded-lg hover:bg-[#333] transition">
+            🔗 Kopiraj link
+        </button>
+    </div>
+</div>

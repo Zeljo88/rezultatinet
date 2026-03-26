@@ -6,7 +6,7 @@
     {{-- Player header --}}
     <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6 mb-4">
         <div class="flex items-start gap-5">
-            <img src="{{ $player->photo_url }}" class="w-24 h-24 rounded-full object-cover bg-[#2a2a2a] flex-shrink-0" alt="{{ $player->name }}" onerror="this.src='https://media.api-sports.io/football/players/0.png'">
+            <img src="{{ $player->photo_url }}" class="w-24 h-24 rounded-full object-cover bg-[#2a2a2a] flex-shrink-0" alt="{{ $player->name }}" onerror="this.src='https://media.api-sports.io/football/players/0.png'" loading="lazy">
             <div class="flex-1">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="text-2xl">{{ $player->country_flag }}</span>
@@ -14,7 +14,7 @@
                 </div>
                 <div class="flex items-center gap-2 mb-3">
                     @if($player->current_club_logo)
-                        <img src="{{ $player->current_club_logo }}" class="w-6 h-6 object-contain" alt="">
+                        <img src="{{ $player->current_club_logo }}" class="w-6 h-6 object-contain" alt="" loading="lazy">
                     @endif
                     <span class="text-gray-300 font-semibold">{{ $player->current_club }}</span>
                     <span class="text-gray-500 text-sm">&bull; {{ $player->current_league }}</span>

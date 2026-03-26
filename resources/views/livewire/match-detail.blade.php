@@ -1,21 +1,4 @@
-<div
-    x-data="{
-        originalTitle: document.title,
-        updateTitle() {
-            const home = document.getElementById('score-home')?.textContent?.trim();
-            const away = document.getElementById('score-away')?.textContent?.trim();
-            const minute = '{{ $fixture->elapsed_minute ?? '' }}';
-            const extra = '{{ $fixture->elapsed_extra ?? '' }}';
-            const isLive = {{ in_array($fixture->status_short ?? '', ['1H','2H','HT','ET','BT','P']) ? 'true' : 'false' }};
-            if (isLive && home !== undefined && away !== undefined) {
-                const minDisplay = extra ? minute + '+' + extra : minute;
-                document.title = '\u26BD ' + home + ':' + away + ' ' + minDisplay + '\' | rezultati.net';
-            }
-        }
-    }"
-    x-init="updateTitle(); setInterval(() => updateTitle(), 30000)"
-    x-on:score-updated.window="checkForGoal($event.detail.home, $event.detail.away)"
->
+<div>
 @php
     $liveStatuses = ['1H','2H','ET','BT','P','LIVE'];
     $isLive = in_array($fixture->status_short, $liveStatuses);
@@ -33,37 +16,9 @@
         $scoreHome = 0;
         $scoreAway = 0;
     }
-
-    // SportsEvent JSON-LD Schema
-    $schemaData = [
-        '@context'   => 'https://schema.org',
-        '@type'      => 'SportsEvent',
-        'name'       => $fixture->homeTeam->name . ' vs ' . $fixture->awayTeam->name,
-        'startDate'  => \Carbon\Carbon::parse($fixture->kick_off)->toIso8601String(),
-        'location'   => [
-            '@type' => 'Place',
-            'name'  => $fixture->venue_name ?? 'Unknown Venue',
-        ],
-        'competitor' => [
-            ['@type' => 'SportsTeam', 'name' => $fixture->homeTeam->name],
-            ['@type' => 'SportsTeam', 'name' => $fixture->awayTeam->name],
-        ],
-        'sport' => 'Football',
-        'url'   => url()->current(),
-    ];
-    if ($fixture->score) {
-        $schemaData['homeTeam'] = ['@type' => 'SportsTeam', 'name' => $fixture->homeTeam->name];
-        $schemaData['awayTeam'] = ['@type' => 'SportsTeam', 'name' => $fixture->awayTeam->name];
-        if ($isFT) {
-            $schemaData['name'] .= ' ' . $scoreHome . '-' . $scoreAway;
-        }
-    }
 @endphp
 
-    {{-- SportsEvent JSON-LD — injected as first child, stays inside root div --}}
-    <script type="application/ld+json">
-    {!! json_encode($schemaData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) !!}
-    </script>
+    {{-- SportsEvent JSON-LD schema is injected via MatchDetail::buildSchemaBlocks() into layouts.app head --}}
 
     {{-- Back --}}
     <a href="/" class="inline-flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-4 transition cursor-pointer">
@@ -78,7 +33,7 @@
         <div class="flex items-center justify-between gap-4">
             <div class="flex-1 text-center">
                 @if($fixture->homeTeam->logo_url)
-                    <img src="{{ $fixture->homeTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->homeTeam->name }}">
+                    <img src="{{ $fixture->homeTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->homeTeam->name }}" loading="lazy">
                 @endif
                 <a href="/tim/{{ $fixture->homeTeam->slug }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->homeTeam->name }}</a>
             </div>
@@ -109,7 +64,7 @@
             </div>
             <div class="flex-1 text-center">
                 @if($fixture->awayTeam->logo_url)
-                    <img src="{{ $fixture->awayTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->awayTeam->name }}">
+                    <img src="{{ $fixture->awayTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->awayTeam->name }}" loading="lazy">
                 @endif
                 <a href="/tim/{{ $fixture->awayTeam->slug }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->awayTeam->name }}</a>
             </div>
@@ -136,6 +91,16 @@
             🔗 Kopiraj link
         </button>
     </div>
+
+
+    {{-- Poll: Ko će pobijediti? --}}
+    @php
+        $pollStatuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN'];
+        $hidePollStatuses = ['CANC', 'PST', 'AWD', 'SUSP', 'INT', 'ABD', 'WO'];
+    @endphp
+    @if(in_array($fixture->status_short, $pollStatuses))
+        <livewire:fixture-poll :fixture="$fixture" />
+    @endif
 
     {{-- Tabs: Dogadjaji / Sastavi / H2H --}}
     <div class="flex gap-2 mb-4 flex-wrap">
@@ -435,7 +400,7 @@
                     <span class="text-xs text-gray-500 w-20 flex-shrink-0">{{ \Carbon\Carbon::parse($match['kick_off'])->format('d.m.Y') }}</span>
                     <div class="flex-1 flex items-center gap-2 justify-end">
                         @if($match['home_team_logo'])
-                            <img src="{{ $match['home_team_logo'] }}" class="w-4 h-4 object-contain" alt="">
+                            <img src="{{ $match['home_team_logo'] }}" class="w-4 h-4 object-contain" alt="" loading="lazy">
                         @endif
                         <span class="text-sm {{ $homeWon ? 'text-white font-bold' : 'text-gray-400' }}">{{ $match['home_team_name'] }}</span>
                     </div>
@@ -446,7 +411,7 @@
                     </div>
                     <div class="flex-1 flex items-center gap-2">
                         @if($match['away_team_logo'])
-                            <img src="{{ $match['away_team_logo'] }}" class="w-4 h-4 object-contain" alt="">
+                            <img src="{{ $match['away_team_logo'] }}" class="w-4 h-4 object-contain" alt="" loading="lazy">
                         @endif
                         <span class="text-sm {{ $awayWon ? 'text-white font-bold' : 'text-gray-400' }}">{{ $match['away_team_name'] }}</span>
                     </div>
@@ -505,52 +470,5 @@
     });
     </script>
     @endif
-
-    {{-- ⚽ Push Notifications + Tab Title JS --}}
-    <script>
-    // Restore title on navigate away
-    window.addEventListener('beforeunload', () => { document.title = 'rezultati.net'; });
-
-    @if(in_array($fixture->status_short ?? '', ['1H','2H','HT','ET','BT','P','NS']))
-    // Request notification permission after 5s (less annoying)
-    document.addEventListener('DOMContentLoaded', function() {
-        if ('Notification' in window && Notification.permission === 'default') {
-            setTimeout(() => { Notification.requestPermission(); }, 5000);
-        }
-    });
-    @endif
-
-    // Track score to detect goals
-    window._lastScoreHome = {{ $fixture->score?->goals_home ?? 'null' }};
-    window._lastScoreAway = {{ $fixture->score?->goals_away ?? 'null' }};
-    window._homeTeam = '{{ addslashes($fixture->homeTeam->name ?? '') }}';
-    window._awayTeam = '{{ addslashes($fixture->awayTeam->name ?? '') }}';
-    window._fixtureUrl = '/utakmica/{{ $fixture->id }}';
-
-    // Called when Livewire dispatches scoreUpdated
-    window.checkForGoal = function(newHome, newAway) {
-        if (window._lastScoreHome === null || window._lastScoreAway === null) {
-            window._lastScoreHome = newHome;
-            window._lastScoreAway = newAway;
-            return;
-        }
-        if (newHome > window._lastScoreHome) {
-            sendGoalNotification(window._homeTeam, newHome, newAway);
-        } else if (newAway > window._lastScoreAway) {
-            sendGoalNotification(window._awayTeam, newHome, newAway);
-        }
-        window._lastScoreHome = newHome;
-        window._lastScoreAway = newAway;
-    };
-
-    function sendGoalNotification(scoringTeam, home, away) {
-        if (Notification.permission !== 'granted') return;
-        new Notification('⚽ GOL! ' + scoringTeam, {
-            body: window._homeTeam + ' ' + home + ':' + away + ' ' + window._awayTeam,
-            icon: '/icons/icon-192.png',
-            tag: 'goal-' + Date.now(),
-        });
-    }
-    </script>
 
 </div>

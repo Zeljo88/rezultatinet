@@ -74,10 +74,40 @@ class TeamPage extends Component
             'is_home'        => $isHome,
             'result'         => $result,
             'is_ft'          => $isFT,
+            'home_team_slug' => $f->homeTeam?->slug,
+            'away_team_slug' => $f->awayTeam?->slug,
         ];
     }
 
     public function setTab(string $tab): void { $this->tab = $tab; }
 
-    public function render() { return view('livewire.team-page'); }
+    public function render()
+    {
+        $teamName = $this->team->name;
+        $metaTitle = "{$teamName} — Rezultati, Raspored i Statistike — rezultati.net";
+        $metaDescription = "Sve o {$teamName}: live rezultati, raspored utakmica, statistike igrača i pozicija u tablici na rezultati.net.";
+        // Use team logo as og:image if available
+        $ogImage = $this->team->logo_url ?: null;
+
+        // BreadcrumbList schema for team page
+        $breadcrumb = [
+            '@context' => 'https://schema.org',
+            '@type'    => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Rezultati', 'item' => 'https://rezultati.net'],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => $teamName, 'item' => 'https://rezultati.net/tim/' . ($this->team->slug ?? '')],
+            ],
+        ];
+        $schemaBlocks = [
+            json_encode($breadcrumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+        ];
+
+        return view('livewire.team-page')
+            ->layout('layouts.app', [
+                'metaTitle'       => $metaTitle,
+                'metaDescription' => $metaDescription,
+                'ogImage'         => $ogImage,
+                'schemaBlocks'    => $schemaBlocks,
+            ]);
+    }
 }

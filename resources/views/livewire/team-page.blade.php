@@ -2,10 +2,10 @@
     {{-- Team header --}}
     <div class="flex items-center gap-4 mb-6">
         @if($team->logo_url)
-            <img src="{{ $team->logo_url }}" class="w-16 h-16 object-contain" alt="{{ $team->name }}">
+            <img src="{{ $team->logo_url }}" class="w-16 h-16 object-contain" alt="{{ $team->name }}" loading="lazy">
         @endif
         <div>
-            <h1 class="text-2xl font-black text-white">{{ $team->name }}</h1>
+            <h1 class="text-2xl font-black text-white">{{ $team->name }} — Rezultati i Statistike</h1>
             <p class="text-gray-500 text-sm mt-0.5">Rezultati i raspored</p>
         </div>
     </div>
@@ -38,7 +38,14 @@
                     default => ''
                 };
             @endphp
-            <a href="/utakmica/{{ $fixture['id'] }}"
+            @php
+                $matchUrl = '/utakmica/' . $fixture['id'];
+                if (!empty($fixture['home_team_slug']) && !empty($fixture['away_team_slug']) && !empty($fixture['kick_off'])) {
+                    $matchDate = \Carbon\Carbon::parse($fixture['kick_off'])->format('d-m-Y');
+                    $matchUrl = '/utakmica/' . $fixture['home_team_slug'] . '-vs-' . $fixture['away_team_slug'] . '-' . $matchDate;
+                }
+            @endphp
+            <a href="{{ $matchUrl }}"
                class="flex items-center px-3 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $resultColor }} {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                 <div class="w-10 text-center flex-shrink-0">
                     @if($fixture['result'])
@@ -56,7 +63,7 @@
                 <div class="flex-1 flex items-center px-2">
                     <div class="flex-1 flex items-center justify-end gap-2 pr-3">
                         @if($fixture['home_team_logo'])
-                            <img src="{{ $fixture['home_team_logo'] }}" class="w-5 h-5 object-contain" alt="">
+                            <img src="{{ $fixture['home_team_logo'] }}" class="w-5 h-5 object-contain" alt="" loading="lazy">
                         @endif
                         <span class="text-sm font-semibold {{ $fixture['is_home'] ? 'text-white' : 'text-gray-400' }}">{{ $fixture['home_team_name'] }}</span>
                     </div>
@@ -71,7 +78,7 @@
                     </div>
                     <div class="flex-1 flex items-center gap-2 pl-3">
                         @if($fixture['away_team_logo'])
-                            <img src="{{ $fixture['away_team_logo'] }}" class="w-5 h-5 object-contain" alt="">
+                            <img src="{{ $fixture['away_team_logo'] }}" class="w-5 h-5 object-contain" alt="" loading="lazy">
                         @endif
                         <span class="text-sm font-semibold {{ !$fixture['is_home'] ? 'text-white' : 'text-gray-400' }}">{{ $fixture['away_team_name'] }}</span>
                     </div>

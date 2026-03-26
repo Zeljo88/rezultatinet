@@ -49,7 +49,7 @@
                 {{-- Player --}}
                 <div class="col-span-5 flex items-center gap-2">
                     @if($scorer['player_photo'])
-                        <img src="{{ $scorer['player_photo'] }}" class="w-8 h-8 rounded-full object-cover bg-[#2a2a2a]" alt="">
+                        <img src="{{ $scorer['player_photo'] }}" class="w-8 h-8 rounded-full object-cover bg-[#2a2a2a]" alt="" loading="lazy">
                     @else
                         <div class="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-600 text-xs">?</div>
                     @endif
@@ -63,7 +63,7 @@
                 {{-- Club --}}
                 <div class="col-span-3 flex items-center gap-1.5">
                     @if($scorer['team_logo'])
-                        <img src="{{ $scorer['team_logo'] }}" class="w-4 h-4 object-contain" alt="">
+                        <img src="{{ $scorer['team_logo'] }}" class="w-4 h-4 object-contain" alt="" loading="lazy">
                     @endif
                     <span class="text-xs text-gray-400 truncate">{{ $scorer['team_name'] }}</span>
                 </div>

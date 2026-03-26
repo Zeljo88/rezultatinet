@@ -1,0 +1,133 @@
+<div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-5 mb-4">
+    {{-- Naslov --}}
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-white font-bold text-base">⚽ Ko će pobijediti?</h3>
+        @if(in_array($fixture->status_short, ['FT', 'AET', 'PEN']))
+            <span class="text-xs text-gray-500 bg-[#2a2a2a] px-2 py-1 rounded">Glasanje završeno</span>
+        @endif
+    </div>
+
+    @php
+        $isFinished = in_array($fixture->status_short, ['FT', 'AET', 'PEN']);
+        $showResults = $hasVoted || $isFinished;
+
+        $homePercent = $totalVotes > 0 ? round(($results['home'] / $totalVotes) * 100) : 0;
+        $drawPercent = $totalVotes > 0 ? round(($results['draw'] / $totalVotes) * 100) : 0;
+        $awayPercent = $totalVotes > 0 ? round(($results['away'] / $totalVotes) * 100) : 0;
+
+        // Adjust rounding so totals = 100
+        if ($showResults && $totalVotes > 0) {
+            $diff = 100 - ($homePercent + $drawPercent + $awayPercent);
+            $awayPercent += $diff;
+        }
+    @endphp
+
+    @if(!$showResults)
+        {{-- Dugmad za glasanje --}}
+        <div class="grid grid-cols-3 gap-2">
+            <button
+                wire:click="vote('home')"
+                class="flex flex-col items-center justify-center py-3 px-2 rounded-lg bg-[#0f2a4a] border border-[#1e4080] text-white font-bold text-sm hover:bg-[#1a3a6a] hover:border-[#2a50a0] transition cursor-pointer"
+            >
+                @if($fixture->homeTeam->logo_url)
+                    <img src="{{ $fixture->homeTeam->logo_url }}" class="w-7 h-7 object-contain mb-1" alt="{{ $fixture->homeTeam->name }}">
+                @endif
+                <span class="text-xs text-center leading-tight">{{ $fixture->homeTeam->name }}</span>
+            </button>
+
+            <button
+                wire:click="vote('draw')"
+                class="flex flex-col items-center justify-center py-3 px-2 rounded-lg bg-[#2a2a2a] border border-[#3a3a3a] text-white font-bold text-sm hover:bg-[#333333] hover:border-[#4a4a4a] transition cursor-pointer"
+            >
+                <span class="text-2xl mb-1">🤝</span>
+                <span class="text-xs text-center">Remi</span>
+            </button>
+
+            <button
+                wire:click="vote('away')"
+                class="flex flex-col items-center justify-center py-3 px-2 rounded-lg bg-[#4a0f0f] border border-[#801e1e] text-white font-bold text-sm hover:bg-[#6a1a1a] hover:border-[#a02a2a] transition cursor-pointer"
+            >
+                @if($fixture->awayTeam->logo_url)
+                    <img src="{{ $fixture->awayTeam->logo_url }}" class="w-7 h-7 object-contain mb-1" alt="{{ $fixture->awayTeam->name }}">
+                @endif
+                <span class="text-xs text-center leading-tight">{{ $fixture->awayTeam->name }}</span>
+            </button>
+        </div>
+    @else
+        {{-- Rezultati glasanja --}}
+        <div class="space-y-3">
+            {{-- Home --}}
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        @if($fixture->homeTeam->logo_url)
+                            <img src="{{ $fixture->homeTeam->logo_url }}" class="w-5 h-5 object-contain" alt="{{ $fixture->homeTeam->name }}">
+                        @endif
+                        <span class="text-sm text-white font-medium">{{ $fixture->homeTeam->name }}</span>
+                        @if($userVote === 'home')
+                            <span class="text-xs font-bold" style="color: #CCFF00;">✓ Tvoj glas</span>
+                        @endif
+                    </div>
+                    <span class="text-sm font-bold text-white">{{ $homePercent }}%</span>
+                </div>
+                <div class="w-full bg-[#2a2a2a] rounded-full h-3 overflow-hidden">
+                    <div
+                        class="h-3 rounded-full transition-all duration-500"
+                        style="width: {{ $homePercent }}%; background-color: {{ $userVote === 'home' ? '#CCFF00' : '#3B82F6' }}; {{ $userVote === 'home' ? 'box-shadow: 0 0 8px #CCFF00;' : '' }}"
+                    ></div>
+                </div>
+            </div>
+
+            {{-- Draw --}}
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">🤝</span>
+                        <span class="text-sm text-white font-medium">Remi</span>
+                        @if($userVote === 'draw')
+                            <span class="text-xs font-bold" style="color: #CCFF00;">✓ Tvoj glas</span>
+                        @endif
+                    </div>
+                    <span class="text-sm font-bold text-white">{{ $drawPercent }}%</span>
+                </div>
+                <div class="w-full bg-[#2a2a2a] rounded-full h-3 overflow-hidden">
+                    <div
+                        class="h-3 rounded-full transition-all duration-500"
+                        style="width: {{ $drawPercent }}%; background-color: {{ $userVote === 'draw' ? '#CCFF00' : '#6B7280' }}; {{ $userVote === 'draw' ? 'box-shadow: 0 0 8px #CCFF00;' : '' }}"
+                    ></div>
+                </div>
+            </div>
+
+            {{-- Away --}}
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        @if($fixture->awayTeam->logo_url)
+                            <img src="{{ $fixture->awayTeam->logo_url }}" class="w-5 h-5 object-contain" alt="{{ $fixture->awayTeam->name }}">
+                        @endif
+                        <span class="text-sm text-white font-medium">{{ $fixture->awayTeam->name }}</span>
+                        @if($userVote === 'away')
+                            <span class="text-xs font-bold" style="color: #CCFF00;">✓ Tvoj glas</span>
+                        @endif
+                    </div>
+                    <span class="text-sm font-bold text-white">{{ $awayPercent }}%</span>
+                </div>
+                <div class="w-full bg-[#2a2a2a] rounded-full h-3 overflow-hidden">
+                    <div
+                        class="h-3 rounded-full transition-all duration-500"
+                        style="width: {{ $awayPercent }}%; background-color: {{ $userVote === 'away' ? '#CCFF00' : '#EF4444' }}; {{ $userVote === 'away' ? 'box-shadow: 0 0 8px #CCFF00;' : '' }}"
+                    ></div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Ukupan broj glasova --}}
+    <div class="mt-3 text-center text-xs text-gray-500">
+        @if($totalVotes > 0)
+            {{ number_format($totalVotes, 0, ',', '.') }} {{ $totalVotes === 1 ? 'glas' : ($totalVotes < 5 ? 'glasa' : 'glasova') }}
+        @else
+            Budi prvi koji glasaš!
+        @endif
+    </div>
+</div>
