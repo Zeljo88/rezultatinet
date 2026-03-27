@@ -228,12 +228,42 @@ class LiveScores extends Component
             }
         } else {
             $allSorted = array_merge($priorityGroups[1], $priorityGroups[2], $priorityGroups[3], $otherGroups);
+
+            // First pass: mark priority-based expanded
+            $builtFixtures = [];
+            $expandedCount = 0;
             foreach ($allSorted as $name => $leagueFixtures) {
                 $apiId    = $leagueFixtures[0]['league_api_id'] ?? null;
                 $priority = $apiId !== null ? ($priorityMap[$apiId] ?? 99) : 99;
-                $this->fixtures[$name] = [
+                $isPriority = $priority < 99;
+                if ($isPriority) $expandedCount++;
+                $builtFixtures[$name] = [
                     'fixtures' => $leagueFixtures,
-                    'expanded' => $priority < 99,
+                    'expanded' => $isPriority,
+                    '_priority' => $priority,
+                ];
+            }
+
+            // Smart expand fallback: if fewer than 3 are expanded, also expand top non-priority leagues by count
+            if ($expandedCount < 3) {
+                $needed = 3 - $expandedCount;
+                $nonPriority = [];
+                foreach ($builtFixtures as $name => $data) {
+                    if (!$data['expanded']) {
+                        $nonPriority[$name] = count($data['fixtures']);
+                    }
+                }
+                arsort($nonPriority);
+                $topFill = array_slice(array_keys($nonPriority), 0, $needed);
+                foreach ($topFill as $name) {
+                    $builtFixtures[$name]['expanded'] = true;
+                }
+            }
+
+            foreach ($builtFixtures as $name => $data) {
+                $this->fixtures[$name] = [
+                    'fixtures' => $data['fixtures'],
+                    'expanded' => $data['expanded'],
                 ];
             }
         }
