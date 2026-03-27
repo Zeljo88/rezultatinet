@@ -41,6 +41,18 @@ class FetchLiveFixtures implements ShouldQueue
             $homeTeam = Team::where('api_team_id', $data['teams']['home']['id'])->first();
             $awayTeam = Team::where('api_team_id', $data['teams']['away']['id'])->first();
 
+            // Guard: skip fixture if team data is missing (API returned incomplete data
+            // or team not in our DB). Prevents SQLSTATE[23000] NULL constraint crash.
+            if (!$homeTeam || !$awayTeam) {
+                Log::warning('FetchLiveFixtures: skipping fixture api_id=' . $data['fixture']['id']
+                    . ' league_id=' . $league->id
+                    . ' — missing team data (home_api_id=' . ($data['teams']['home']['id'] ?? 'null')
+                    . ', away_api_id=' . ($data['teams']['away']['id'] ?? 'null') . ')'
+                    . ' home_found=' . ($homeTeam ? 'yes' : 'no')
+                    . ' away_found=' . ($awayTeam ? 'yes' : 'no'));
+                continue;
+            }
+
             $fixture = Fixture::updateOrCreate(
                 ['api_fixture_id' => $data['fixture']['id']],
                 [
@@ -50,8 +62,8 @@ class FetchLiveFixtures implements ShouldQueue
                     'elapsed_extra'  => $data['fixture']['status']['extra'] ?: null,
                     'season'         => $data['league']['season'],
                     'league_id'      => $league->id,
-                    'home_team_id'   => $homeTeam?->id,
-                    'away_team_id'   => $awayTeam?->id,
+                    'home_team_id'   => $homeTeam->id,
+                    'away_team_id'   => $awayTeam->id,
                     'kick_off'       => $data['fixture']['date'] ?? null,
                 ]
             );
