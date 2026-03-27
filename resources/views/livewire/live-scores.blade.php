@@ -117,25 +117,16 @@
             </p>
         </div>
     @else
+        @foreach($fixtures as $leagueName => $leagueData)
         @php
-            $priorityIds = [39,140,135,78,61,210,286,315,382,394,271,113,32,34,30,31,33,2,3,848,5];
-            $priorityFixtures = [];
-            $otherFixtures = [];
-            foreach ($fixtures as $leagueName => $leagueFixtures) {
-                $leagueApiId = $leagueFixtures[0]['league_api_id'] ?? null;
-                if ($leagueApiId && in_array($leagueApiId, $priorityIds)) {
-                    $priorityFixtures[$leagueName] = $leagueFixtures;
-                } else {
-                    $otherFixtures[$leagueName] = $leagueFixtures;
-                }
+            if (is_array($leagueData) && isset($leagueData["fixtures"])) {
+                $leagueFixtures = $leagueData["fixtures"];
+                $shouldOpenFromPHP = $leagueData["expanded"];
+            } else {
+                $leagueFixtures = $leagueData;
+                $shouldOpenFromPHP = false;
             }
-            $allLeagueGroups = array_merge($priorityFixtures, $otherFixtures);
-            // Smart expand: check if any top priority league has matches
-            $hasTopLeagueMatches = !empty($priorityFixtures);
-            $expandedFallbackCount = 0;
         @endphp
-
-        @foreach($allLeagueGroups as $leagueName => $leagueFixtures)
         @php
             $statusList = collect($leagueFixtures)->map(function($f) {
                 $s = $f['status_short'] ?? '';
@@ -156,16 +147,7 @@
             })->unique()->values()->implode(',');
             $leagueLogo = $leagueFixtures[0]['league_logo'] ?? null;
             $leagueApiId = $leagueFixtures[0]['league_api_id'] ?? null;
-            $priorityLeagueIds = [39, 140, 135, 78, 61, 210, 286, 315, 382, 394, 271, 113, 32, 34, 30, 31, 33, 2, 3, 848, 5];
-            $isTopLeague = $leagueApiId && in_array($leagueApiId, $priorityLeagueIds);
-            if ($hasTopLeagueMatches) {
-                // Normal mode: expand top leagues only
-                $shouldOpen = $isTopLeague;
-            } else {
-                // Fallback mode: expand first 3 leagues (sorted by match count desc)
-                $shouldOpen = $expandedFallbackCount < 3;
-                if ($shouldOpen) $expandedFallbackCount++;
-            }
+            $shouldOpen = $shouldOpenFromPHP;
         @endphp
 
         <div x-data="{ open: {{ $shouldOpen ? 'true' : 'false' }} }"

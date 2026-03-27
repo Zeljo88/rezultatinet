@@ -204,15 +204,39 @@ class LiveScores extends Component
             }
         }
 
-        // Sort "other" alphabetically
+        // Sort other alphabetically
         ksort($otherGroups);
 
-        $this->fixtures = array_merge(
-            $priorityGroups[1],
-            $priorityGroups[2],
-            $priorityGroups[3],
-            $otherGroups
-        );
+        $hasPriorityFixtures = !empty($priorityGroups[1]) || !empty($priorityGroups[2]) || !empty($priorityGroups[3]);
+
+        $this->fixtures = [];
+
+        if (!$hasPriorityFixtures) {
+            // Smart expand fallback: sort other leagues by fixture count desc, expand top 3
+            $withCounts = [];
+            foreach ($otherGroups as $name => $leagueFixtures) {
+                $withCounts[$name] = count($leagueFixtures);
+            }
+            arsort($withCounts);
+            $topLeagues = array_slice(array_keys($withCounts), 0, 3);
+
+            foreach ($withCounts as $name => $_count) {
+                $this->fixtures[$name] = [
+                    'fixtures' => $otherGroups[$name],
+                    'expanded' => in_array($name, $topLeagues),
+                ];
+            }
+        } else {
+            $allSorted = array_merge($priorityGroups[1], $priorityGroups[2], $priorityGroups[3], $otherGroups);
+            foreach ($allSorted as $name => $leagueFixtures) {
+                $apiId    = $leagueFixtures[0]['league_api_id'] ?? null;
+                $priority = $apiId !== null ? ($priorityMap[$apiId] ?? 99) : 99;
+                $this->fixtures[$name] = [
+                    'fixtures' => $leagueFixtures,
+                    'expanded' => $priority < 99,
+                ];
+            }
+        }
 
         $this->counts = $this->getCounts();
     }
