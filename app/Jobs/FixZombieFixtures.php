@@ -28,7 +28,7 @@ class FixZombieFixtures implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /** Maximum fixtures to process per run (API budget protection) */
-    private const MAX_PER_RUN = 50;
+    private const MAX_PER_RUN = 20;
 
     /** Daily API call budget ceiling */
     private const API_BUDGET = 7400;
