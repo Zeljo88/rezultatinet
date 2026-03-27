@@ -46,6 +46,12 @@ $readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) /
         </div>
         <h1 class="text-2xl font-black text-white mb-6">{{ $post->title }}</h1>
 
+        @if($post->featured_image)
+            <img src="{{ asset($post->featured_image) }}" alt="{{ $post->title }}" class="w-full rounded-lg mb-6 object-cover max-h-96" width="1200" height="630" fetchpriority="high">
+        @else
+            <img src="{{ asset('images/og/football-default.jpg') }}" alt="{{ $post->title }}" class="w-full rounded-lg mb-6 object-cover max-h-96" width="1200" height="630" fetchpriority="high">
+        @endif
+
         <div class="text-gray-300 leading-relaxed space-y-4
             [&_h1]:hidden
             [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-[#2a2a2a] [&_h2]:pb-1
@@ -56,6 +62,37 @@ $readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) /
             {!! $post->content !!}
         </div>
     </article>
+
+
+    {{-- Facebook Follow CTA --}}
+    <div class="mt-10 mb-2 rounded-2xl overflow-hidden border border-[#1877F2]/30 bg-gradient-to-br from-[#0d1b2e] to-[#111] relative">
+        <div class="absolute inset-0 opacity-5" style="background-image: repeating-linear-gradient(45deg,#1877F2 0,#1877F2 1px,transparent 0,transparent 50%);background-size:16px 16px"></div>
+        <div class="relative flex flex-col sm:flex-row items-center gap-6 p-7">
+            {{-- Facebook icon --}}
+            <div class="shrink-0 w-16 h-16 bg-[#1877F2] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/40">
+                <svg class="w-9 h-9" viewBox="0 0 24 24" fill="white">
+                    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.884v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                </svg>
+            </div>
+            {{-- Text --}}
+            <div class="flex-1 text-center sm:text-left">
+                <p class="text-[#CCFF00] text-xs font-bold uppercase tracking-widest mb-1">Ostani u toku</p>
+                <h3 class="text-white text-xl font-black mb-1">Prati nas na Facebooku</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">Budi prvi koji sazna rezultate, recape i vijesti iz svijeta fudbala.</p>
+            </div>
+            {{-- CTA Button --}}
+            <div class="shrink-0">
+                <a href="https://www.facebook.com/rezultatiNet"
+                   target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-2 px-6 py-3 bg-[#1877F2] hover:bg-[#1565d8] text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-blue-900/30 hover:shadow-blue-800/50 text-sm whitespace-nowrap">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.884v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                    </svg>
+                    Prati @rezultatiNet →
+                </a>
+            </div>
+        </div>
+    </div>
 
     {{-- Social Share --}}
     @php

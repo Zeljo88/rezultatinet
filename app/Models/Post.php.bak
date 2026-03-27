@@ -41,8 +41,12 @@ class Post extends Model
             return $this->getMatchOgImage();
         }
 
-        // 3. Fallback: default football stadium image
-        return asset('images/og/football-default.jpg');
+        // 3. Fallback: loremflickr by keyword (Unsplash source is deprecated)
+        $keyword = $this->keyword
+            ? urlencode(explode(',', $this->keyword)[0])
+            : 'football';
+
+        return "https://loremflickr.com/1200/630/{$keyword}";
     }
 
     private function getMatchOgImage(): string

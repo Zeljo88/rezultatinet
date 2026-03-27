@@ -19,25 +19,16 @@ class FinalizeFinishedFixtures implements ShouldQueue
 
     public function handle(ApiFootballService $api): void
     {
-        // Find fixtures stuck in live/intermediate states that should be finished:
-        // 1. '2H' or 'ET' (extra time) with elapsed >= 88 min and not updated in last 15 min
-        // 2. 'P' (penalty shootout in progress) not updated in last 60 min
-        // 3. 'PEN' (after penalties, match finished) or 'AET' (after extra time) stuck for > 15 min
-        //    — these were already set by FetchLiveFixtures but never finalized with full score data
+        // Find fixtures stuck in:
+        // - 2H or ET with elapsed >= 88 min and not updated in last 15 min
+        // - P (Penalty in progress) not updated in last 60 min (penalties are done)
         $stuckFixtures = Fixture::where(function ($q) {
-            // Standard 90min or ET stuck mid-game
             $q->whereIn('status_short', ['2H', 'ET'])
                 ->where('elapsed_minute', '>=', 88)
                 ->where('updated_at', '<', now()->subMinutes(15));
         })->orWhere(function ($q) {
-            // Penalty shootout in progress, not updated in >60 min
             $q->where('status_short', 'P')
                 ->where('updated_at', '<', now()->subMinutes(60));
-        })->orWhere(function ($q) {
-            // BUG FIX: PEN / AET already set as final status by live polling
-            // but penalty/extratime scores were never stored. Re-fetch to get full data.
-            $q->whereIn('status_short', ['PEN', 'AET'])
-                ->where('updated_at', '<', now()->subMinutes(15));
         })->get();
 
         if ($stuckFixtures->isEmpty()) {
@@ -80,9 +71,6 @@ class FinalizeFinishedFixtures implements ShouldQueue
                 continue;
             }
 
-            $origStatus  = $fixture->status_short;
-            $origElapsed = $fixture->elapsed_minute;
-
             // Update fixture status
             $fixture->update([
                 'status_short'   => $statusShort,
@@ -90,24 +78,21 @@ class FinalizeFinishedFixtures implements ShouldQueue
                 'elapsed_minute' => $elapsed,
             ]);
 
-            // Update final scores — including extratime and penalties
+            // Update final scores
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
-                    'goals_home'      => $data['goals']['home'] ?? null,
-                    'goals_away'      => $data['goals']['away'] ?? null,
-                    'home_halftime'   => $data['score']['halftime']['home'] ?? null,
-                    'away_halftime'   => $data['score']['halftime']['away'] ?? null,
-                    'home_fulltime'   => $data['score']['fulltime']['home'] ?? null,
-                    'away_fulltime'   => $data['score']['fulltime']['away'] ?? null,
-                    // BUG FIX: save extra time and penalty scores
-                    'home_extratime'  => $data['score']['extratime']['home'] ?? null,
-                    'away_extratime'  => $data['score']['extratime']['away'] ?? null,
-                    'home_penalties'  => $data['score']['penalty']['home'] ?? null,
-                    'away_penalties'  => $data['score']['penalty']['away'] ?? null,
+                    'goals_home'    => $data['goals']['home'] ?? null,
+                    'goals_away'    => $data['goals']['away'] ?? null,
+                    'home_fulltime' => $data['score']['fulltime']['home'] ?? null,
+                    'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
+                    'home_halftime' => $data['score']['halftime']['home'] ?? null,
+                    'away_halftime' => $data['score']['halftime']['away'] ?? null,
                 ]
             );
 
+            $origStatus = $fixture->status_short;
+$origElapsed = $fixture->elapsed_minute;
             Log::info("FinalizeFinishedFixtures: updated fixture id={$fixture->id} api_id={$fixture->api_fixture_id} → {$statusShort} (was {$origStatus}@{$origElapsed}min)");
             $updated++;
         }

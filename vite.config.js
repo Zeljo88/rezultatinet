@@ -10,6 +10,16 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    build: {
+        target: 'es2020',
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'echo': ['laravel-echo', 'pusher-js'],
+                },
+            },
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

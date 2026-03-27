@@ -18,7 +18,19 @@ class LiveScores extends Component
     public string $selectedDate;
     public string $filter = 'sve';
 
-    protected array $priorityLeagues = [210, 286, 315, 211, 287, 316, 317, 946, 2, 3, 848, 39, 140, 135, 78, 61];
+    // Priority 1 = Top 5 EU, 2 = Balkan, 3 = WC Qual + CL/EL, 99 = ostale (abecedno)
+    private const PRIORITY_LEAGUES = [
+        39  => 1, 140 => 1, 135 => 1, 78  => 1, 61  => 1,   // Top 5 EU
+        210 => 2, 286 => 2, 315 => 2, 382 => 2, 394 => 2, 271 => 2, 113 => 2, // Balkan
+        32  => 3, 34  => 3, 30  => 3, 31  => 3, 33  => 3, 2  => 3, 3  => 3, 848 => 3, 5  => 3, // WC Qual + CL/EL
+    ];
+
+    // Flat list for SQL FIELD() ordering (priority 1 first, then 2, then 3)
+    protected array $priorityLeagues = [
+        39, 140, 135, 78, 61,
+        210, 286, 315, 382, 394, 271, 113,
+        32, 34, 30, 31, 33, 2, 3, 848, 5,
+    ];
 
     public function mount(string $initialTab = 'today', string $sport = 'football'): void
     {
@@ -56,8 +68,6 @@ class LiveScores extends Component
 
     public function setFilter(string $filter): void
     {
-        // Only update the property so the blade template reflects active pill styling.
-        // Actual filtering is done client-side via Alpine.js — no loadFixtures() here.
         $this->filter = $filter;
     }
 
@@ -73,7 +83,7 @@ class LiveScores extends Component
             ->orderBy('fixtures.kick_off');
     }
 
-    // ─── Counts for pills (DB-level COUNT — no PHP collection loading) ────────
+    // ─── Counts for pills ────────────────────────────────────────────────────
 
     public function getCounts(): array
     {
@@ -117,7 +127,7 @@ class LiveScores extends Component
         ];
     }
 
-    // ─── Main fixture loader — always loads ALL fixtures (no status filter) ──
+    // ─── Main fixture loader ─────────────────────────────────────────────────
 
     public function loadFixtures(): void
     {
@@ -132,7 +142,6 @@ class LiveScores extends Component
             return;
         }
 
-        // Always load ALL fixtures — Alpine.js handles client-side filtering
         $query = $this->baseQuery();
 
         $liveStatuses = ['1H','2H','ET','BT','P','LIVE','HT'];
@@ -154,11 +163,13 @@ class LiveScores extends Component
                 $scoreAway = null;
             }
 
-            $country = $fixture->league?->country ?? '';
+            $country    = $fixture->league?->country ?? '';
             $leagueName = ($country ? $country . ' — ' : '') . ($fixture->league?->name ?? 'Ostale lige');
+            $leagueApiId = $fixture->league?->api_league_id;
+
             $grouped[$leagueName][] = [
                 'id'             => $fixture->id,
-                'league_api_id'  => $fixture->league?->api_league_id,
+                'league_api_id'  => $leagueApiId,
                 'status_short'   => $fixture->status_short,
                 'elapsed_minute' => $fixture->elapsed_minute,
                 'kick_off'       => $fixture->kick_off,
@@ -175,21 +186,34 @@ class LiveScores extends Component
                 'league_logo'    => $fixture->league?->logo_url,
             ];
         }
-        // Sort grouped fixtures — priority leagues first
-        $priorityLeagueIds = [2, 3, 848, 210, 286, 315, 39, 140, 135, 78, 61, 211, 316, 317, 287];
-        $priorityGrouped = [];
-        $otherGrouped = [];
+
+        // Sort: priority 1, 2, 3 on top (sorted by priority number), then 99 alphabetically
+        $priorityMap = self::PRIORITY_LEAGUES;
+
+        $priorityGroups = [1 => [], 2 => [], 3 => []];
+        $otherGroups    = [];
+
         foreach ($grouped as $leagueName => $leagueFixtures) {
-            $leagueApiId = $leagueFixtures[0]['league_api_id'] ?? null;
-            if ($leagueApiId && in_array($leagueApiId, $priorityLeagueIds)) {
-                $priorityGrouped[$leagueName] = $leagueFixtures;
+            $apiId    = $leagueFixtures[0]['league_api_id'] ?? null;
+            $priority = $apiId !== null ? ($priorityMap[$apiId] ?? 99) : 99;
+
+            if ($priority <= 3) {
+                $priorityGroups[$priority][$leagueName] = $leagueFixtures;
             } else {
-                $otherGrouped[$leagueName] = $leagueFixtures;
+                $otherGroups[$leagueName] = $leagueFixtures;
             }
         }
-        $grouped = array_merge($priorityGrouped, $otherGrouped);
 
-        $this->fixtures = $grouped;
+        // Sort "other" alphabetically
+        ksort($otherGroups);
+
+        $this->fixtures = array_merge(
+            $priorityGroups[1],
+            $priorityGroups[2],
+            $priorityGroups[3],
+            $otherGroups
+        );
+
         $this->counts = $this->getCounts();
     }
 
@@ -198,7 +222,6 @@ class LiveScores extends Component
         $liveStatuses = ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'];
         $ftStatuses   = ['FT','AOT'];
 
-        // Always load ALL games — Alpine.js handles client-side filtering
         $query = BasketballGame::whereDate('game_date', $this->selectedDate)
             ->orderBy('game_date');
 
@@ -230,7 +253,6 @@ class LiveScores extends Component
         $liveStatuses     = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
         $finishedStatuses = ['Finished','Retired','Walkover','Default','FT'];
 
-        // Always load ALL matches — Alpine.js handles client-side filtering
         $query = TennisMatch::whereDate('match_date', $this->selectedDate)
             ->orderBy('match_date');
 

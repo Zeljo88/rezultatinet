@@ -33,7 +33,7 @@
             <a href="/tim/{{ $team['slug'] }}"
                class="flex items-center gap-3 px-4 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                 @if($team['logo'])
-                    <img src="{{ $team['logo'] }}" class="w-7 h-7 object-contain flex-shrink-0" alt="">
+                    <img src="{{ $team['logo'] }}" class="w-7 h-7 object-contain flex-shrink-0" alt="" loading="lazy">
                 @else
                     <div class="w-7 h-7 bg-[#2a2a2a] rounded-full flex-shrink-0"></div>
                 @endif
@@ -53,7 +53,7 @@
             @foreach($leagues as $i => $league)
             <div class="flex items-center gap-3 px-4 py-3 border-b border-[#2a2a2a] last:border-0 {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                 @if($league['logo'])
-                    <img src="{{ $league['logo'] }}" class="w-7 h-7 object-contain flex-shrink-0" alt="">
+                    <img src="{{ $league['logo'] }}" class="w-7 h-7 object-contain flex-shrink-0" alt="" loading="lazy">
                 @else
                     <div class="w-7 h-7 bg-[#2a2a2a] rounded-full flex-shrink-0"></div>
                 @endif

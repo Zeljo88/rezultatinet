@@ -30,7 +30,7 @@
                 class="flex flex-col items-center justify-center py-3 px-2 rounded-lg bg-[#0f2a4a] border border-[#1e4080] text-white font-bold text-sm hover:bg-[#1a3a6a] hover:border-[#2a50a0] transition cursor-pointer"
             >
                 @if($fixture->homeTeam->logo_url)
-                    <img src="{{ $fixture->homeTeam->logo_url }}" class="w-7 h-7 object-contain mb-1" alt="{{ $fixture->homeTeam->name }}" loading="lazy">
+                    <img src="{{ $fixture- loading="lazy">homeTeam->logo_url }}" class="w-7 h-7 object-contain mb-1" alt="{{ $fixture->homeTeam->name }}">
                 @endif
                 <span class="text-xs text-center leading-tight">{{ $fixture->homeTeam->name }}</span>
             </button>
@@ -48,7 +48,7 @@
                 class="flex flex-col items-center justify-center py-3 px-2 rounded-lg bg-[#4a0f0f] border border-[#801e1e] text-white font-bold text-sm hover:bg-[#6a1a1a] hover:border-[#a02a2a] transition cursor-pointer"
             >
                 @if($fixture->awayTeam->logo_url)
-                    <img src="{{ $fixture->awayTeam->logo_url }}" class="w-7 h-7 object-contain mb-1" loading="lazy" alt="{{ $fixture->awayTeam->name }}">
+                    <img src="{{ $fixture- loading="lazy">awayTeam->logo_url }}" class="w-7 h-7 object-contain mb-1" alt="{{ $fixture->awayTeam->name }}">
                 @endif
                 <span class="text-xs text-center leading-tight">{{ $fixture->awayTeam->name }}</span>
             </button>
@@ -61,7 +61,7 @@
                 <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-2">
                         @if($fixture->homeTeam->logo_url)
-                            <img src="{{ $fixture->homeTeam->logo_url }}" class="w-5 h-5 object-contain" loading="lazy" alt="{{ $fixture->homeTeam->name }}">
+                            <img src="{{ $fixture- loading="lazy">homeTeam->logo_url }}" class="w-5 h-5 object-contain" alt="{{ $fixture->homeTeam->name }}">
                         @endif
                         <span class="text-sm text-white font-medium">{{ $fixture->homeTeam->name }}</span>
                         @if($userVote === 'home')
@@ -103,7 +103,7 @@
                 <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-2">
                         @if($fixture->awayTeam->logo_url)
-                            <img src="{{ $fixture->awayTeam->logo_url }}" class="w-5 h-5 object-contain" loading="lazy" alt="{{ $fixture->awayTeam->name }}">
+                            <img src="{{ $fixture- loading="lazy">awayTeam->logo_url }}" class="w-5 h-5 object-contain" alt="{{ $fixture->awayTeam->name }}">
                         @endif
                         <span class="text-sm text-white font-medium">{{ $fixture->awayTeam->name }}</span>
                         @if($userVote === 'away')

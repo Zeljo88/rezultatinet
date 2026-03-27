@@ -1,4 +1,4 @@
-<div
+<div data-live-scores
     x-data="{
         activeFilter: 'sve',
         updateLiveTitle() {
@@ -118,7 +118,7 @@
         </div>
     @else
         @php
-            $priorityIds = [2,3,848,210,286,315,39,140,135,78,61,211,316,317,287];
+            $priorityIds = [39,140,135,78,61,210,286,315,382,394,271,113,32,34,30,31,33,2,3,848,5];
             $priorityFixtures = [];
             $otherFixtures = [];
             foreach ($fixtures as $leagueName => $leagueFixtures) {
@@ -156,7 +156,7 @@
             })->unique()->values()->implode(',');
             $leagueLogo = $leagueFixtures[0]['league_logo'] ?? null;
             $leagueApiId = $leagueFixtures[0]['league_api_id'] ?? null;
-            $priorityLeagueIds = [2, 3, 848, 39, 140, 135, 78, 61, 210, 286, 315, 211, 316, 317, 287, 946];
+            $priorityLeagueIds = [39, 140, 135, 78, 61, 210, 286, 315, 382, 394, 271, 113, 32, 34, 30, 31, 33, 2, 3, 848, 5];
             $isTopLeague = $leagueApiId && in_array($leagueApiId, $priorityLeagueIds);
             if ($hasTopLeagueMatches) {
                 // Normal mode: expand top leagues only

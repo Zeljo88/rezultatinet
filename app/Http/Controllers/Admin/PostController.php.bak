@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Laravel\Facades\Image;
 
 class PostController extends Controller
 {
@@ -26,7 +24,7 @@ class PostController extends Controller
     {
         $data = $this->validatePost($request);
         $data['featured_image'] = $this->handleImageUpload($request);
-        $data['published'] = $request->boolean('published');
+        $data['published'] = $request->has('published');
 
         Post::create($data);
 
@@ -42,7 +40,7 @@ class PostController extends Controller
     public function update(Request $request, Post $post)
     {
         $data = $this->validatePost($request, $post->id);
-        $data['published'] = $request->boolean('published');
+        $data['published'] = $request->has('published');
 
         $newImage = $this->handleImageUpload($request);
         if ($newImage) {
@@ -80,16 +78,8 @@ class PostController extends Controller
     {
         if ($request->hasFile('featured_image')) {
             $file = $request->file('featured_image');
-            $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.jpg';
-            $storagePath = storage_path('app/public/blog/' . $filename);
-
-            // Resize to max 1200px wide, convert to JPEG at 80% quality
-            $image = Image::read($file->getRealPath());
-            if ($image->width() > 1200) {
-                $image->scale(width: 1200);
-            }
-            $image->toJpeg(80)->save($storagePath);
-
+            $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('blog', $filename, 'public');
             return 'storage/blog/' . $filename;
         }
         return null;

@@ -52,12 +52,13 @@ class LiveScores extends Component
         }
     }
 
-    // ─── Filter ──────────────────────────────────────────────────────────────
+    // ─── Filter — client-side only, no server round-trip ─────────────────────
 
     public function setFilter(string $filter): void
     {
+        // Only update the property so the blade template reflects active pill styling.
+        // Actual filtering is done client-side via Alpine.js — no loadFixtures() here.
         $this->filter = $filter;
-        $this->loadFixtures();
     }
 
     // ─── Base query (all fixtures for selected date, no status filter) ───────
@@ -116,7 +117,7 @@ class LiveScores extends Component
         ];
     }
 
-    // ─── Main fixture loader ──────────────────────────────────────────────────
+    // ─── Main fixture loader — always loads ALL fixtures (no status filter) ──
 
     public function loadFixtures(): void
     {
@@ -131,14 +132,8 @@ class LiveScores extends Component
             return;
         }
 
+        // Always load ALL fixtures — Alpine.js handles client-side filtering
         $query = $this->baseQuery();
-
-        match ($this->filter) {
-            'uzivo'    => $query->whereIn('fixtures.status_short', ['1H','2H','HT','ET','BT','P']),
-            'zakazano' => $query->where('fixtures.status_short', 'NS'),
-            'zavrseno' => $query->whereIn('fixtures.status_short', ['FT','AET','PEN']),
-            default    => null,
-        };
 
         $liveStatuses = ['1H','2H','ET','BT','P','LIVE','HT'];
         $ftStatuses   = ['FT','AET','PEN'];
@@ -175,6 +170,9 @@ class LiveScores extends Component
                 'away_team_slug' => $fixture->awayTeam?->slug,
                 'score_home'     => $scoreHome,
                 'score_away'     => $scoreAway,
+                'home_team_logo' => $fixture->homeTeam?->logo_url,
+                'away_team_logo' => $fixture->awayTeam?->logo_url,
+                'league_logo'    => $fixture->league?->logo_url,
             ];
         }
         // Sort grouped fixtures — priority leagues first
@@ -200,15 +198,9 @@ class LiveScores extends Component
         $liveStatuses = ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'];
         $ftStatuses   = ['FT','AOT'];
 
+        // Always load ALL games — Alpine.js handles client-side filtering
         $query = BasketballGame::whereDate('game_date', $this->selectedDate)
             ->orderBy('game_date');
-
-        match ($this->filter) {
-            'uzivo'    => $query->whereIn('status_short', $liveStatuses),
-            'zakazano' => $query->where('status_short', 'NS'),
-            'zavrseno' => $query->whereIn('status_short', $ftStatuses),
-            default    => null,
-        };
 
         $grouped = [];
         foreach ($query->get() as $game) {
@@ -238,15 +230,9 @@ class LiveScores extends Component
         $liveStatuses     = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
         $finishedStatuses = ['Finished','Retired','Walkover','Default','FT'];
 
+        // Always load ALL matches — Alpine.js handles client-side filtering
         $query = TennisMatch::whereDate('match_date', $this->selectedDate)
             ->orderBy('match_date');
-
-        match ($this->filter) {
-            'uzivo'    => $query->whereIn('status', $liveStatuses),
-            'zakazano' => $query->whereIn('status', ['Not Started','NS']),
-            'zavrseno' => $query->whereIn('status', $finishedStatuses),
-            default    => null,
-        };
 
         $grouped = [];
         foreach ($query->get() as $match) {

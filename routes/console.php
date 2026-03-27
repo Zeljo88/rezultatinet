@@ -1,6 +1,7 @@
 <?php
 use App\Jobs\FetchLiveFixtures;
 use App\Jobs\FinalizeFinishedFixtures;
+use App\Jobs\FixZombieFixtures;
 use Illuminate\Support\Facades\Schedule;
 
 // ✅ ACTIVE — Fetch live football scores every 30 seconds (~2,880/day)
@@ -10,6 +11,13 @@ Schedule::job(new FetchLiveFixtures)
 // ✅ ACTIVE — Finalize fixtures stuck in 2H/ET after 15+ min (FT cleanup)
 Schedule::job(new FinalizeFinishedFixtures)
     ->everyFiveMinutes()
+    ->withoutOverlapping();
+
+// ✅ ACTIVE — Zombie watcher: re-fetches all fixtures >3h old not in final status
+// Safety net that prevents zombie matches from staying live indefinitely.
+Schedule::job(new FixZombieFixtures)
+    ->everyThirtyMinutes()
+    ->name('fix-zombie-fixtures')
     ->withoutOverlapping();
 
 // ──────────────────────────────────────────────────────────────────────────────

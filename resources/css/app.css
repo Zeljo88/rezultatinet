@@ -10,5 +10,13 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+
+/* Instrument Sans — font-display: swap prevents invisible text during load */
+@font-face {
+    font-family: 'Instrument Sans';
+    font-display: swap;
+    src: local('Instrument Sans');
+    /* Google Fonts will provide the actual src via the stylesheet link in head */
+}
 /* Alpine.js cloak — hide elements until Alpine initialises */
 [x-cloak] { display: none !important; }

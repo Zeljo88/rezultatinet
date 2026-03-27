@@ -1,4 +1,4 @@
-<div
+<div data-live-scores
     x-data="{
         activeFilter: 'sve',
         updateLiveTitle() {
@@ -67,7 +67,7 @@
             <button
                 @click="activeFilter = '{{ $key }}'"
                 :class="activeFilter === '{{ $key }}'
-                    ? 'bg-red-600 text-white border-b-2 border-red-600'
+                    ? 'bg-[#CCFF00] text-black border-b-2 border-[#CCFF00]'
                     : 'text-gray-400 hover:text-white border-b-2 border-transparent'"
                 class="cursor-pointer flex-1 py-2.5 text-xs font-semibold transition min-h-[40px] text-center leading-tight">
                 {{ $label }}<br>
@@ -91,7 +91,7 @@
             <button wire:click="setDate('{{ $d }}')"
                 class="cursor-pointer px-2.5 py-1 text-xs rounded transition
                        {{ $d === $selectedDate
-                           ? 'bg-red-600 text-white font-bold'
+                           ? 'bg-[#CCFF00] text-black font-bold'
                            : 'text-gray-400 hover:text-white' }}">
                 {{ $dayLabel }}
             </button>

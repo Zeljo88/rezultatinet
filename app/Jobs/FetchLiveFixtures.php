@@ -56,16 +56,22 @@ class FetchLiveFixtures implements ShouldQueue
                 ]
             );
 
-            // goals = current live score, fulltime = final (null during match)
+            // goals = current live score (includes ET/PEN goals)
+            // BUG FIX: also save extratime and penalty scores when available
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
-                    'goals_home'    => $data['goals']['home'],
-                    'goals_away'    => $data['goals']['away'],
-                    'home_fulltime' => $data['score']['fulltime']['home'],
-                    'away_fulltime' => $data['score']['fulltime']['away'],
-                    'home_halftime' => $data['score']['halftime']['home'] ?? null,
-                    'away_halftime' => $data['score']['halftime']['away'] ?? null,
+                    'goals_home'      => $data['goals']['home'],
+                    'goals_away'      => $data['goals']['away'],
+                    'home_halftime'   => $data['score']['halftime']['home'] ?? null,
+                    'away_halftime'   => $data['score']['halftime']['away'] ?? null,
+                    'home_fulltime'   => $data['score']['fulltime']['home'] ?? null,
+                    'away_fulltime'   => $data['score']['fulltime']['away'] ?? null,
+                    // Save ET and penalty scores as they become available during live polling
+                    'home_extratime'  => $data['score']['extratime']['home'] ?? null,
+                    'away_extratime'  => $data['score']['extratime']['away'] ?? null,
+                    'home_penalties'  => $data['score']['penalty']['home'] ?? null,
+                    'away_penalties'  => $data['score']['penalty']['away'] ?? null,
                 ]
             );
 

@@ -9,9 +9,13 @@
         $resolvedImage  = ($ogImage ?? null) ?: asset('images/og/default.jpg');
     @endphp
     <meta charset="UTF-8">
-    <link rel="preconnect" href="https://fonts.bunny.net">
+    {{-- Performance: preconnect & DNS prefetch --}}
+    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://media.api-sports.io">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
+    <link rel="dns-prefetch" href="https://connect.facebook.net">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $resolvedTitle ?: $__env->yieldContent('title', 'Rezultati uživo | Nogomet, HNL, Liga prvaka — rezultati.net') }}</title>
     <meta name="description" content="{{ $resolvedDesc ?: $__env->yieldContent('meta_description', 'Pratite live rezultate na rezultati.net') }}">
@@ -42,6 +46,9 @@
     <meta name="apple-mobile-web-app-title" content="Rezultati">
     <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 
+    {{-- Instrument Sans from Google Fonts with font-display: swap --}}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700;800;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700;800;900&display=swap"></noscript>
     @vite(["resources/css/app.css", "resources/js/app.js"])
     @livewireStyles
     <style>[x-cloak] { display: none !important; }</style>
@@ -88,6 +95,8 @@
     </script>
     @endforeach
     @stack('schema')
+    <!-- RSS Auto-discovery -->
+    <link rel="alternate" type="application/rss+xml" title="rezultati.net RSS Feed" href="{{ url('/feed') }}">
 </head>
 <body class="bg-[#0f0f0f] text-white font-sans min-h-full overflow-x-hidden">
 
@@ -267,6 +276,30 @@
         <aside class="hidden lg:block w-64 flex-shrink-0">
             <div class="sticky top-[80px]">
                 <!-- affiliate sidebar -->
+
+                <!-- Facebook Page Widget -->
+                <div class="rounded-lg overflow-hidden mb-4" id="fb-page-wrapper">
+                  <div class="fb-page"
+                    data-href="https://www.facebook.com/rezultatinet"
+                    data-tabs=""
+                    data-width=""
+                    data-height="130"
+                    data-small-header="true"
+                    data-adapt-container-width="true"
+                    data-hide-cover="false"
+                    data-show-facepile="true">
+                  </div>
+                </div>
+
+                <a href="https://www.facebook.com/rezultatinet"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="flex items-center justify-center gap-2 w-full bg-[#1877F2] hover:bg-[#1461c8] text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="white">
+                    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                  </svg>
+                  Prati nas na Facebooku
+                </a>
             </div>
         </aside>
 
@@ -278,5 +311,20 @@
     </footer>
 
     @livewireScripts
+    <!-- Facebook SDK — deferred to not block render -->
+    <div id="fb-root"></div>
+    <script>
+    // Load Facebook SDK after page load to avoid render blocking
+    window.addEventListener("load", function() {
+        setTimeout(function() {
+            var s = document.createElement("script");
+            s.async = true;
+            s.defer = true;
+            s.crossOrigin = "anonymous";
+            s.src = "https://connect.facebook.net/bs_BA/sdk.js#xfbml=1&version=v19.0";
+            document.body.appendChild(s);
+        }, 3000);
+    });
+    </script>
 </body>
 </html>
