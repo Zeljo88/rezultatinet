@@ -260,10 +260,37 @@ class LiveScores extends Component
                 }
             }
 
+            // Re-sort: expanded ligues on top (priority first, then fallback by count), collapsed alphabetically
+            $sortable = [];
             foreach ($builtFixtures as $name => $data) {
-                $this->fixtures[$name] = [
+                $sortable[] = [
+                    'name'     => $name,
                     'fixtures' => $data['fixtures'],
                     'expanded' => $data['expanded'],
+                    'priority' => $data['_priority'] ?? 99,
+                    'count'    => count($data['fixtures']),
+                ];
+            }
+            usort($sortable, function ($a, $b) {
+                // Expanded uvijek ispred collapsed
+                if ($a['expanded'] !== $b['expanded']) {
+                    return $a['expanded'] ? -1 : 1;
+                }
+                // Oba expanded: priority lige ispred fallback (po priority broju)
+                if ($a['expanded'] && $b['expanded']) {
+                    if ($a['priority'] !== $b['priority']) {
+                        return $a['priority'] <=> $b['priority'];
+                    }
+                    // Isti priority → po broju utakmica desc
+                    return $b['count'] <=> $a['count'];
+                }
+                // Oba collapsed: abecedno
+                return strcmp($a['name'], $b['name']);
+            });
+            foreach ($sortable as $item) {
+                $this->fixtures[$item['name']] = [
+                    'fixtures' => $item['fixtures'],
+                    'expanded' => $item['expanded'],
                 ];
             }
         }
