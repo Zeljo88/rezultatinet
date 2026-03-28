@@ -17,13 +17,12 @@ class FinalizeFinishedFixtures implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /** Daily API call budget ceiling — leave 500 buffer for other jobs */
+    private const API_BUDGET = 7000;
+
     public function handle(ApiFootballService $api): void
     {
-        // Find fixtures stuck in live/intermediate states that should be finished:
-        // 1. '2H' or 'ET' (extra time) with elapsed >= 88 min and not updated in last 15 min
-        // 2. 'P' (penalty shootout in progress) not updated in last 60 min
-        // 3. 'PEN' (after penalties, match finished) or 'AET' (after extra time) stuck for > 15 min
-        //    — these were already set by FetchLiveFixtures but never finalized with full score data
+        // Find fixtures stuck in live/intermediate states that should be finished
         $stuckFixtures = Fixture::where(function ($q) {
             // Standard 90min or ET stuck mid-game
             $q->whereIn('status_short', ['2H', 'ET'])
@@ -34,10 +33,14 @@ class FinalizeFinishedFixtures implements ShouldQueue
             $q->where('status_short', 'P')
                 ->where('updated_at', '<', now()->subMinutes(60));
         })->orWhere(function ($q) {
-            // BUG FIX: PEN / AET already set as final status by live polling
-            // but penalty/extratime scores were never stored. Re-fetch to get full data.
+            // PEN / AET already set as final status but scores may be missing.
+            // CRITICAL: kick_off window is SHORT (6h) to avoid accumulating old
+            // PEN/AET fixtures that create an infinite retry loop.
+            // After 6h, these fixtures should have been processed and won't re-enter.
+            // Also require >60min cooldown (not 15min) to prevent tight retry loops.
             $q->whereIn('status_short', ['PEN', 'AET'])
-                ->where('updated_at', '<', now()->subMinutes(15));
+                ->where('updated_at', '<', now()->subMinutes(60))
+                ->where('kick_off', '>=', now()->subHours(6));
         })->get();
 
         if ($stuckFixtures->isEmpty()) {
@@ -52,8 +55,8 @@ class FinalizeFinishedFixtures implements ShouldQueue
 
         foreach ($stuckFixtures as $fixture) {
             // Respect daily API budget
-            if (ApiCallLog::getTodayCount() >= 7500) {
-                Log::warning('FinalizeFinishedFixtures: daily API budget reached (7500), stopping early.');
+            if (ApiCallLog::getTodayCount() >= self::API_BUDGET) {
+                Log::warning('FinalizeFinishedFixtures: daily API budget reached (' . self::API_BUDGET . '), stopping early.');
                 break;
             }
 
@@ -65,6 +68,8 @@ class FinalizeFinishedFixtures implements ShouldQueue
 
             if (empty($data)) {
                 Log::warning("FinalizeFinishedFixtures: empty API response for fixture id={$fixture->id} api_id={$fixture->api_fixture_id}");
+                // IMPORTANT: touch() to push updated_at forward so we don't retry immediately
+                $fixture->touch();
                 $skipped++;
                 continue;
             }
@@ -76,6 +81,9 @@ class FinalizeFinishedFixtures implements ShouldQueue
             // Only update if the match is truly finished
             if (!in_array($statusShort, ['FT', 'AET', 'PEN'])) {
                 Log::info("FinalizeFinishedFixtures: fixture id={$fixture->id} api_id={$fixture->api_fixture_id} still not finished (status={$statusShort}), skipping.");
+                // IMPORTANT: touch() so updated_at advances — prevents re-processing same fixture
+                // every 5 minutes until it's actually FT!
+                $fixture->touch();
                 $skipped++;
                 continue;
             }
@@ -83,14 +91,23 @@ class FinalizeFinishedFixtures implements ShouldQueue
             $origStatus  = $fixture->status_short;
             $origElapsed = $fixture->elapsed_minute;
 
-            // Update fixture status
+            // If status hasn't changed (e.g. PEN→PEN, AET→AET), just touch() with long
+            // cooldown so it won't be re-processed for 4 hours. This prevents infinite loops
+            // where API persistently returns the same terminal status.
+            if ($statusShort === $fixture->status_short) {
+                Log::info("FinalizeFinishedFixtures: fixture id={$fixture->id} already {$statusShort}, touching to suppress retries.");
+                // Use a direct DB update to push updated_at far into the future (4h cooldown)
+                Fixture::where('id', $fixture->id)->update(['updated_at' => now()->addHours(4)]);
+                $skipped++;
+                continue;
+            }
+
             $fixture->update([
                 'status_short'   => $statusShort,
                 'status_long'    => $statusLong,
                 'elapsed_minute' => $elapsed,
             ]);
 
-            // Update final scores — including extratime and penalties
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
@@ -100,7 +117,6 @@ class FinalizeFinishedFixtures implements ShouldQueue
                     'away_halftime'   => $data['score']['halftime']['away'] ?? null,
                     'home_fulltime'   => $data['score']['fulltime']['home'] ?? null,
                     'away_fulltime'   => $data['score']['fulltime']['away'] ?? null,
-                    // BUG FIX: save extra time and penalty scores
                     'home_extratime'  => $data['score']['extratime']['home'] ?? null,
                     'away_extratime'  => $data['score']['extratime']['away'] ?? null,
                     'home_penalties'  => $data['score']['penalty']['home'] ?? null,
