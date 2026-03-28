@@ -24,7 +24,7 @@ class SyncStandings extends Command
         $ids = $specificLeague ? [(int)$specificLeague] : $this->leagueIds;
 
         foreach ($ids as $apiLeagueId) {
-            if (ApiCallLog::getTodayCount() >= 85) {
+            if (ApiCallLog::getTodayCount() >= 7000) {
                 $this->error('Daily API budget reached.');
                 return;
             }

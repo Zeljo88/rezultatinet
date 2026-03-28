@@ -23,7 +23,7 @@ class SyncFixtureEvents extends Command
             return;
         }
 
-        if (ApiCallLog::getTodayCount() >= 80) {
+        if (ApiCallLog::getTodayCount() >= 7000) {
             $this->error('Daily API budget reached.');
             return;
         }

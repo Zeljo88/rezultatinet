@@ -46,7 +46,7 @@ class FetchFixtureLineups implements ShouldQueue, ShouldBeUnique
         $fixture->update(['lineups_fetched_at' => now()]);
 
         // Budget guard
-        if (ApiCallLog::getTodayCount() >= 7500) {
+        if (ApiCallLog::getTodayCount() >= 7000) {
             Log::warning("API daily budget reached, skipping lineup fetch for fixture {$this->fixtureId}");
             return;
         }
