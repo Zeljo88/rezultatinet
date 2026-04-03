@@ -49,9 +49,7 @@
     {{-- Instrument Sans from Google Fonts with font-display: swap --}}
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700;800;900&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700;800;900&display=swap"></noscript>
-    <link rel="preload" href="/build/assets/app-DvpNnqN6.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/build/assets/app-DvpNnqN6.css"></noscript>
-    <script src="/build/assets/app-OMvf5QmE.js" defer></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     <style>[x-cloak] { display: none !important; }</style>
     <script>
