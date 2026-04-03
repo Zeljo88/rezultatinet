@@ -4,6 +4,7 @@ namespace App\Livewire;
 use App\Models\League;
 use App\Models\Standing;
 use App\Models\PlayerStat;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -76,44 +77,50 @@ class TablePage extends Component
 
     protected function loadStandings(): void
     {
-        $this->standings = Standing::with('team')
-            ->where('league_id', $this->league->id)
-            ->orderBy('rank')
-            ->get()
-            ->map(fn($s) => [
-                'rank'          => $s->rank,
-                'team_name'     => $s->team?->name ?? 'N/A',
-                'team_logo'     => $s->team?->logo_url,
-                'team_slug'     => $s->team?->slug,
-                'played'        => $s->played,
-                'win'           => $s->win,
-                'draw'          => $s->draw,
-                'lose'          => $s->lose,
-                'goals_for'     => $s->goals_for,
-                'goals_against' => $s->goals_against,
-                'goal_diff'     => $s->goal_diff,
-                'points'        => $s->points,
-                'form'          => $s->form,
-                'description'   => $s->description,
-            ])->toArray();
+        $leagueId = $this->league->id;
+        $this->standings = Cache::remember("standings:{$leagueId}", 300, function () use ($leagueId) {
+            return Standing::with('team')
+                ->where('league_id', $leagueId)
+                ->orderBy('rank')
+                ->get()
+                ->map(fn($s) => [
+                    'rank'          => $s->rank,
+                    'team_name'     => $s->team?->name ?? 'N/A',
+                    'team_logo'     => $s->team?->logo_url,
+                    'team_slug'     => $s->team?->slug,
+                    'played'        => $s->played,
+                    'win'           => $s->win,
+                    'draw'          => $s->draw,
+                    'lose'          => $s->lose,
+                    'goals_for'     => $s->goals_for,
+                    'goals_against' => $s->goals_against,
+                    'goal_diff'     => $s->goal_diff,
+                    'points'        => $s->points,
+                    'form'          => $s->form,
+                    'description'   => $s->description,
+                ])->toArray();
+        });
     }
 
     protected function getTopScorers(): array
     {
-        return PlayerStat::with('player')
-            ->where('league_id', $this->league->id)
-            ->where('goals', '>', 0)
-            ->orderByDesc('goals')
-            ->take(10)
-            ->get()
-            ->map(fn($s) => [
-                'player_name' => $s->player?->name ?? 'N/A',
-                'player_slug' => $s->player?->slug,
-                'club'        => $s->player?->current_club,
-                'goals'       => $s->goals,
-                'assists'     => $s->assists ?? 0,
-            ])
-            ->toArray();
+        $leagueId = $this->league->id;
+        return Cache::remember("top_scorers:{$leagueId}", 1800, function () use ($leagueId) {
+            return PlayerStat::with('player')
+                ->where('league_id', $leagueId)
+                ->where('goals', '>', 0)
+                ->orderByDesc('goals')
+                ->take(10)
+                ->get()
+                ->map(fn($s) => [
+                    'player_name' => $s->player?->name ?? 'N/A',
+                    'player_slug' => $s->player?->slug,
+                    'club'        => $s->player?->current_club,
+                    'goals'       => $s->goals,
+                    'assists'     => $s->assists ?? 0,
+                ])
+                ->toArray();
+        });
     }
 
     protected function seasonLabel(): string
