@@ -1,5 +1,6 @@
 @props(['adSlot' => 'sidebar-1', 'extraClass' => ''])
 
+@if(!empty(trim($slot)))
 <div
     class="affiliate-banner {{ $extraClass }}"
     data-slot="{{ $adSlot }}"
@@ -30,3 +31,4 @@
     ">Oglas</span>
     {{ $slot }}
 </div>
+@endif
