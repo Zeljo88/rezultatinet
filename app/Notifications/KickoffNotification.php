@@ -2,11 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Notifications\Notification;
-use NotificationChannels\OneSignal\OneSignalChannel;
-use NotificationChannels\OneSignal\OneSignalMessage;
+use App\Services\OneSignalService;
 
-class KickoffNotification extends Notification
+class KickoffNotification
 {
     public function __construct(
         public string $homeTeam,
@@ -15,17 +13,13 @@ class KickoffNotification extends Notification
         public int $fixtureId
     ) {}
 
-    public function via($notifiable): array
+    public function send(): bool
     {
-        return [OneSignalChannel::class];
-    }
-
-    public function toOneSignal($notifiable): OneSignalMessage
-    {
-        return OneSignalMessage::create()
-            ->setSubject("⚽ Počelo!")
-            ->setBody("{$this->homeTeam} vs {$this->awayTeam} — {$this->league}")
-            ->setParameter('url', "https://rezultati.net/utakmica/{$this->fixtureId}")
-            ->setData('fixture_id', $this->fixtureId);
+        return app(OneSignalService::class)->sendToAll(
+            title:   '⚽ Počelo!',
+            message: "{$this->homeTeam} vs {$this->awayTeam} — {$this->league}",
+            url:     "https://rezultati.net/utakmica/{$this->fixtureId}",
+            data:    ['fixture_id' => $this->fixtureId],
+        );
     }
 }

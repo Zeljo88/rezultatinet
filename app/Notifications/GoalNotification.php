@@ -2,11 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Notifications\Notification;
-use NotificationChannels\OneSignal\OneSignalChannel;
-use NotificationChannels\OneSignal\OneSignalMessage;
+use App\Services\OneSignalService;
 
-class GoalNotification extends Notification
+class GoalNotification
 {
     public function __construct(
         public string $homeTeam,
@@ -19,21 +17,17 @@ class GoalNotification extends Notification
         public ?int $minute = null
     ) {}
 
-    public function via($notifiable): array
+    public function send(): bool
     {
-        return [OneSignalChannel::class];
-    }
-
-    public function toOneSignal($notifiable): OneSignalMessage
-    {
-        $score = "{$this->goalsHome}:{$this->goalsAway}";
+        $score     = "{$this->goalsHome}:{$this->goalsAway}";
         $minuteStr = $this->minute ? " {$this->minute}'" : '';
-        $scorer = $this->scorerName ? "{$this->scorerName}{$minuteStr} — " : '';
+        $scorer    = $this->scorerName ? "{$this->scorerName}{$minuteStr} — " : '';
 
-        return OneSignalMessage::create()
-            ->setSubject("⚽ GOL!")
-            ->setBody("{$scorer}{$this->homeTeam} {$score} {$this->awayTeam}")
-            ->setParameter('url', "https://rezultati.net/utakmica/{$this->fixtureId}")
-            ->setData('fixture_id', $this->fixtureId);
+        return app(OneSignalService::class)->sendToAll(
+            title:   '⚽ GOL!',
+            message: "{$scorer}{$this->homeTeam} {$score} {$this->awayTeam}",
+            url:     "https://rezultati.net/utakmica/{$this->fixtureId}",
+            data:    ['fixture_id' => $this->fixtureId],
+        );
     }
 }

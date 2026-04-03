@@ -16,7 +16,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 use App\Notifications\KickoffNotification;
 use App\Notifications\GoalNotification;
 
@@ -109,13 +108,12 @@ class FetchLiveFixtures implements ShouldQueue
             // Kickoff: NS -> 1H
             if ($oldStatus === 'NS' && $newStatus === '1H') {
                 try {
-                    Notification::route('onesignal', ['included_segments' => ['All']])
-                        ->notify(new KickoffNotification(
-                            homeTeam: $homeTeam->name,
-                            awayTeam: $awayTeam->name,
-                            league: $league->name,
-                            fixtureId: $fixture->id,
-                        ));
+                    (new KickoffNotification(
+                        homeTeam: $homeTeam->name,
+                        awayTeam: $awayTeam->name,
+                        league: $league->name,
+                        fixtureId: $fixture->id,
+                    ))->send();
                 } catch (\Throwable $e) {
                     Log::warning('KickoffNotification failed: ' . $e->getMessage());
                 }
@@ -142,17 +140,16 @@ class FetchLiveFixtures implements ShouldQueue
                         }
                     }
                     try {
-                        Notification::route('onesignal', ['included_segments' => ['All']])
-                            ->notify(new GoalNotification(
-                                homeTeam: $homeTeam->name,
-                                awayTeam: $awayTeam->name,
-                                goalsHome: (int) $newGoalsHome,
-                                goalsAway: (int) $newGoalsAway,
-                                league: $league->name,
-                                fixtureId: $fixture->id,
-                                scorerName: $scorerName,
-                                minute: $scorerMinute ? (int) $scorerMinute : null,
-                            ));
+                        (new GoalNotification(
+                            homeTeam: $homeTeam->name,
+                            awayTeam: $awayTeam->name,
+                            goalsHome: (int) $newGoalsHome,
+                            goalsAway: (int) $newGoalsAway,
+                            league: $league->name,
+                            fixtureId: $fixture->id,
+                            scorerName: $scorerName,
+                            minute: $scorerMinute ? (int) $scorerMinute : null,
+                        ))->send();
                     } catch (\Throwable $e) {
                         Log::warning('GoalNotification failed: ' . $e->getMessage());
                     }
