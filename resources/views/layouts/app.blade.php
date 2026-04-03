@@ -97,6 +97,38 @@
     @stack('schema')
     <!-- RSS Auto-discovery -->
     <link rel="alternate" type="application/rss+xml" title="rezultati.net RSS Feed" href="{{ url('/feed') }}">
+    {{-- OneSignal Web Push --}}
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+                appId: "{{ config('services.onesignal.app_id') }}",
+                notifyButton: {
+                    enable: false,
+                },
+                promptOptions: {
+                    slidedown: {
+                        prompts: [
+                            {
+                                type: "push",
+                                autoPrompt: true,
+                                delay: {
+                                    pageViews: 2,
+                                    timeDelay: 5
+                                },
+                                text: {
+                                    actionMessage: "Želite li primati obavijesti o live rezultatima i golovima?",
+                                    acceptButton: "Da, želim!",
+                                    cancelButton: "Možda kasnije"
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+        });
+    </script>
 </head>
 <body class="bg-[#0f0f0f] text-white font-sans min-h-full overflow-x-hidden">
 

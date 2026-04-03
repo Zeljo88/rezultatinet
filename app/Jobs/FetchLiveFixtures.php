@@ -16,6 +16,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\KickoffNotification;
+use App\Notifications\GoalNotification;
 
 class FetchLiveFixtures implements ShouldQueue
 {
@@ -64,6 +67,11 @@ class FetchLiveFixtures implements ShouldQueue
                 continue;
             }
 
+            // Capture previous state for push notification diffs
+            $existingFixture = Fixture::where('api_fixture_id', $data['fixture']['id'])->first();
+            $oldStatus = $existingFixture?->status_short;
+            $oldScore  = $existingFixture?->score;
+
             $fixture = Fixture::updateOrCreate(
                 ['api_fixture_id' => $data['fixture']['id']],
                 [
@@ -94,6 +102,63 @@ class FetchLiveFixtures implements ShouldQueue
                     'away_penalties'  => $data['score']['penalty']['away'] ?? null,
                 ]
             );
+
+            // ── OneSignal Push Triggers ─────────────────────────────────────────────
+            $newStatus = $data['fixture']['status']['short'] ?? null;
+
+            // Kickoff: NS -> 1H
+            if ($oldStatus === 'NS' && $newStatus === '1H') {
+                try {
+                    Notification::route('onesignal', ['included_segments' => ['All']])
+                        ->notify(new KickoffNotification(
+                            homeTeam: $homeTeam->name,
+                            awayTeam: $awayTeam->name,
+                            league: $league->name,
+                            fixtureId: $fixture->id,
+                        ));
+                } catch (\Throwable $e) {
+                    Log::warning('KickoffNotification failed: ' . $e->getMessage());
+                }
+            }
+
+            // Goal: score change while live
+            $liveStatuses = ['1H', 'HT', '2H', 'ET', 'P', 'BT'];
+            if (in_array($newStatus, $liveStatuses)) {
+                $newGoalsHome = $data['goals']['home'] ?? 0;
+                $newGoalsAway = $data['goals']['away'] ?? 0;
+                $oldGoalsHome = $oldScore?->goals_home ?? null;
+                $oldGoalsAway = $oldScore?->goals_away ?? null;
+
+                if ($oldGoalsHome !== null && ($newGoalsHome > $oldGoalsHome || $newGoalsAway > $oldGoalsAway)) {
+                    $scorerName   = null;
+                    $scorerMinute = null;
+                    if (!empty($data['events'])) {
+                        foreach (array_reverse($data['events']) as $ev) {
+                            if (in_array($ev['type'] ?? '', ['Goal', 'goal'])) {
+                                $scorerName   = $ev['player']['name'] ?? null;
+                                $scorerMinute = $ev['time']['elapsed'] ?? null;
+                                break;
+                            }
+                        }
+                    }
+                    try {
+                        Notification::route('onesignal', ['included_segments' => ['All']])
+                            ->notify(new GoalNotification(
+                                homeTeam: $homeTeam->name,
+                                awayTeam: $awayTeam->name,
+                                goalsHome: (int) $newGoalsHome,
+                                goalsAway: (int) $newGoalsAway,
+                                league: $league->name,
+                                fixtureId: $fixture->id,
+                                scorerName: $scorerName,
+                                minute: $scorerMinute ? (int) $scorerMinute : null,
+                            ));
+                    } catch (\Throwable $e) {
+                        Log::warning('GoalNotification failed: ' . $e->getMessage());
+                    }
+                }
+            }
+            // ────────────────────────────────────────────────────────────────────────
 
             if (!empty($data['events'])) {
                 FixtureEvent::where('fixture_id', $fixture->id)->delete();

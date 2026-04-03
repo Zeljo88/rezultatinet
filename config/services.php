@@ -43,5 +43,10 @@ return [
         'page_id'    => env('FB_PAGE_ID', '61580788364721'),
         'page_token' => env('FB_PAGE_TOKEN', ''),
     ],
+
+    'onesignal' => [
+        'app_id'        => env('ONESIGNAL_APP_ID'),
+        'rest_api_key'  => env('ONESIGNAL_REST_API_KEY'),
+    ],
 ];
 
