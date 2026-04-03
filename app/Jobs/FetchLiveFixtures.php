@@ -23,9 +23,21 @@ class FetchLiveFixtures implements ShouldQueue
 
     public function handle(ApiFootballService $api): void
     {
-        if (ApiCallLog::getTodayCount() >= 7500) {
-            Log::warning('API daily budget reached, skipping poll');
+        // Hard quota guard — stop at 7000 (500 buffer for finalize/zombie jobs)
+        if (ApiCallLog::getTodayCount() >= 7000) {
+            Log::warning('FetchLiveFixtures: daily budget of 7000 reached, skipping poll');
             return;
+        }
+
+        // Night guard — between 01:00 and 07:00 UTC, skip polling if no live matches in DB
+        // This prevents burning ~720 API calls nightly when there are zero matches
+        $hour = (int) now()->format('G');
+        if ($hour >= 1 && $hour < 7) {
+            $hasLive = Fixture::whereIn('status_short', ['1H', 'HT', '2H', 'ET', 'P', 'BT'])->exists();
+            if (!$hasLive) {
+                Log::info('FetchLiveFixtures: night-time (01-07 UTC), no live matches in DB — skipping poll.');
+                return;
+            }
         }
 
         $fixtures = $api->getLiveFixtures();
@@ -41,8 +53,7 @@ class FetchLiveFixtures implements ShouldQueue
             $homeTeam = Team::where('api_team_id', $data['teams']['home']['id'])->first();
             $awayTeam = Team::where('api_team_id', $data['teams']['away']['id'])->first();
 
-            // Guard: skip fixture if team data is missing (API returned incomplete data
-            // or team not in our DB). Prevents SQLSTATE[23000] NULL constraint crash.
+            // Guard: skip fixture if team data is missing
             if (!$homeTeam || !$awayTeam) {
                 Log::warning('FetchLiveFixtures: skipping fixture api_id=' . $data['fixture']['id']
                     . ' league_id=' . $league->id
@@ -68,8 +79,6 @@ class FetchLiveFixtures implements ShouldQueue
                 ]
             );
 
-            // goals = current live score (includes ET/PEN goals)
-            // BUG FIX: also save extratime and penalty scores when available
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
@@ -79,7 +88,6 @@ class FetchLiveFixtures implements ShouldQueue
                     'away_halftime'   => $data['score']['halftime']['away'] ?? null,
                     'home_fulltime'   => $data['score']['fulltime']['home'] ?? null,
                     'away_fulltime'   => $data['score']['fulltime']['away'] ?? null,
-                    // Save ET and penalty scores as they become available during live polling
                     'home_extratime'  => $data['score']['extratime']['home'] ?? null,
                     'away_extratime'  => $data['score']['extratime']['away'] ?? null,
                     'home_penalties'  => $data['score']['penalty']['home'] ?? null,
@@ -105,7 +113,6 @@ class FetchLiveFixtures implements ShouldQueue
             }
 
             // Dispatch lineup fetch only for top leagues + within 60 min of kickoff (or already live)
-            // This prevents burning API quota on lineup fetches for minor leagues / distant matches
             $topLeagueIds = [2, 3, 848, 39, 140, 135, 78, 61, 210, 286, 315];
             $isTopLeague  = in_array($league->api_league_id, $topLeagueIds);
 
@@ -118,8 +125,6 @@ class FetchLiveFixtures implements ShouldQueue
                 FetchFixtureLineups::dispatch($fixture->id, $fixture->api_fixture_id);
             }
 
-            // Broadcast score update — wrapped in try/catch so a Reverb failure
-            // does NOT prevent DB scores from being saved
             try {
                 broadcast(new LiveScoreUpdated($fixture->fresh(['score','homeTeam','awayTeam'])));
             } catch (\Throwable $broadcastError) {

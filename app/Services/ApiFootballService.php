@@ -1,7 +1,9 @@
 <?php
 namespace App\Services;
 
+use App\Models\ApiCallLog;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ApiFootballService
 {
@@ -18,8 +20,25 @@ class ApiFootballService
             ->retry(2, 500);
     }
 
+
+    /**
+     * Check if daily API quota has been reached.
+     * Hard limit: 7000 calls/day (500 buffer for safety).
+     */
+    protected function quotaExceeded(): bool
+    {
+        $count = ApiCallLog::getTodayCount();
+        if ($count >= 7000) {
+            Log::warning('ApiFootballService: daily quota limit reached (' . $count . '/7000), skipping call.');
+            return true;
+        }
+        return false;
+    }
+
     public function getLiveFixtures(): array
     {
+        if ($this->quotaExceeded()) return [];
+
         $response = $this->client->get('/fixtures', ['live' => 'all']);
         if (!$response->successful()) return [];
         return $response->json('response', []);
@@ -27,6 +46,8 @@ class ApiFootballService
 
     public function getTodayFixtures(): array
     {
+        if ($this->quotaExceeded()) return [];
+
         $response = $this->client->get('/fixtures', ['date' => now()->format('Y-m-d')]);
         if (!$response->successful()) return [];
         return $response->json('response', []);
@@ -34,6 +55,8 @@ class ApiFootballService
 
     public function getFixtureById(int $apiFixtureId): array
     {
+        if ($this->quotaExceeded()) return [];
+
         $response = $this->client->get('/fixtures', ['id' => $apiFixtureId]);
         if (!$response->successful()) return [];
         return $response->json('response', [])[0] ?? [];
@@ -41,6 +64,8 @@ class ApiFootballService
 
     public function getTopScorers(int $leagueId, int $season): array
     {
+        if ($this->quotaExceeded()) return [];
+
         $response = $this->client->get('/players/topscorers', [
             'league' => $leagueId,
             'season' => $season,
@@ -51,6 +76,8 @@ class ApiFootballService
 
     public function getLineups(int $apiFixtureId): array
     {
+        if ($this->quotaExceeded()) return [];
+
         $response = $this->client->get('/fixtures/lineups', ['fixture' => $apiFixtureId]);
         if (!$response->successful()) return [];
         return $response->json('response', []);

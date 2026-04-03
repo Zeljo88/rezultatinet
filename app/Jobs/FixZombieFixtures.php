@@ -16,46 +16,45 @@ use Illuminate\Support\Facades\Log;
 /**
  * FixZombieFixtures — Safety net job that runs every 30 minutes.
  *
- * Finds ALL fixtures that kicked off more than 3 hours ago but are still
- * in a non-final status (not FT, AET, PEN, Cancelled, Postponed, etc.)
- * and re-fetches the correct status from the API.
+ * Finds fixtures that kicked off more than 3 hours ago but are still
+ * in a non-final status and re-fetches correct status from the API.
  *
- * This prevents "zombie" matches that get stuck in live states (2H, 1H,
- * HT, ET, P, PEN, etc.) from remaining broken indefinitely.
+ * OPTIMIZED: Night guard (01-07 UTC) skips processing entirely when
+ * no live matches exist in DB, preventing unnecessary API usage.
  */
 class FixZombieFixtures implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /** Maximum fixtures to process per run (API budget protection) */
-    private const MAX_PER_RUN = 20;
+    private const MAX_PER_RUN = 10;
 
     /** Daily API call budget ceiling */
-    private const API_BUDGET = 7400;
+    private const API_BUDGET = 7000;
 
     /** Statuses considered truly "final" — no re-fetch needed */
     private const FINAL_STATUSES = [
-        'FT',   // Full Time
-        'AET',  // After Extra Time (already final — score stored)
-        'PEN',  // After Penalties   (already final — score stored)
-        'AWD',  // Awarded
-        'WO',   // Walkover
-        'CANC', // Cancelled
-        'ABD',  // Abandoned
-        'PST',  // Postponed
-        'INT',  // Interrupted
-        'SUSP', // Suspended
-        'TBD',  // To Be Defined
-        'NS',   // Not Started (future fixture, shouldn't appear here but safe to skip)
+        'FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD', 'PST', 'INT', 'SUSP', 'TBD', 'NS',
     ];
 
     public function handle(ApiFootballService $api): void
     {
+        // Night guard — 01:00 to 07:00 UTC, skip entirely if no live matches
+        $hour = (int) now()->format('G');
+        if ($hour >= 1 && $hour < 7) {
+            $hasLive = Fixture::whereIn('status_short', ['1H', 'HT', '2H', 'ET', 'P', 'BT'])->exists();
+            if (!$hasLive) {
+                Log::info('FixZombieFixtures: night-time (01-07 UTC), no live matches — skipping.');
+                return;
+            }
+        }
+
         $zombies = Fixture::where('kick_off', '<', now()->subHours(3))
             ->whereNotIn('status_short', self::FINAL_STATUSES)
+            ->where('updated_at', '<', now()->subMinutes(60))  // cooldown: don't re-fetch same zombie < 60min
             ->orderBy('kick_off', 'desc')
             ->limit(self::MAX_PER_RUN)
-            ->get(['id', 'api_fixture_id', 'status_short', 'elapsed_minute', 'kick_off']);
+            ->get(['id', 'api_fixture_id', 'status_short', 'elapsed_minute', 'kick_off', 'updated_at']);
 
         if ($zombies->isEmpty()) {
             Log::info('FixZombieFixtures: no zombie fixtures found. ✓');
@@ -65,7 +64,6 @@ class FixZombieFixtures implements ShouldQueue
         $count = $zombies->count();
         Log::warning("FixZombieFixtures: found {$count} zombie fixture(s) — re-fetching from API.");
 
-        // Log breakdown by status
         $byStatus = $zombies->groupBy('status_short')->map->count();
         $statusSummary = $byStatus->map(fn($c, $s) => "{$s}:{$c}")->implode(', ');
         Log::info("FixZombieFixtures: breakdown = [{$statusSummary}]");
@@ -75,7 +73,6 @@ class FixZombieFixtures implements ShouldQueue
         $failed   = 0;
 
         foreach ($zombies as $fixture) {
-            // Respect daily API budget
             if (ApiCallLog::getTodayCount() >= self::API_BUDGET) {
                 Log::warning('FixZombieFixtures: daily API budget reached, stopping early.');
                 break;
@@ -90,30 +87,32 @@ class FixZombieFixtures implements ShouldQueue
 
             if (empty($data)) {
                 Log::error("FixZombieFixtures: empty API response for fixture id={$fixture->id}");
+                // touch() to prevent retry next run (will wait until next natural cycle)
+                $fixture->touch();
                 $failed++;
                 continue;
             }
 
-            $newStatus = $data['fixture']['status']['short'] ?? null;
-            $newLong   = $data['fixture']['status']['long']  ?? null;
+            $newStatus  = $data['fixture']['status']['short'] ?? null;
+            $newLong    = $data['fixture']['status']['long']  ?? null;
             $newElapsed = $data['fixture']['status']['elapsed'] ?? null;
             $oldStatus  = $fixture->status_short;
 
             if ($newStatus === $oldStatus) {
-                // Still the same status — API might be delayed, skip
                 Log::info("FixZombieFixtures: fixture id={$fixture->id} still {$oldStatus} in API, skipping.");
+                // touch() to push updated_at — prevents immediate re-fetch next 30min cycle
+                // for fixtures genuinely stuck by API delay
+                $fixture->touch();
                 $skipped++;
                 continue;
             }
 
-            // Update fixture status
             $fixture->update([
                 'status_short'   => $newStatus,
                 'status_long'    => $newLong,
                 'elapsed_minute' => $newElapsed,
             ]);
 
-            // Always update scores to ensure completeness
             FixtureScore::updateOrCreate(
                 ['fixture_id' => $fixture->id],
                 [
@@ -143,13 +142,13 @@ class FixZombieFixtures implements ShouldQueue
             "zombies_found={$count}, repaired={$repaired}, skipped={$skipped}, failed={$failed}"
         );
 
-        // Warn if there are MORE zombies beyond the MAX_PER_RUN limit
         $remaining = Fixture::where('kick_off', '<', now()->subHours(3))
             ->whereNotIn('status_short', self::FINAL_STATUSES)
+            ->where('updated_at', '<', now()->subMinutes(60))
             ->count();
 
         if ($remaining > 0) {
-            Log::warning("FixZombieFixtures: {$remaining} zombie fixture(s) still remain (will be processed in next run).");
+            Log::warning("FixZombieFixtures: {$remaining} zombie fixture(s) still remain.");
         }
     }
 }
