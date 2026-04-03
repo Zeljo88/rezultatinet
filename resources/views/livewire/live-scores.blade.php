@@ -17,7 +17,7 @@
     {{-- ══════════════════════════════════════════════════════════════
          LOADING SKELETON
     ══════════════════════════════════════════════════════════════ --}}
-    <div wire:loading class="animate-pulse" style="display:none;">
+    <div wire:loading class="animate-pulse">
         {{-- Filter pills skeleton --}}
         <div class="flex border-b border-[#2a2a2a]">
             @foreach(range(1,4) as $i)

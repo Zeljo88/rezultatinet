@@ -341,7 +341,7 @@
                 <!-- affiliate sidebar -->
 
                 <!-- Facebook Page Widget -->
-                <div class="rounded-lg overflow-hidden mb-4" id="fb-page-wrapper" style="display:none;">
+                <div class="rounded-lg overflow-hidden mb-4" id="fb-page-wrapper">
                   <div class="fb-page"
                     data-href="https://www.facebook.com/rezultatinet"
                     data-tabs=""
@@ -380,13 +380,6 @@
     // Load Facebook SDK after page load to avoid render blocking
     window.addEventListener("load", function() {
         setTimeout(function() {
-            window.fbAsyncInit = function() {
-                FB.init({ xfbml: true, version: 'v19.0' });
-                FB.Event.subscribe('xfbml.render', function() {
-                    var w = document.getElementById('fb-page-wrapper');
-                    if (w) w.style.display = '';
-                });
-            };
             var s = document.createElement("script");
             s.async = true;
             s.defer = true;
