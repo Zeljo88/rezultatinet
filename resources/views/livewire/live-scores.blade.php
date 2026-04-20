@@ -157,14 +157,14 @@
 
             {{-- ── League header (collapsible) ── --}}
             <div @click="open = !open"
-                 class="flex items-center gap-2 px-3 py-2 bg-[#181818] cursor-pointer hover:bg-[#1e1e1e] transition select-none min-h-[36px]">
+                 class="flex items-center gap-2 px-3 py-2 bg-[#141414] border-t border-gray-700/50 cursor-pointer hover:bg-[#1a1a1a] transition select-none min-h-[36px]">
                 @if($leagueLogo)
                     <img src="{{ $leagueLogo }}" alt=""
                          class="w-5 h-5 object-contain flex-shrink-0 opacity-80" loading="lazy">
                 @else
                     <div class="w-5 h-5 flex-shrink-0 rounded bg-[#2a2a2a]"></div>
                 @endif
-                <span class="text-gray-200 text-xs font-semibold flex-1 truncate">{{ $leagueName ?: 'Ostale lige' }}</span>
+                <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider flex-1 truncate">{{ $leagueName ?: 'Ostale lige' }}</span>
                 <span x-show="open" class="bg-[#2a2a2a] text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1">{{ count($leagueFixtures) }}</span>
                 <span x-show="!open" class="text-gray-500 text-xs flex-shrink-0 ml-auto mr-1">prikaži utakmice ({{ count($leagueFixtures) }})</span>
                 <svg :class="open ? 'rotate-0' : '-rotate-90'"
@@ -242,7 +242,7 @@
                     }
                 @endphp
 
-                <div class="flex items-center h-[52px] px-2 border-b border-[#151515] hover:bg-[#171717] transition
+                <div class="flex items-center h-[52px] pl-3 pr-2 border-b border-[#151515] bg-[#0f0f0f] hover:bg-[#161616] transition
                             {{ $fixtureType === 'football' ? 'cursor-pointer' : '' }}"
                      data-status="{{ $dataStatus }}"
                      x-show="activeFilter === 'sve' || activeFilter === '{{ $dataStatus }}'"
@@ -259,11 +259,11 @@
                         @endif
                         @if($fixtureType === 'football')
                             <a href="/tim/{{ $fixture['home_team_slug'] }}"
-                               class="text-sm font-medium truncate max-w-[110px] md:max-w-[160px]
+                               class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
                                       {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition"
                                onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
                         @else
-                            <span class="text-sm font-medium truncate max-w-[110px] md:max-w-[160px]
+                            <span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
                                          {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['home_team_name'] }}</span>
                         @endif
                     </div>
@@ -307,11 +307,11 @@
                     <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end pl-1">
                         @if($fixtureType === 'football')
                             <a href="/tim/{{ $fixture['away_team_slug'] }}"
-                               class="text-sm font-medium truncate max-w-[110px] md:max-w-[160px] text-right
+                               class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
                                       {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition"
                                onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
                         @else
-                            <span class="text-sm font-medium truncate max-w-[110px] md:max-w-[160px] text-right
+                            <span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
                                          {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['away_team_name'] }}</span>
                         @endif
                         @if($awayLogoUrl)
