@@ -18,6 +18,11 @@ use App\Livewire\LeagueSchedule;
 use App\Livewire\LeagueScorers;
 
 Route::get('/', fn() => view('home', ['sport' => 'football', 'initialTab' => 'live']));
+
+// SEO redirects: external URLs that Google has indexed
+Route::get('/soccer/usa', fn() => redirect('/liga/major-league-soccer', 301));
+Route::get('/soccer/usa/', fn() => redirect('/liga/major-league-soccer', 301));
+Route::get('/soccer/{any}', fn() => redirect('/', 301))->where('any', '.*');
 Route::get('/kosarka', fn() => view('home', ['sport' => 'basketball', 'initialTab' => 'live']));
 Route::get('/tenis', fn() => view('home', ['sport' => 'tennis', 'initialTab' => 'live']));
 Route::get('/jucer', fn() => view('home', ['sport' => 'football', 'initialTab' => 'yesterday']));

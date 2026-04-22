@@ -3,6 +3,7 @@ namespace App\Livewire;
 
 use App\Models\League;
 use App\Models\Standing;
+use App\Models\Fixture;
 use App\Models\PlayerStat;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
@@ -14,6 +15,7 @@ class TablePage extends Component
     public string $leagueSlug = '';
     public ?League $league = null;
     public array $standings = [];
+    public string $tab = 'all';
 
     protected array $slugMap = [
         'hnl'                 => 210,
@@ -75,6 +77,11 @@ class TablePage extends Component
         $this->loadStandings();
     }
 
+    public function switchTab(string $tab): void
+    {
+        $this->tab = in_array($tab, ['all', 'home', 'away']) ? $tab : 'all';
+    }
+
     protected function loadStandings(): void
     {
         $leagueId = $this->league->id;
@@ -84,28 +91,81 @@ class TablePage extends Component
                 ->orderBy('rank')
                 ->get()
                 ->map(fn($s) => [
-                    'rank'          => $s->rank,
-                    'team_name'     => $s->team?->name ?? 'N/A',
-                    'team_logo'     => $s->team?->logo_url,
-                    'team_slug'     => $s->team?->slug,
-                    'played'        => $s->played,
-                    'win'           => $s->win,
-                    'draw'          => $s->draw,
-                    'lose'          => $s->lose,
-                    'goals_for'     => $s->goals_for,
-                    'goals_against' => $s->goals_against,
-                    'goal_diff'     => $s->goal_diff,
-                    'points'        => $s->points,
-                    'form'          => $s->form,
-                    'description'   => $s->description,
+                    'rank'               => $s->rank,
+                    'team_id'            => $s->team_id,
+                    'team_name'          => $s->team?->name ?? 'N/A',
+                    'team_logo'          => $s->team?->logo_url,
+                    'team_slug'          => $s->team?->slug,
+                    'played'             => $s->played,
+                    'win'                => $s->win,
+                    'draw'               => $s->draw,
+                    'lose'               => $s->lose,
+                    'goals_for'          => $s->goals_for,
+                    'goals_against'      => $s->goals_against,
+                    'goal_diff'          => $s->goal_diff,
+                    'points'             => $s->points,
+                    'form'               => $s->form,
+                    'description'        => $s->description,
+                    'home_played'        => $s->home_played,
+                    'home_win'           => $s->home_win,
+                    'home_draw'          => $s->home_draw,
+                    'home_lose'          => $s->home_lose,
+                    'home_goals_for'     => $s->home_goals_for,
+                    'home_goals_against' => $s->home_goals_against,
+                    'home_goal_diff'     => $s->home_goals_for - $s->home_goals_against,
+                    'home_points'        => $s->home_win * 3 + $s->home_draw,
+                    'away_played'        => $s->away_played,
+                    'away_win'           => $s->away_win,
+                    'away_draw'          => $s->away_draw,
+                    'away_lose'          => $s->away_lose,
+                    'away_goals_for'     => $s->away_goals_for,
+                    'away_goals_against' => $s->away_goals_against,
+                    'away_goal_diff'     => $s->away_goals_for - $s->away_goals_against,
+                    'away_points'        => $s->away_win * 3 + $s->away_draw,
                 ])->toArray();
+        });
+    }
+
+    protected function getNextMatches(): array
+    {
+        $leagueId = $this->league->id;
+        return Cache::remember("next_matches_league:{$leagueId}", 3600, function () use ($leagueId) {
+            // Get all upcoming fixtures for this league in a single query
+            $fixtures = Fixture::with(['homeTeam', 'awayTeam'])
+                ->where('league_id', $leagueId)
+                ->where('status_short', 'NS')
+                ->where('kick_off', '>', now())
+                ->orderBy('kick_off')
+                ->get();
+
+            $nextByTeam = [];
+            foreach ($fixtures as $f) {
+                $homeId = $f->home_team_id;
+                $awayId = $f->away_team_id;
+                // First occurrence per team is the nearest fixture (already ordered by kick_off)
+                if (!isset($nextByTeam[$homeId])) {
+                    $nextByTeam[$homeId] = [
+                        'opponent' => $f->awayTeam?->name ?? '?',
+                        'kick_off' => $f->kick_off,
+                        'home'     => true,
+                    ];
+                }
+                if (!isset($nextByTeam[$awayId])) {
+                    $nextByTeam[$awayId] = [
+                        'opponent' => $f->homeTeam?->name ?? '?',
+                        'kick_off' => $f->kick_off,
+                        'home'     => false,
+                    ];
+                }
+            }
+            return $nextByTeam;
         });
     }
 
     protected function getTopScorers(): array
     {
         $leagueId = $this->league->id;
-        return Cache::remember("top_scorers:{$leagueId}", 1800, function () use ($leagueId) {
+        return Cache::remember("top_scorers:{$leagueId}", 3600, function () use ($leagueId) {
             return PlayerStat::with('player')
                 ->where('league_id', $leagueId)
                 ->where('goals', '>', 0)
@@ -118,6 +178,61 @@ class TablePage extends Component
                     'club'        => $s->player?->current_club,
                     'goals'       => $s->goals,
                     'assists'     => $s->assists ?? 0,
+                ])
+                ->toArray();
+        });
+    }
+
+    protected function getUpcomingFixtures(): array
+    {
+        $leagueId = $this->league->id;
+        return Cache::remember("upcoming_fixtures:{$leagueId}", 600, function () use ($leagueId) {
+            return Fixture::with(['homeTeam', 'awayTeam'])
+                ->where('league_id', $leagueId)
+                ->where('status_short', 'NS')
+                ->where('kick_off', '>=', now())
+                ->orderBy('kick_off')
+                ->take(5)
+                ->get()
+                ->map(fn($f) => [
+                    'id'        => $f->id,
+                    'kick_off'  => $f->kick_off?->format('d.m. H:i'),
+                    'home'      => $f->homeTeam?->name ?? 'N/A',
+                    'away'      => $f->awayTeam?->name ?? 'N/A',
+                    'home_slug' => $f->homeTeam?->slug,
+                    'away_slug' => $f->awayTeam?->slug,
+                    'round'     => $f->round,
+                    'slug'      => $f->homeTeam && $f->awayTeam
+                        ? strtolower(str_replace(' ', '-', $f->homeTeam->name)) . '-vs-' . strtolower(str_replace(' ', '-', $f->awayTeam->name)) . '-' . $f->kick_off?->format('d-m-Y')
+                        : null,
+                ])
+                ->toArray();
+        });
+    }
+
+    protected function getRecentResults(): array
+    {
+        $leagueId = $this->league->id;
+        return Cache::remember("recent_results:{$leagueId}", 600, function () use ($leagueId) {
+            return Fixture::with(['homeTeam', 'awayTeam', 'score'])
+                ->where('league_id', $leagueId)
+                ->whereIn('status_short', ['FT', 'AET', 'PEN'])
+                ->orderByDesc('kick_off')
+                ->take(5)
+                ->get()
+                ->map(fn($f) => [
+                    'id'         => $f->id,
+                    'date'       => $f->kick_off?->format('d.m.'),
+                    'home'       => $f->homeTeam?->name ?? 'N/A',
+                    'away'       => $f->awayTeam?->name ?? 'N/A',
+                    'home_slug'  => $f->homeTeam?->slug,
+                    'away_slug'  => $f->awayTeam?->slug,
+                    'home_score' => $f->score?->home_fulltime ?? '?',
+                    'away_score' => $f->score?->away_fulltime ?? '?',
+                    'status'     => $f->status_short,
+                    'slug'       => $f->homeTeam && $f->awayTeam
+                        ? strtolower(str_replace(' ', '-', $f->homeTeam->name)) . '-vs-' . strtolower(str_replace(' ', '-', $f->awayTeam->name)) . '-' . $f->kick_off?->format('d-m-Y')
+                        : null,
                 ])
                 ->toArray();
         });
@@ -164,6 +279,41 @@ class TablePage extends Component
         ];
         $blocks[] = json_encode($breadcrumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 
+        $sportsOrg = [
+            '@context'    => 'https://schema.org',
+            '@type'       => 'SportsOrganization',
+            'name'        => $leagueName,
+            'url'         => $leagueUrl,
+            'sport'       => 'Football',
+            'description' => $this->getSeoDescription(),
+        ];
+        if ($this->league->logo_url) {
+            $sportsOrg['logo'] = $this->league->logo_url;
+        }
+        $blocks[] = json_encode($sportsOrg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+
+        if (!empty($this->standings)) {
+            $items = [];
+            foreach ($this->standings as $i => $row) {
+                $items[] = [
+                    '@type'    => 'ListItem',
+                    'position' => $i + 1,
+                    'name'     => $row['team_name'],
+                    'url'      => "https://rezultati.net/tim/{$row['team_slug']}",
+                ];
+            }
+            $standingsList = [
+                '@context'        => 'https://schema.org',
+                '@type'           => 'ItemList',
+                'name'            => "{$leagueName} Tablica " . $this->seasonLabel(),
+                'description'     => $this->getSeoDescription(),
+                'url'             => $tableUrl,
+                'numberOfItems'   => count($this->standings),
+                'itemListElement' => $items,
+            ];
+            $blocks[] = json_encode($standingsList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        }
+
         return $blocks;
     }
 
@@ -179,10 +329,13 @@ class TablePage extends Component
         $canonicalUrl = url("/tablica/{$this->leagueSlug}");
 
         return view('livewire.table-page', [
-            'season'        => $season,
-            'displayName'   => $displayName,
-            'seoDescription'=> $this->getSeoDescription(),
-            'topScorers'    => $this->getTopScorers(),
+            'season'          => $season,
+            'displayName'     => $displayName,
+            'seoDescription'  => $this->getSeoDescription(),
+            'topScorers'      => $this->getTopScorers(),
+            'upcomingFixtures'=> $this->getUpcomingFixtures(),
+            'recentResults'   => $this->getRecentResults(),
+            'nextMatches'     => $this->getNextMatches(),
         ])->layout('layouts.app', [
             'metaTitle'       => $metaTitle,
             'metaDescription' => $metaDescription,

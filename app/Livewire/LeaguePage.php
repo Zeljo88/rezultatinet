@@ -39,13 +39,14 @@ class LeaguePage extends Component
         'kup-hrvatska'      => 212,
         'kup-bosna'         => 314,
         'kup-srbija'        => 732,
+        'major-league-soccer' => 253,
     ];
 
     /** SEO-rich H1 labels (without season, appended dynamically) */
     protected array $seoH1Labels = [
         'hnl'                => 'HNL Rezultati Uživo — Hrvatska Nogometna Liga',
         'superliga-srbija'   => 'Super liga Srbije — Rezultati Uživo i Tablica',
-        'premijer-liga-bih'  => 'Premijer liga BiH — Živirezultati i Tablica',
+        'premijer-liga-bih'  => 'Premijer liga BiH — Rezultati Uživo, Tablica i Poredak',
         'champions-liga'     => 'UEFA Liga prvaka — Rezultati Uživo i Sudionici',
         'europa-liga'        => 'UEFA Europa liga — Rezultati Uživo i Sudionici',
         'konferencijska-liga'=> 'UEFA Konferencijska liga — Rezultati Uživo',
@@ -62,13 +63,15 @@ class LeaguePage extends Component
         'kup-hrvatska'       => 'Kup Hrvatske — Rezultati i Raspored',
         'kup-bosna'          => 'Kup Bosne i Hercegovine — Rezultati i Raspored',
         'kup-srbija'         => 'Kup Srbije — Rezultati i Raspored',
+        'major-league-soccer'=> 'Major League Soccer (MLS) — Rezultati Uživo i Tablica',
     ];
 
     /** SEO descriptive paragraphs per league slug */
     protected array $seoDescriptions = [
         'hnl'                => 'Hrvatska nogometna liga (HNL) je najviši razred klupskog nogometa u Hrvatskoj. Prati sve HNL rezultate uživo, tablicu, strijelce i raspored utakmica na rezultati.net.',
         'superliga-srbija'   => 'Super liga Srbije je vrhunsko fudbalsko takmičenje u Srbiji. Pratite rezultate uživo, tablicu i statistike Super lige na rezultati.net.',
-        'premijer-liga-bih'  => 'Premijer liga Bosne i Hercegovine je najviši rang fudbalskog takmičenja u BiH. Pratite live rezultate, tablicu i raspored Premijer lige BiH na rezultati.net.',
+        'premijer-liga-bih'  => 'Premijer liga Bosne i Hercegovine je najviši rang fudbalskog takmičenja u BiH. Pratite live rezultate, tablicu, poredak i raspored Premijer lige BiH na rezultati.net.',
+        'major-league-soccer'=> 'Major League Soccer (MLS) je najviše fudbalsko takmičenje u SAD-u i Kanadi. Pratite MLS rezultate uživo, tablicu i statistike na rezultati.net.',
         'champions-liga'     => 'UEFA Liga prvaka je najprestižnije klupsko nogometno natjecanje u Europi. Pratite sve rezultate Lige prvaka uživo, strijelce i statistike na rezultati.net.',
         'europa-liga'        => 'UEFA Europa liga je drugo najprestižnije klupsko natjecanje u Europi. Pratite rezultate Europske lige uživo, strijelce i statistike na rezultati.net.',
         'konferencijska-liga'=> 'UEFA Konferencijska liga nudi uzbudljive utakmice klupskog nogometa širom Europe. Pratite rezultate i statistike na rezultati.net.',
@@ -200,6 +203,7 @@ class LeaguePage extends Component
         return Fixture::with(['homeTeam', 'awayTeam'])
             ->where('league_id', $this->league->id)
             ->whereIn('status_short', ['NS', 'TBD'])
+            ->where('kick_off', '>=', now())
             ->orderBy('kick_off')
             ->take(5)
             ->get()
@@ -285,8 +289,16 @@ class LeaguePage extends Component
     {
         $leagueName = $this->league->name;
         $season = $this->seasonLabel();
-        $metaTitle = "{$leagueName} {$season} — Rezultati Uživo & Tablica | rezultati.net";
-        $metaDescription = "Pratite {$leagueName} rezultate uživo, tablicu, strijelce i raspored. Sve o {$leagueName} na jednom mjestu.";
+
+        $metaTitleOverrides = [
+            'premijer-liga-bih' => "Premijer liga BiH {$season} — Rezultati Uživo, Tablica i Poredak | rezultati.net",
+        ];
+        $metaDescOverrides = [
+            'premijer-liga-bih' => "Premijer liga BiH {$season} — pratite live rezultate, tablicu, poredak i raspored na rezultati.net.",
+        ];
+
+        $metaTitle = $metaTitleOverrides[$this->slug] ?? "{$leagueName} {$season} — Rezultati Uživo & Tablica | rezultati.net";
+        $metaDescription = $metaDescOverrides[$this->slug] ?? "Pratite {$leagueName} rezultate uživo, tablicu, strijelce i raspored. Sve o {$leagueName} na jednom mjestu.";
         $ogImage = $this->league->logo_url ?: null;
 
         return view('livewire.league-page', [

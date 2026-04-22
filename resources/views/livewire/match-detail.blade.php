@@ -442,7 +442,6 @@
         </div>
     @endif
 
-    <livewire:match-prediction :fixture-id="$fixture->id" :home-team="$fixture->homeTeam->name ?? 'Domacin'" :away-team="$fixture->awayTeam->name ?? 'Gost'" />
 
     {{-- Venue --}}
     @if($fixture->venue_name)

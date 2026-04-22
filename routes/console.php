@@ -13,6 +13,12 @@ Schedule::job(new FinalizeFinishedFixtures)
     ->everyFiveMinutes()
     ->withoutOverlapping();
 
+// ✅ ACTIVE — sync:standings daily at 04:30 (~14 API calls, all leagues)
+Schedule::command("sync:standings")
+    ->dailyAt("04:30")
+    ->name("sync-standings")
+    ->withoutOverlapping();
+
 // ✅ ACTIVE — Zombie watcher: re-fetches all fixtures >3h old not in final status
 // Safety net that prevents zombie matches from staying live indefinitely.
 Schedule::job(new FixZombieFixtures)
