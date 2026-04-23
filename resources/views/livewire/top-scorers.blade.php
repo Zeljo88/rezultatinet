@@ -1,9 +1,24 @@
 <div>
     <div class="flex items-center gap-3 mb-5">
         <div>
-            <h1 class="text-2xl font-black text-white">Strijelci <span class="text-[#CCFF00]">2024/25</span></h1>
-            <p class="text-gray-500 text-sm">{{ $leagueName }} — top strijelci sezone</p>
+            <h1 class="text-2xl font-black text-white">
+                {{ $tab === 'assists' ? 'Asistenti' : 'Strijelci' }}
+                <span class="text-[#CCFF00]">{{ $seasonLabel }}</span>
+            </h1>
+            <p class="text-gray-500 text-sm">{{ $leagueName }} — {{ $tab === 'assists' ? 'top asistenti' : 'top strijelci' }} sezone</p>
         </div>
+    </div>
+
+    {{-- Tab switcher --}}
+    <div class="flex gap-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-1 mb-5 w-fit">
+        <button wire:click="switchTab('goals')"
+            class="px-4 py-2 rounded-md text-sm font-semibold transition cursor-pointer {{ $tab === 'goals' ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
+            Strijelci
+        </button>
+        <button wire:click="switchTab('assists')"
+            class="px-4 py-2 rounded-md text-sm font-semibold transition cursor-pointer {{ $tab === 'assists' ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
+            Asistenti
+        </button>
     </div>
 
     {{-- League selector --}}
@@ -18,8 +33,9 @@
 
     @if(empty($scorers))
         <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-12 text-center">
-            <div class="text-5xl mb-3">⚽</div>
-            <p class="text-gray-400 text-lg font-semibold">Nema podataka o strijelcima za ovu ligu.</p>
+            <div class="text-5xl mb-3">{{ $tab === 'assists' ? '🅰️' : '⚽' }}</div>
+            <p class="text-gray-400 text-lg font-semibold">Nema podataka za ovu ligu.</p>
+            <p class="text-gray-500 text-sm mt-2">Podaci se ažuriraju svakodnevno u 06:00.</p>
         </div>
     @else
         <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
@@ -28,8 +44,8 @@
                 <div class="col-span-1 text-center">#</div>
                 <div class="col-span-5">Igrač</div>
                 <div class="col-span-3">Klub</div>
-                <div class="col-span-1 text-center">⚽</div>
-                <div class="col-span-1 text-center">🅰️</div>
+                <div class="col-span-1 text-center">{{ $tab === 'assists' ? '🅰️' : '⚽' }}</div>
+                <div class="col-span-1 text-center">{{ $tab === 'assists' ? '⚽' : '🅰️' }}</div>
                 <div class="col-span-1 text-center">Ut.</div>
             </div>
             @foreach($scorers as $i => $scorer)
@@ -37,11 +53,11 @@
                 {{-- Rank --}}
                 <div class="col-span-1 text-center">
                     @if($i === 0)
-                        <span class="text-yellow-400 font-black text-sm">🥇</span>
+                        <span class="text-yellow-400 font-black text-sm">1</span>
                     @elseif($i === 1)
-                        <span class="text-gray-400 font-black text-sm">🥈</span>
+                        <span class="text-gray-300 font-black text-sm">2</span>
                     @elseif($i === 2)
-                        <span class="text-orange-400 font-black text-sm">🥉</span>
+                        <span class="text-orange-400 font-black text-sm">3</span>
                     @else
                         <span class="text-gray-500 text-sm">{{ $i + 1 }}</span>
                     @endif
@@ -54,7 +70,11 @@
                         <div class="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-600 text-xs">?</div>
                     @endif
                     <div>
-                        <span class="text-sm font-semibold text-white block leading-tight">{{ $scorer['player_name'] }}</span>
+                        @if($scorer['player_slug'] ?? null)
+                            <a href="/igraci/{{ $scorer['player_slug'] }}" class="text-sm font-semibold text-white hover:text-[#CCFF00] transition block leading-tight">{{ $scorer['player_name'] }}</a>
+                        @else
+                            <span class="text-sm font-semibold text-white block leading-tight">{{ $scorer['player_name'] }}</span>
+                        @endif
                         @if($scorer['nationality'])
                             <span class="text-xs text-gray-500">{{ $scorer['nationality'] }}</span>
                         @endif
@@ -67,13 +87,17 @@
                     @endif
                     <span class="text-xs text-gray-400 truncate">{{ $scorer['team_name'] }}</span>
                 </div>
-                {{-- Goals --}}
+                {{-- Primary stat --}}
                 <div class="col-span-1 text-center">
-                    <span class="text-lg font-black {{ $i < 3 ? 'text-[#CCFF00]' : 'text-white' }}">{{ $scorer['goals'] }}</span>
+                    <span class="text-lg font-black {{ $i < 3 ? 'text-[#CCFF00]' : 'text-white' }}">
+                        {{ $tab === 'assists' ? $scorer['assists'] : $scorer['goals'] }}
+                    </span>
                 </div>
-                {{-- Assists --}}
+                {{-- Secondary stat --}}
                 <div class="col-span-1 text-center">
-                    <span class="text-sm text-gray-400">{{ $scorer['assists'] }}</span>
+                    <span class="text-sm text-gray-400">
+                        {{ $tab === 'assists' ? $scorer['goals'] : $scorer['assists'] }}
+                    </span>
                 </div>
                 {{-- Appearances --}}
                 <div class="col-span-1 text-center">

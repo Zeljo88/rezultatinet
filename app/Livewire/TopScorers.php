@@ -13,6 +13,9 @@ class TopScorers extends Component
     public ?League $league = null;
     public int $leagueApiId = 39; // Default: Premier League
     public string $leagueName = 'Premier League';
+    public string $tab = 'goals'; // 'goals' or 'assists'
+    public int $season;
+    public string $seasonLabel;
 
     protected array $availableLeagues = [
         2   => 'Champions Liga',
@@ -29,6 +32,8 @@ class TopScorers extends Component
 
     public function mount(int $league = 39): void
     {
+        $this->season = now()->month < 8 ? now()->year - 1 : now()->year;
+        $this->seasonLabel = $this->season . '/' . substr((string) ($this->season + 1), -2);
         $this->leagueApiId = $league;
         $this->leagueName = $this->availableLeagues[$league] ?? 'Strijelci';
         $this->league = League::where('api_league_id', $league)->first();
@@ -43,6 +48,12 @@ class TopScorers extends Component
         $this->loadScorers();
     }
 
+    public function switchTab(string $tab): void
+    {
+        $this->tab = $tab;
+        $this->loadScorers();
+    }
+
     public function loadScorers(): void
     {
         if (!$this->league) {
@@ -50,21 +61,25 @@ class TopScorers extends Component
             return;
         }
 
+        $orderBy = $this->tab === 'assists' ? 'assists' : 'goals';
+
         $this->scorers = PlayerStat::with('player')
             ->where('league_id', $this->league->id)
-            ->where('season', '2024')
-            ->orderByDesc('goals')
+            ->where('season', (string) $this->season)
+            ->where($orderBy, '>', 0)
+            ->orderByDesc($orderBy)
             ->limit(20)
             ->get()
             ->map(fn($stat) => [
-                'player_name' => $stat->player?->name ?? 'Unknown',
-                'player_photo'=> $stat->player?->photo_url,
-                'team_name'   => $stat->player?->current_club ?? 'N/A',
-                'team_logo'   => $stat->player?->current_club_logo,
-                'nationality' => $stat->player?->nationality,
-                'goals'       => $stat->goals,
-                'assists'     => $stat->assists,
-                'appearances' => $stat->appearances,
+                'player_name'  => $stat->player?->name ?? 'Unknown',
+                'player_photo' => $stat->player?->photo_url,
+                'player_slug'  => $stat->player?->slug,
+                'team_name'    => $stat->player?->current_club ?? 'N/A',
+                'team_logo'    => $stat->player?->current_club_logo,
+                'nationality'  => $stat->player?->nationality,
+                'goals'        => $stat->goals,
+                'assists'      => $stat->assists,
+                'appearances'  => $stat->appearances,
             ])->toArray();
     }
 

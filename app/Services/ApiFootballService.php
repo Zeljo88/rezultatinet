@@ -74,6 +74,18 @@ class ApiFootballService
         return $response->json('response', []);
     }
 
+    public function getTopAssists(int $leagueId, int $season): array
+    {
+        if ($this->quotaExceeded()) return [];
+
+        $response = $this->client->get('/players/topassists', [
+            'league' => $leagueId,
+            'season' => $season,
+        ]);
+        if (!$response->successful()) return [];
+        return $response->json('response', []);
+    }
+
     public function getLineups(int $apiFixtureId): array
     {
         if ($this->quotaExceeded()) return [];
