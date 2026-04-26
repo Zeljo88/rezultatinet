@@ -50,6 +50,8 @@ Route::get('/tablica/{leagueSlug}', TablePage::class)->name('table.show');
 Route::get('/pretraga', Search::class)->name('search');
 Route::get('/og/match', [OgImageController::class, 'matchImage'])->name('og.match-image');
 
+Route::get('/kolacici', fn() => view('kolacici'))->name('kolacici');
+
 Route::get('/blog', Blog::class)->name('blog');
 Route::get('/blog/{slug}', BlogPost::class)->name('blog.post');
 Route::get('/igraci/balkan', BalkanPlayers::class)->name('balkan.players');
@@ -99,6 +101,7 @@ Route::get('/sitemap-leagues.xml', function () {
         'prva-liga-fbih', 'prva-liga-rs', 'champions-liga', 'europa-liga',
         'konferencijska-liga', 'premier-league', 'la-liga', 'serie-a',
         'bundesliga', 'ligue-1',
+        'snl', 'prva-liga-crne-gore', 'superliga-kosova', 'prva-liga-makedonije',
     ];
     foreach ($leagues as $slug) {
         $urls->push(['loc' => url("/liga/{$slug}"), 'changefreq' => 'hourly', 'priority' => '0.8']);
@@ -109,6 +112,7 @@ Route::get('/sitemap-leagues.xml', function () {
         'hnl', 'superliga-srbija', 'premijer-liga-bih',
         'premier-league', 'la-liga', 'serie-a', 'bundesliga', 'ligue-1',
         'champions-liga', 'europa-liga', 'konferencijska-liga',
+        'snl', 'prva-liga-crne-gore', 'superliga-kosova', 'prva-liga-makedonije',
     ];
     foreach ($tablicaLeagues as $slug) {
         $urls->push(['loc' => url("/tablica/{$slug}"), 'changefreq' => 'daily', 'priority' => '0.9']);
@@ -120,6 +124,7 @@ Route::get('/sitemap-leagues.xml', function () {
         'prva-liga-fbih', 'prva-liga-rs', 'champions-liga', 'europa-liga',
         'konferencijska-liga', 'premier-league', 'la-liga', 'serie-a',
         'bundesliga', 'ligue-1',
+        'snl', 'prva-liga-crne-gore', 'superliga-kosova', 'prva-liga-makedonije',
     ];
     foreach ($subPageLeagues as $slug) {
         $urls->push(['loc' => url("/liga/{$slug}/tablica"),   'changefreq' => 'daily',  'priority' => '0.8']);

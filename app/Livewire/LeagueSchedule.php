@@ -37,6 +37,10 @@ class LeagueSchedule extends Component
         'kup-hrvatska'        => 212,
         'kup-bosna'           => 314,
         'kup-srbija'          => 732,
+        'snl'                 => 172,
+        'prva-liga-crne-gore' => 394,
+        'superliga-kosova'    => 351,
+        'prva-liga-makedonije'=> 183,
     ];
 
     public function mount(string $slug): void

@@ -53,16 +53,22 @@
     @livewireStyles
     <style>[x-cloak] { display: none !important; }</style>
     <script>
-        window.addEventListener("load", function() {
+        function loadAnalytics() {
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){window.dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag("js", new Date());
+            gtag("config", "G-854YSPE0YX", {"transport_type": "beacon"});
             var s = document.createElement("script");
             s.async = true;
             s.src = "https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX";
             document.head.appendChild(s);
+        }
+        window.addEventListener("load", function() {
+            if (localStorage.getItem('rn_cookie_consent') === 'accepted') {
+                loadAnalytics();
+            }
         });
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag("js", new Date());
-        gtag("config", "G-854YSPE0YX", {"transport_type": "beacon"});
     </script>
     <style>
         .league-scroll::-webkit-scrollbar { display: none; }
@@ -241,6 +247,18 @@
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-rs') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇷🇸 Prva liga RS
                 </a>
+                <a href="/liga/snl" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/snl') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇸🇮 SNL
+                </a>
+                <a href="/liga/prva-liga-crne-gore" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-crne-gore') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇲🇪 Crna Gora
+                </a>
+                <a href="/liga/prva-liga-makedonije" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-makedonije') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇲🇰 Makedonija
+                </a>
+                <a href="/liga/superliga-kosova" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-kosova') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇽🇰 Kosovo
+                </a>
                 <a href="/liga/champions-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/champions-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     ⭐ Champions Liga
                 </a>
@@ -295,6 +313,18 @@
                 </a>
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-rs') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇷🇸 Prva liga RS
+                </a>
+                <a href="/liga/snl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/snl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇸🇮 SNL Slovenija
+                </a>
+                <a href="/liga/prva-liga-crne-gore" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-crne-gore') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇲🇪 Prva liga CG
+                </a>
+                <a href="/liga/prva-liga-makedonije" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-makedonije') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇲🇰 Prva liga MKD
+                </a>
+                <a href="/liga/superliga-kosova" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-kosova') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇽🇰 Superliga Kosova
                 </a>
 
                 <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Evropa</p>
@@ -401,7 +431,45 @@
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
         <p class="mt-1 text-xs opacity-60">18+ | Kladenje moze biti stetno za zdravlje. Igrajte odgovorno.</p>
+        <div class="mt-3 flex items-center justify-center gap-4 text-xs text-gray-400">
+            <a href="/kolacici" class="hover:text-white transition">Politika kolačića</a>
+            <span class="text-gray-700">|</span>
+            <a href="mailto:contact@rezultati.net" class="hover:text-white transition">Kontakt</a>
+            <span class="text-gray-700">|</span>
+            <a href="mailto:marketing@rezultati.net" class="hover:text-white transition">Marketing</a>
+        </div>
     </footer>
+
+    {{-- COOKIE CONSENT BANNER --}}
+    <div x-data="{
+            show: false,
+            init() { if (!localStorage.getItem('rn_cookie_consent')) this.show = true; },
+            accept() { localStorage.setItem('rn_cookie_consent','accepted'); this.show = false; loadAnalytics(); },
+            reject() { localStorage.setItem('rn_cookie_consent','rejected'); this.show = false; }
+        }"
+        x-show="show"
+        x-cloak
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        class="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1a1a] border-t border-[#2a2a2a] shadow-2xl p-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <p class="text-sm text-gray-300 flex-1">
+                Koristimo analitičke kolačiće (Google Analytics) da bismo poboljšali naše usluge.
+                <a href="/kolacici" class="text-[#CCFF00] underline hover:no-underline">Više o kolačićima</a>
+            </p>
+            <div class="flex gap-2 flex-shrink-0">
+                <button @click="reject()"
+                    class="px-4 py-2 text-xs font-semibold text-gray-400 border border-[#3a3a3a] rounded-lg hover:border-gray-500 hover:text-white transition">
+                    Samo nužni
+                </button>
+                <button @click="accept()"
+                    class="px-4 py-2 text-xs font-semibold bg-[#CCFF00] text-black rounded-lg hover:brightness-110 transition">
+                    Prihvati sve
+                </button>
+            </div>
+        </div>
+    </div>
 
     @livewireScripts
     <!-- Facebook SDK — deferred to not block render -->
