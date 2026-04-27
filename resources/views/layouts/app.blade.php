@@ -432,11 +432,13 @@
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
         <p class="mt-1 text-xs opacity-60">18+ | Kladenje moze biti stetno za zdravlje. Igrajte odgovorno.</p>
         <div class="mt-3 flex items-center justify-center gap-4 text-xs text-gray-400">
-            <a href="/kolacici" class="hover:text-white transition">Politika kolačića</a>
+            <a href="/o-nama" class="hover:text-white transition">O nama</a>
             <span class="text-gray-700">|</span>
-            <a href="mailto:contact@rezultati.net" class="hover:text-white transition">Kontakt</a>
+            <a href="/kontakt" class="hover:text-white transition">Kontakt</a>
             <span class="text-gray-700">|</span>
-            <a href="mailto:marketing@rezultati.net" class="hover:text-white transition">Marketing</a>
+            <a href="/pravila-privatnosti" class="hover:text-white transition">Privatnost</a>
+            <span class="text-gray-700">|</span>
+            <a href="/kolacici" class="hover:text-white transition">Kolačići</a>
         </div>
     </footer>
 

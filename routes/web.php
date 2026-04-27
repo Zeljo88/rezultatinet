@@ -51,6 +51,11 @@ Route::get('/pretraga', Search::class)->name('search');
 Route::get('/og/match', [OgImageController::class, 'matchImage'])->name('og.match-image');
 
 Route::get('/kolacici', fn() => view('kolacici'))->name('kolacici');
+Route::get('/cookie-politika', fn() => redirect('/kolacici', 301));
+Route::get('/o-nama', fn() => view('o-nama'))->name('o-nama');
+Route::get('/kontakt', fn() => view('kontakt'))->name('kontakt');
+Route::get('/pravila-privatnosti', fn() => view('pravila-privatnosti'))->name('pravila-privatnosti');
+Route::get('/uvjeti-koristenja', fn() => view('uvjeti-koristenja'))->name('uvjeti-koristenja');
 
 Route::get('/blog', Blog::class)->name('blog');
 Route::get('/blog/{slug}', BlogPost::class)->name('blog.post');
