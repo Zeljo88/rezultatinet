@@ -35,6 +35,10 @@ class LeagueScorers extends Component
         'kup-hrvatska'        => 212,
         'kup-bosna'           => 314,
         'kup-srbija'          => 732,
+        'snl'                 => 172,
+        'prva-liga-crne-gore' => 394,
+        'superliga-kosova'    => 351,
+        'prva-liga-makedonije'=> 183,
     ];
 
     public function mount(string $slug): void
@@ -49,8 +53,11 @@ class LeagueScorers extends Component
 
     protected function loadScorers(): void
     {
+        $season = $this->league->current_season ?? (now()->month < 8 ? now()->year - 1 : now()->year);
+
         $this->scorers = PlayerStat::with('player')
             ->where('league_id', $this->league->id)
+            ->where('season', (string) $season)
             ->where('goals', '>', 0)
             ->orderByDesc('goals')
             ->orderByDesc('assists')

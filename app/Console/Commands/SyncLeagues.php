@@ -44,6 +44,9 @@ class SyncLeagues extends Command
             206, // Premijer liga BiH
             168, // SuperLiga Serbia
             183, // First League North Macedonia
+            172, // PrvaLiga Slovenia (SNL)
+            394, // Prva CFL liga Montenegro
+            351, // Superliga Kosovo
         ];
 
         foreach ($leagues as $item) {

@@ -38,8 +38,12 @@ class LeaguePage extends Component
         'prva-liga-rs'      => 317,
         'kup-hrvatska'      => 212,
         'kup-bosna'         => 314,
-        'kup-srbija'        => 732,
+        'kup-srbija'          => 732,
         'major-league-soccer' => 253,
+        'snl'                 => 172,
+        'prva-liga-crne-gore' => 394,
+        'superliga-kosova'    => 351,
+        'prva-liga-makedonije'=> 183,
     ];
 
     /** SEO-rich H1 labels (without season, appended dynamically) */
@@ -62,8 +66,12 @@ class LeaguePage extends Component
         'prva-liga-rs'       => 'Prva liga RS — Rezultati Uživo i Tablica',
         'kup-hrvatska'       => 'Kup Hrvatske — Rezultati i Raspored',
         'kup-bosna'          => 'Kup Bosne i Hercegovine — Rezultati i Raspored',
-        'kup-srbija'         => 'Kup Srbije — Rezultati i Raspored',
-        'major-league-soccer'=> 'Major League Soccer (MLS) — Rezultati Uživo i Tablica',
+        'kup-srbija'          => 'Kup Srbije — Rezultati i Raspored',
+        'major-league-soccer' => 'Major League Soccer (MLS) — Rezultati Uživo i Tablica',
+        'snl'                 => 'SNL Slovenija — Prva liga Rezultati Uživo i Tablica',
+        'prva-liga-crne-gore' => 'Prva liga Crne Gore — Rezultati Uživo i Tablica',
+        'superliga-kosova'    => 'Superliga Kosova — Rezultati Uživo i Tablica',
+        'prva-liga-makedonije'=> 'Prva liga Sjeverne Makedonije — Rezultati Uživo i Tablica',
     ];
 
     /** SEO descriptive paragraphs per league slug */
@@ -71,7 +79,11 @@ class LeaguePage extends Component
         'hnl'                => 'Hrvatska nogometna liga (HNL) je najviši razred klupskog nogometa u Hrvatskoj. Prati sve HNL rezultate uživo, tablicu, strijelce i raspored utakmica na rezultati.net.',
         'superliga-srbija'   => 'Super liga Srbije je vrhunsko fudbalsko takmičenje u Srbiji. Pratite rezultate uživo, tablicu i statistike Super lige na rezultati.net.',
         'premijer-liga-bih'  => 'Premijer liga Bosne i Hercegovine je najviši rang fudbalskog takmičenja u BiH. Pratite live rezultate, tablicu, poredak i raspored Premijer lige BiH na rezultati.net.',
-        'major-league-soccer'=> 'Major League Soccer (MLS) je najviše fudbalsko takmičenje u SAD-u i Kanadi. Pratite MLS rezultate uživo, tablicu i statistike na rezultati.net.',
+        'major-league-soccer' => 'Major League Soccer (MLS) je najviše fudbalsko takmičenje u SAD-u i Kanadi. Pratite MLS rezultate uživo, tablicu i statistike na rezultati.net.',
+        'snl'                 => 'Slovenačka Prva liga (SNL) je najviši rang klupskog fudbala u Sloveniji. Pratite SNL rezultate uživo, tablicu i raspored na rezultati.net.',
+        'prva-liga-crne-gore' => 'Prva liga Crne Gore je najviši rang klupskog fudbala u Crnoj Gori. Pratite rezultate uživo, tablicu i raspored na rezultati.net.',
+        'superliga-kosova'    => 'Superliga Kosova je najviši rang klupskog fudbala na Kosovu. Pratite rezultate uživo, tablicu i statistike na rezultati.net.',
+        'prva-liga-makedonije'=> 'Prva liga Sjeverne Makedonije je najviši rang klupskog fudbala u Sjevernoj Makedoniji. Pratite rezultate uživo, tablicu i raspored na rezultati.net.',
         'champions-liga'     => 'UEFA Liga prvaka je najprestižnije klupsko nogometno natjecanje u Europi. Pratite sve rezultate Lige prvaka uživo, strijelce i statistike na rezultati.net.',
         'europa-liga'        => 'UEFA Europa liga je drugo najprestižnije klupsko natjecanje u Europi. Pratite rezultate Europske lige uživo, strijelce i statistike na rezultati.net.',
         'konferencijska-liga'=> 'UEFA Konferencijska liga nudi uzbudljive utakmice klupskog nogometa širom Europe. Pratite rezultate i statistike na rezultati.net.',
