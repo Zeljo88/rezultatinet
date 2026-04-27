@@ -95,7 +95,7 @@ Route::get('/sitemap-leagues.xml', function () {
 
     // All active league pages with known slugs
     $leagues = [
-        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'hnl-2',
+        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija', 'first-nl-hrvatska', 'prva-liga-fbih', 'hnl-2',
         'prva-liga-fbih', 'prva-liga-rs', 'champions-liga', 'europa-liga',
         'konferencijska-liga', 'premier-league', 'la-liga', 'serie-a',
         'bundesliga', 'ligue-1',
@@ -106,7 +106,7 @@ Route::get('/sitemap-leagues.xml', function () {
 
     // Tablica (standings) pages — high SEO value for '{league} tablica' searches
     $tablicaLeagues = [
-        'hnl', 'superliga-srbija', 'premijer-liga-bih',
+        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija', 'first-nl-hrvatska', 'prva-liga-fbih',
         'premier-league', 'la-liga', 'serie-a', 'bundesliga', 'ligue-1',
         'champions-liga', 'europa-liga', 'konferencijska-liga',
     ];
@@ -116,7 +116,7 @@ Route::get('/sitemap-leagues.xml', function () {
 
     // New league sub-pages (tablica, raspored, strijelci)
     $subPageLeagues = [
-        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'hnl-2',
+        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija', 'first-nl-hrvatska', 'prva-liga-fbih', 'hnl-2',
         'prva-liga-fbih', 'prva-liga-rs', 'champions-liga', 'europa-liga',
         'konferencijska-liga', 'premier-league', 'la-liga', 'serie-a',
         'bundesliga', 'ligue-1',

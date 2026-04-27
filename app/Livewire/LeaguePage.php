@@ -80,6 +80,9 @@ class LeaguePage extends Component
         'serie-a'            => 'Talijanska Serie A je vrhunski razred klupskog nogometa u Italiji. Pratite Serie A rezultate uživo, tablicu i statistike na rezultati.net.',
         'bundesliga'         => 'Njemačka Bundesliga je najpraćenija liga u Europi. Pratite sve Bundesliga rezultate uživo, tablicu i statistike na rezultati.net.',
         'ligue-1'            => 'Francuska Ligue 1 je vrhunski razred klupskog nogometa u Francuskoj. Pratite Ligue 1 rezultate uživo, tablicu i statistike na rezultati.net.',
+        'prva-liga-srbija'   => 'Prva liga Srbije je drugo po rangu fudbalsko takmičenje u Srbiji. Pratite rezultate uživo, tablicu i statistike Prve lige Srbije na rezultati.net.',
+        'first-nl-hrvatska'  => 'Prva NL (Druga HNL) je drugi rang hrvatskog nogometa. Pratite rezultate uživo, tablicu i statistike Prve NL na rezultati.net.',
+        'prva-liga-fbih'     => 'Prva liga FBiH je drugi rang fudbalskog takmičenja u Federaciji BiH. Pratite rezultate uživo, tablicu i statistike na rezultati.net.',
     ];
 
     public function mount(string $slug): void

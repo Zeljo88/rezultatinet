@@ -226,20 +226,26 @@
                 <a href="/liga/hnl" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇭🇷 HNL
                 </a>
-                <a href="/liga/superliga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    🇷🇸 Superliga Srbija
-                </a>
-                <a href="/liga/premijer-liga-bih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premijer-liga-bih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    🇧🇦 Premijer Liga BiH
+                <a href="/liga/first-nl-hrvatska" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/first-nl-hrvatska') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇭🇷 Prva NL
                 </a>
                 <a href="/liga/hnl-2" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl-2') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇭🇷 HNL 2
+                </a>
+                <a href="/liga/superliga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇷🇸 Superliga
+                </a>
+                <a href="/liga/prva-liga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇷🇸 Prva Liga
+                </a>
+                <a href="/liga/premijer-liga-bih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premijer-liga-bih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇧🇦 Premijer Liga
                 </a>
                 <a href="/liga/prva-liga-fbih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-fbih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇧🇦 Prva liga FBiH
                 </a>
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-rs') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    🇷🇸 Prva liga RS
+                    🇧🇦 Prva liga RS
                 </a>
                 <a href="/liga/champions-liga" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/champions-liga') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     ⭐ Champions Liga
@@ -277,24 +283,34 @@
             <div class="mb-4">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">⚽ Fudbal</p>
 
-                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Balkan</p>
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Hrvatska</p>
                 <a href="/liga/hnl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇭🇷 HNL
                 </a>
-                <a href="/liga/superliga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇷🇸 Superliga Srbija
-                </a>
-                <a href="/liga/premijer-liga-bih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/premijer-liga-bih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇧🇦 Premijer Liga BiH
+                <a href="/liga/first-nl-hrvatska" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/first-nl-hrvatska') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇭🇷 Prva NL
                 </a>
                 <a href="/liga/hnl-2" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl-2') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇭🇷 HNL 2
+                </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Srbija</p>
+                <a href="/liga/superliga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇷🇸 Superliga
+                </a>
+                <a href="/liga/prva-liga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇷🇸 Prva Liga
+                </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Bosna i Hercegovina</p>
+                <a href="/liga/premijer-liga-bih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/premijer-liga-bih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇧🇦 Premijer Liga
                 </a>
                 <a href="/liga/prva-liga-fbih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-fbih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇧🇦 Prva liga FBiH
                 </a>
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-rs') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇷🇸 Prva liga RS
+                    🇧🇦 Prva liga RS
                 </a>
 
                 <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Evropa</p>
