@@ -330,19 +330,6 @@
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-rs') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇧🇦 Prva liga RS
                 </a>
-                <a href="/liga/snl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/snl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇸🇮 SNL Slovenija
-                </a>
-                <a href="/liga/prva-liga-crne-gore" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-crne-gore') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇲🇪 Prva liga CG
-                </a>
-                <a href="/liga/prva-liga-makedonije" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-makedonije') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇲🇰 Prva liga MKD
-                </a>
-                <a href="/liga/superliga-kosova" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-kosova') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇽🇰 Superliga Kosova
-                </a>
-
                 <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Evropa</p>
                 <a href="/liga/champions-liga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/champions-liga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     ⭐ Champions Liga
@@ -369,6 +356,20 @@
                 </a>
                 <a href="/liga/ligue-1" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/ligue-1') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇫🇷 Ligue 1
+                </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Ostale Balkanske</p>
+                <a href="/liga/prva-liga-crne-gore" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-crne-gore') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇲🇪 Prva liga CG
+                </a>
+                <a href="/liga/snl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/snl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇸🇮 SNL Slovenija
+                </a>
+                <a href="/liga/prva-liga-makedonije" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-makedonije') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇲🇰 Prva liga MKD
+                </a>
+                <a href="/liga/superliga-kosova" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-kosova') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇽🇰 Superliga Kosova
                 </a>
             </div>
 
