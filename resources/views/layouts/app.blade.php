@@ -58,16 +58,14 @@
             function gtag(){window.dataLayer.push(arguments);}
             window.gtag = gtag;
             gtag("js", new Date());
-            gtag("config", "G-854YSPE0YX", {"transport_type": "beacon"});
+            gtag("config", "G-854YSPE0YX", {"transport_type": "beacon", "anonymize_ip": true});
             var s = document.createElement("script");
             s.async = true;
             s.src = "https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX";
             document.head.appendChild(s);
         }
         window.addEventListener("load", function() {
-            if (localStorage.getItem('rn_cookie_consent') === 'accepted') {
-                loadAnalytics();
-            }
+            loadAnalytics();
         });
     </script>
     <style>
