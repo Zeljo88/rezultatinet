@@ -76,8 +76,8 @@
     @if(config("app.meridian_btag") || true)
     <div class="flex justify-center mt-4 mb-2">
         <a href="/go/meridian" target="_blank" rel="noopener sponsored"
-           class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#f5a623] hover:bg-[#e09510] text-black font-bold text-sm rounded-lg transition">
-            Kladi se na Meridianu
+           class="inline-flex items-center gap-2 px-6 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold text-sm rounded-lg transition">
+            Kladi se
         </a>
     </div>
     @endif
