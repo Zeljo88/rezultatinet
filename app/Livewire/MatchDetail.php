@@ -184,10 +184,10 @@ class MatchDetail extends Component
         if ($this->isFinished()) {
             $golA = $this->fixture->score?->home_fulltime ?? $this->fixture->score?->goals_home ?? '?';
             $golB = $this->fixture->score?->away_fulltime ?? $this->fixture->score?->goals_away ?? '?';
-            return "{$homeTeam} {$golA}:{$golB} {$awayTeam} — Sažetak & Statistike | rezultati.net";
+            return "{$homeTeam} {$golA}–{$golB} {$awayTeam} — Rezultat | rezultati.net";
         }
 
-        return "{$homeTeam} vs {$awayTeam} — Prenos Uživo | {$datum} | rezultati.net";
+        return "{$homeTeam} vs {$awayTeam} — {$datum} | rezultati.net";
     }
 
     /**
@@ -203,10 +203,10 @@ class MatchDetail extends Component
             $golA    = $this->fixture->score?->home_fulltime ?? $this->fixture->score?->goals_home ?? '?';
             $golB    = $this->fixture->score?->away_fulltime ?? $this->fixture->score?->goals_away ?? '?';
             $rezultat = "{$golA}:{$golB}";
-            return "Kompletan izvještaj: {$homeTeam} {$rezultat} {$awayTeam}. Strijelci golova, statistike posjeda i detaljna analiza na rezultati.net.";
+            return "Pratite live rezultat utakmice {$homeTeam} vs {$awayTeam}. Statistike, sastavi i detalji utakmice na rezultati.net.";
         }
 
-        return "{$homeTeam} vs {$awayTeam} LIVE — pratite rezultat utakmice {$liga} uživo. Lineup, statistike i tečajevi na rezultati.net.";
+        return "Pratite live rezultat utakmice {$homeTeam} vs {$awayTeam}. Statistike, sastavi i detalji utakmice na rezultati.net.";
     }
 
     /**

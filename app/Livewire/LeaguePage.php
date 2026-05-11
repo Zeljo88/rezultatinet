@@ -312,8 +312,8 @@ class LeaguePage extends Component
             'premijer-liga-bih' => "Premijer liga BiH {$season} — pratite live rezultate, tablicu, poredak i raspored na rezultati.net.",
         ];
 
-        $metaTitle = $metaTitleOverrides[$this->slug] ?? "{$leagueName} {$season} — Rezultati Uživo & Tablica | rezultati.net";
-        $metaDescription = $metaDescOverrides[$this->slug] ?? "Pratite {$leagueName} rezultate uživo, tablicu, strijelce i raspored. Sve o {$leagueName} na jednom mjestu.";
+        $metaTitle = $metaTitleOverrides[$this->slug] ?? "{$leagueName} Tablica {$season} — Poredak i Rezultati | rezultati.net";
+        $metaDescription = $metaDescOverrides[$this->slug] ?? "Pratite aktuelnu tablicu {$leagueName} {$season}. Live rezultati, poredak, strijelci i sve statistike na rezultati.net.";
         $ogImage = $this->league->logo_url ?: null;
 
         return view('livewire.league-page', [
