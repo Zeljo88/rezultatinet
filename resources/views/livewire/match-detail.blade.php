@@ -103,6 +103,18 @@
     </div>
 
 
+
+    {{-- Mobilni affiliate banner 300x250 (samo mobilni) --}}
+    <div class="lg:hidden my-4">
+        <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block mx-auto" style="width:300px;">
+            <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex flex-col items-center justify-center gap-2 text-center" style="width:300px;height:250px;">
+                <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
+                <span class="text-[#444] text-[10px]">300 × 250 px</span>
+            </div>
+        </a>
+    </div>
     {{-- Poll: Ko će pobijediti? --}}
     @php
         $pollStatuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN'];

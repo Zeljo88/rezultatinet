@@ -476,6 +476,18 @@
 
     </div>
 
+
+    {{-- PRE-FOOTER AFFILIATE BANNER (mobilni + desktop) --}}
+    <div class="px-4 pb-4 flex justify-center">
+        <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block w-full" style="max-width:728px;">
+            <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex items-center justify-center gap-3 text-center w-full" style="height:100px;">
+                <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
+                <span class="text-[#444] text-[10px]">728 × 90 / 320 × 100 px</span>
+            </div>
+        </a>
+    </div>
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
         <p class="mt-1 text-xs opacity-60">18+ | Kladenje moze biti stetno za zdravlje. Igrajte odgovorno.</p>
