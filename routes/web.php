@@ -289,6 +289,18 @@ Route::get('/sitemap-matches.xml', function () {
 // ─────────────────────────────────────────
 
 // ─────────────────────────────────────────
+
+// ─────────────────────────────────────────
+// AFFILIATE
+// ─────────────────────────────────────────
+Route::get("/go/meridian", function () {
+    $btag = config("app.meridian_btag");
+    $url = "https://meridianbet.ba/sr/registracija";
+    if ($btag) {
+        $url .= "?btag=" . urlencode($btag);
+    }
+    return redirect()->away($url);
+})->name("go.meridian");
 // RSS FEED
 // ─────────────────────────────────────────
 use App\Http\Controllers\FeedController;
