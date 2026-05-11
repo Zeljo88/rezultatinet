@@ -303,6 +303,17 @@
             </div>
         </a>
     </div>
+
+    {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
+    <div class="lg:hidden px-3 pb-2">
+        <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block">
+            <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex items-center justify-center gap-3 text-center w-full" style="height:50px;max-width:320px;margin:0 auto;">
+                <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
+                <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
+                <span class="text-[#444] text-[10px]">320 × 50 px</span>
+            </div>
+        </a>
+    </div>
     {{-- MAIN LAYOUT --}}
     <div class="max-w-7xl mx-auto md:px-4 py-4 flex gap-4 overflow-x-hidden">
 
