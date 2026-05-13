@@ -104,9 +104,9 @@
 
 
 
-        {{-- Mobilni affiliate banner 300x250 --}}
+            {{-- Mobilni affiliate banner 300x250 --}}
     <div class="lg:hidden my-4 flex justify-center">
-        <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4PZDCx?redirecturl=https://a.meridianbet.ba/c/4PZDCx"></script>
+        <a href='https://a.meridianbet.ba/c/AAitRP' target='_blank' rel='noopener sponsored'><img src='https://a.meridianbet.ba/b/AAitRP' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
     </div>
     {{-- Poll: Ko će pobijediti? --}}
     @php

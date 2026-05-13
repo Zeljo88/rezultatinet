@@ -292,19 +292,14 @@
     </nav>
 
 
-        {{-- HEADER AFFILIATE BANNER --}}
+                {{-- HEADER AFFILIATE BANNER --}}
     <div class="max-w-7xl mx-auto md:px-4 pt-3 pb-1 hidden md:flex justify-center">
-        <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4lAiXa?redirecturl=https://a.meridianbet.ba/c/4lAiXa"></script>
+        <a href='https://a.meridianbet.ba/c/AAitRP' target='_blank' rel='noopener sponsored'><img src='https://a.meridianbet.ba/b/AAitRP' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
     </div>
 
-        </a>
-    </div>
-
-        {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
+                {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
     <div class="md:hidden px-3 pb-2 flex justify-center">
-        <script type="application/javascript" defer src="https://a.meridianbet.ba/b/ZjCEl7?redirecturl=https://a.meridianbet.ba/c/ZjCEl7"></script>
-    </div>
-        </a>
+        <a href='https://a.meridianbet.ba/c/AAitRP' target='_blank' rel='noopener sponsored'><img src='https://a.meridianbet.ba/b/AAitRP' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
     </div>
     {{-- MAIN LAYOUT --}}
     <div class="max-w-7xl mx-auto md:px-4 py-4 flex gap-4 overflow-x-hidden">
@@ -430,10 +425,11 @@
             <div class="sticky top-[80px]">
                 <!-- affiliate sidebar -->
 
-                                {{-- Affiliate banner 300x250 --}}
-                <div class="mb-4 flex justify-center">
-                    <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4PZDCx?redirecturl=https://a.meridianbet.ba/c/4PZDCx"></script>
+                                                {{-- Affiliate banner 300x250 --}}
+                <div class="mb-4">
+                    <a href='https://a.meridianbet.ba/c/AAitRP' target='_blank' rel='noopener sponsored'><img src='https://a.meridianbet.ba/b/AAitRP' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
                 </div>
+
                 <!-- Facebook Page Widget -->
                 <div class="rounded-lg overflow-hidden mb-4" id="fb-page-wrapper" style="display:none;">
                   <div class="fb-page"
@@ -463,14 +459,9 @@
     </div>
 
 
-        {{-- PRE-FOOTER AFFILIATE BANNER --}}
+            {{-- PRE-FOOTER AFFILIATE BANNER --}}
     <div class="px-4 pb-4 flex justify-center">
-        <div class="hidden md:block">
-            <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4lAiXa?redirecturl=https://a.meridianbet.ba/c/4lAiXa"></script>
-        </div>
-        <div class="md:hidden">
-            <script type="application/javascript" defer src="https://a.meridianbet.ba/b/hdR19r?redirecturl=https://a.meridianbet.ba/c/hdR19r"></script>
-        </div>
+        <a href='https://a.meridianbet.ba/c/AAitRP' target='_blank' rel='noopener sponsored'><img src='https://a.meridianbet.ba/b/AAitRP' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
     </div>
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
