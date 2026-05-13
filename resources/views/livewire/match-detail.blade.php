@@ -108,8 +108,6 @@
     <div class="lg:hidden my-4 flex justify-center">
         <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4PZDCx?redirecturl=https://a.meridianbet.ba/c/4PZDCx"></script>
     </div>
-        </a>
-    </div>
     {{-- Poll: Ko će pobijediti? --}}
     @php
         $pollStatuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN'];
