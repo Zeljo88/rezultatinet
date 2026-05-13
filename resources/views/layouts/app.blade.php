@@ -292,26 +292,18 @@
     </nav>
 
 
-    {{-- HEADER AFFILIATE BANNER --}}
-    <div class="max-w-7xl mx-auto md:px-4 pt-3 pb-1">
-        <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block">
-            <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex items-center justify-center gap-3 text-center mx-auto" style="width:100%;height:90px;max-width:728px;">
-                <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
-                <span class="text-[#444] text-[10px]">728 × 90 px</span>
-            </div>
+        {{-- HEADER AFFILIATE BANNER --}}
+    <div class="max-w-7xl mx-auto md:px-4 pt-3 pb-1 hidden md:flex justify-center">
+        <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4lAiXa?redirecturl=https://a.meridianbet.ba/c/4lAiXa"></script>
+    </div>
+
         </a>
     </div>
 
-    {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
-    <div class="lg:hidden px-3 pb-2">
-        <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block">
-            <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex items-center justify-center gap-3 text-center w-full" style="height:50px;max-width:320px;margin:0 auto;">
-                <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
-                <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
-                <span class="text-[#444] text-[10px]">320 × 50 px</span>
-            </div>
+        {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
+    <div class="md:hidden px-3 pb-2 flex justify-center">
+        <script type="application/javascript" defer src="https://a.meridianbet.ba/b/ZjCEl7?redirecturl=https://a.meridianbet.ba/c/ZjCEl7"></script>
+    </div>
         </a>
     </div>
     {{-- MAIN LAYOUT --}}
@@ -438,16 +430,10 @@
             <div class="sticky top-[80px]">
                 <!-- affiliate sidebar -->
 
-                {{-- Affiliate banner placeholder --}}
-                <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block mb-4">
-                    <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex flex-col items-center justify-center gap-2 text-center" style="width:100%;height:250px;">
-                        <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
-                        <span class="text-[#444] text-[10px]">300 × 250 px</span>
-                    </div>
-                </a>
-
+                                {{-- Affiliate banner 300x250 --}}
+                <div class="mb-4 flex justify-center">
+                    <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4PZDCx?redirecturl=https://a.meridianbet.ba/c/4PZDCx"></script>
+                </div>
                 <!-- Facebook Page Widget -->
                 <div class="rounded-lg overflow-hidden mb-4" id="fb-page-wrapper" style="display:none;">
                   <div class="fb-page"
@@ -477,16 +463,14 @@
     </div>
 
 
-    {{-- PRE-FOOTER AFFILIATE BANNER (mobilni + desktop) --}}
+        {{-- PRE-FOOTER AFFILIATE BANNER --}}
     <div class="px-4 pb-4 flex justify-center">
-        <a href="/go/meridian" target="_blank" rel="noopener sponsored" class="block w-full" style="max-width:728px;">
-            <div class="rounded-lg border border-dashed border-[#3a3a3a] bg-[#111] flex items-center justify-center gap-3 text-center w-full" style="height:100px;">
-                <span class="text-[10px] font-bold tracking-widest text-[#555] uppercase">Oglas</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                <span class="text-[#555] text-xs font-semibold">Vaša reklama ovdje</span>
-                <span class="text-[#444] text-[10px]">728 × 90 / 320 × 100 px</span>
-            </div>
-        </a>
+        <div class="hidden md:block">
+            <script type="application/javascript" defer src="https://a.meridianbet.ba/b/4lAiXa?redirecturl=https://a.meridianbet.ba/c/4lAiXa"></script>
+        </div>
+        <div class="md:hidden">
+            <script type="application/javascript" defer src="https://a.meridianbet.ba/b/hdR19r?redirecturl=https://a.meridianbet.ba/c/hdR19r"></script>
+        </div>
     </div>
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
