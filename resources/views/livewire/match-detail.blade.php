@@ -73,14 +73,23 @@
 
 
     {{-- Meridian affiliate CTA --}}
-    @if(config("app.meridian_btag") || true)
     <div class="flex justify-center mt-4 mb-2">
         <a href="/go/meridian" target="_blank" rel="noopener sponsored"
-           class="inline-flex items-center gap-2 px-6 py-2.5 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-bold text-sm rounded-lg transition">
-            Kladi se
+           class="block w-full max-w-sm rounded-xl overflow-hidden border border-[#2a2a2a] hover:border-[#CCFF00] transition group">
+            <div class="bg-[#1a1a1a] px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                    <div class="text-[11px] font-bold tracking-widest text-[#888] uppercase mb-1">Kladionica</div>
+                    <div class="text-white font-black text-lg leading-tight">meridianbet</div>
+                    <div class="text-[#CCFF00] text-xs font-semibold mt-0.5">Tri bonusa bez depozita</div>
+                </div>
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center gap-1 bg-[#CCFF00] group-hover:bg-[#b8e600] text-black font-black text-sm px-4 py-2 rounded-lg transition whitespace-nowrap">
+                        Registruj se &rarr;
+                    </span>
+                </div>
+            </div>
         </a>
     </div>
-    @endif
     {{-- Share buttons --}}
     <div class="flex items-center justify-center gap-3 mt-4 mb-2">
         @php
