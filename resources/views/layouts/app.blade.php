@@ -461,7 +461,7 @@
 
             {{-- PRE-FOOTER AFFILIATE BANNER --}}
     <div class="px-4 pb-4 flex justify-center">
-        <a href='https://a.meridianbet.ba/c/AAitRP' target='_blank' rel='noopener sponsored'><img src='https://a.meridianbet.ba/b/AAitRP' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+        <div class="hidden md:block"><a href='https://a.meridianbet.ba/c/DVcKy6' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div><div class="md:hidden"><a href='https://a.meridianbet.ba/c/kZJd7Y' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-320x100.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div>
     </div>
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
