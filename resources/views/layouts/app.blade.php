@@ -294,7 +294,7 @@
 
                 {{-- HEADER AFFILIATE BANNER --}}
     <div class="max-w-7xl mx-auto md:px-4 pt-3 pb-1 hidden md:flex justify-center">
-        <a href='https://a.meridianbet.ba/c/DVcKy6' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+        <a href='https://a.meridianbet.ba/c/x2ZG85' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
     </div>
 
                 {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
@@ -427,7 +427,7 @@
 
                                                 {{-- Affiliate banner 300x250 --}}
                 <div class="mb-4">
-                    <a href='https://a.meridianbet.ba/c/doM3Tk' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-300x250.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+                    <a href='https://a.meridianbet.ba/c/562fgm' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-300x250.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
                 </div>
 
                 <!-- Facebook Page Widget -->
@@ -461,7 +461,7 @@
 
             {{-- PRE-FOOTER AFFILIATE BANNER --}}
     <div class="px-4 pb-4 flex justify-center">
-        <div class="hidden md:block"><a href='https://a.meridianbet.ba/c/DVcKy6' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div><div class="md:hidden"><a href='https://a.meridianbet.ba/c/kZJd7Y' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-320x100.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div>
+        <div class="hidden md:block"><a href='https://a.meridianbet.ba/c/x2ZG85' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div><div class="md:hidden"><a href='https://a.meridianbet.ba/c/kZJd7Y' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-320x100.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div>
     </div>
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
@@ -480,7 +480,7 @@
     <div id="meridian-popup" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
         <div style="position:relative;max-width:320px;width:90%;">
             <button onclick="closeMeridianPopup()" style="position:absolute;top:-12px;right:-12px;width:28px;height:28px;background:#1a1a1a;border:2px solid #3a3a3a;border-radius:50%;color:#fff;font-size:16px;line-height:1;cursor:pointer;z-index:1;">&times;</button>
-            <a href='https://a.meridianbet.ba/c/doM3Tk' target='_blank' rel='noopener sponsored' onclick="closeMeridianPopup()">
+            <a href='https://a.meridianbet.ba/c/562fgm' target='_blank' rel='noopener sponsored' onclick="closeMeridianPopup()">
                 <img src='/images/banners/meridian-300x250.jpg' alt='Meridianbet' style='display:block;width:100%;border-radius:8px;' loading='eager'>
             </a>
         </div>
