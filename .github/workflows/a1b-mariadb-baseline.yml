@@ -82,19 +82,56 @@ jobs:
 
           test_rc=0
           if [ "$rehearsal_rc" -eq 0 ]; then
-            docker compose -f tools/a1b/compose.yaml run --rm -T app sh -lc '
-              set -eu
-              rm -rf /tmp/a1b-tests
-              cp -a /workspace /tmp/a1b-tests
-              cp -a /build/vendor /tmp/a1b-tests/vendor
-              cd /tmp/a1b-tests
-              find app tests database/migrations -type f -name "*.php" -print0 \
-                | xargs -0 -n1 php -l
-              export DB_CONNECTION=sqlite
-              export DB_DATABASE=:memory:
-              php artisan test
-            ' > "$A1B_OUT/test.log" 2>&1
-            test_rc=$?
+            {
+              echo 'Preparing isolated disposable MariaDB full-test database a1b_tests'
+              docker compose -f tools/a1b/compose.yaml exec -T db \
+                mariadb -uroot -e \
+                'DROP DATABASE IF EXISTS a1b_tests; CREATE DATABASE a1b_tests CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+              echo 'Importing sanitized, data-free MariaDB schema into a1b_tests'
+              docker compose -f tools/a1b/compose.yaml exec -T db \
+                mariadb -uroot a1b_tests < database/schema/mariadb-schema.sql
+              echo 'PASS: isolated MariaDB full-test database prepared'
+            } > "$A1B_OUT/test.log" 2>&1
+            setup_rc=$?
+
+            if [ "$setup_rc" -eq 0 ]; then
+              docker compose -f tools/a1b/compose.yaml run --rm -T \
+                -e DB_CONNECTION=mariadb \
+                -e DB_HOST=db \
+                -e DB_PORT=3306 \
+                -e DB_DATABASE=a1b_tests \
+                -e DB_USERNAME=root \
+                -e DB_PASSWORD= \
+                app sh -lc '
+                set -eu
+                rm -rf /tmp/a1b-tests
+                cp -a /workspace /tmp/a1b-tests
+                cp -a /build/vendor /tmp/a1b-tests/vendor
+                cd /tmp/a1b-tests
+                find app tests database/migrations -type f -name "*.php" -print0 \
+                  | xargs -0 -n1 php -l
+                if grep -Eq '"'"'<env name="(DB_CONNECTION|DB_HOST|DB_PORT|DB_DATABASE|DB_USERNAME|DB_PASSWORD)"[^>]*force="true"'"'"' phpunit.xml; then
+                  echo '"'"'FAIL: phpunit.xml force-overrides an explicit database environment value'"'"' >&2
+                  exit 1
+                fi
+                php -r '"'"'
+                  require "vendor/autoload.php";
+                  $app = require "bootstrap/app.php";
+                  $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                  $connection = config("database.default");
+                  $database = config("database.connections.$connection.database");
+                  if ($connection !== "mariadb" || $database !== "a1b_tests") {
+                      fwrite(STDERR, "FAIL: Laravel effective test database does not match the approved isolated MariaDB database\n");
+                      exit(1);
+                  }
+                  echo "PASS: Laravel default DB connection=mariadb database=a1b_tests\n";
+                '"'"'
+                php artisan test
+              ' >> "$A1B_OUT/test.log" 2>&1
+              test_rc=$?
+            else
+              test_rc=$setup_rc
+            fi
           else
             printf 'SKIPPED: rehearsal failed with exit %s\n' "$rehearsal_rc" \
               > "$A1B_OUT/test.log"
