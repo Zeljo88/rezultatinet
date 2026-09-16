@@ -77,7 +77,7 @@ jobs:
           set +e
           set -u
 
-          tools/a1b/rehearse.sh "$A1B_MANIFEST" "$A1B_OUT"
+          bash -x tools/a1b/rehearse.sh "$A1B_MANIFEST" "$A1B_OUT"
           rehearsal_rc=$?
 
           test_rc=0
@@ -111,6 +111,37 @@ jobs:
             exit "$rehearsal_rc"
           fi
           exit "$test_rc"
+
+      - name: Print bounded sanitized failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          sanitize() {
+            sed -E \
+              -e 's#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\1[REDACTED]@#g' \
+              -e 's#([Aa]uthorization[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+#\1[REDACTED]#g' \
+              -e 's#((password|passwd|pwd|token|secret|api[_-]?key|access[_-]?key|client[_-]?secret)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+#\1[REDACTED]#Ig' \
+              -e 's#(gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})#[REDACTED]#g' \
+              -e 's#(Bearer[[:space:]]+)[A-Za-z0-9._~+/-]+=*#\1[REDACTED]#Ig'
+          }
+
+          for name in \
+            current-clean-install.log \
+            proposed-clean-install.log \
+            parity.log \
+            test.log \
+            container.log \
+            workflow-summary.txt
+          do
+            file="$A1B_OUT/$name"
+            if [ -f "$file" ]; then
+              echo "::group::Sanitized tail (max 200 lines): $name"
+              tail -n 200 "$file" | sanitize
+              echo "::endgroup::"
+            fi
+          done
 
       - name: Upload current-history expected-failure log
         if: always()
