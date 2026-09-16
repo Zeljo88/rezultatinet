@@ -6,6 +6,8 @@ use App\Models\League;
 use App\Models\PlayerStat;
 use App\Models\Standing;
 use Illuminate\Support\Facades\Cache;
+use App\Support\LeagueSeason;
+use App\Support\MatchRoute;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -186,11 +188,10 @@ class LeaguePage extends Component
     public function setTab(string $tab): void { $this->tab = $tab; $this->loadFixtures(); }
     public function setView(string $view): void { $this->view = $view; }
 
-    /** Format current_season (e.g. 2025 → "2025/26") */
+    /** Use fresh fixture data, otherwise avoid publishing a stale numeric season. */
     protected function seasonLabel(): string
     {
-        $s = (int) ($this->league->current_season ?? date('Y'));
-        return $s . '/' . substr((string)($s + 1), -2);
+        return LeagueSeason::label($this->league);
     }
 
     /** Return SEO-rich H1 string */
@@ -230,6 +231,32 @@ class LeaguePage extends Component
                 'away_team_slug' => $f->awayTeam?->slug,
             ])
             ->toArray();
+    }
+
+    /** Recent completed fixtures remain useful when today's round is empty. */
+    protected function getRecentFixtures(): array
+    {
+        return Fixture::with(['homeTeam', 'awayTeam', 'score'])
+            ->where('league_id', $this->league->id)
+            ->whereIn('status_short', ['FT', 'AET', 'PEN'])
+            ->where('kick_off', '<=', now())
+            ->orderByDesc('kick_off')
+            ->take(5)
+            ->get()
+            ->map(function ($fixture) {
+                $slug = MatchRoute::slugFor($fixture);
+
+                return [
+                    'kick_off' => $fixture->kick_off,
+                    'home_team_name' => $fixture->homeTeam?->name ?? 'N/A',
+                    'away_team_name' => $fixture->awayTeam?->name ?? 'N/A',
+                    'home_team_slug' => $fixture->homeTeam?->slug,
+                    'away_team_slug' => $fixture->awayTeam?->slug,
+                    'score_home' => $fixture->score?->home_fulltime ?? $fixture->score?->goals_home,
+                    'score_away' => $fixture->score?->away_fulltime ?? $fixture->score?->goals_away,
+                    'match_url' => $slug ? url('/utakmica/' . $slug) : null,
+                ];
+            })->toArray();
     }
 
     /** Top scorers for this league (SSR, no polling) */
@@ -305,15 +332,15 @@ class LeaguePage extends Component
         $leagueName = $this->league->name;
         $season = $this->seasonLabel();
 
+        $seasonTitle = $season === LeagueSeason::FALLBACK ? '' : " {$season}";
         $metaTitleOverrides = [
-            'premijer-liga-bih' => "Premijer liga BiH {$season} — Rezultati Uživo, Tablica i Poredak | rezultati.net",
+            'premijer-liga-bih' => "Premijer liga BiH{$seasonTitle} — Rezultati Uživo, Tablica i Poredak | rezultati.net",
         ];
         $metaDescOverrides = [
-            'premijer-liga-bih' => "Premijer liga BiH {$season} — pratite live rezultate, tablicu, poredak i raspored na rezultati.net.",
+            'premijer-liga-bih' => "Premijer liga BiH{$seasonTitle} — pratite live rezultate, tablicu, poredak i raspored na rezultati.net.",
         ];
-
-        $metaTitle = $metaTitleOverrides[$this->slug] ?? "{$leagueName} Tablica {$season} — Poredak i Rezultati | rezultati.net";
-        $metaDescription = $metaDescOverrides[$this->slug] ?? "Pratite aktuelnu tablicu {$leagueName} {$season}. Live rezultati, poredak, strijelci i sve statistike na rezultati.net.";
+        $metaTitle = $metaTitleOverrides[$this->slug] ?? "{$leagueName} Tablica{$seasonTitle} — Poredak i Rezultati | rezultati.net";
+        $metaDescription = $metaDescOverrides[$this->slug] ?? "Pratite aktuelnu tablicu {$leagueName}{$seasonTitle}. Live rezultati, poredak i raspored na rezultati.net.";
         $ogImage = $this->league->logo_url ?: null;
 
         return view('livewire.league-page', [
@@ -321,6 +348,7 @@ class LeaguePage extends Component
             'seasonLabel'      => $this->seasonLabel(),
             'seoDescription'   => $this->getSeoDescription(),
             'seoUpcoming'      => $this->getUpcomingFixtures(),
+            'seoRecent'        => $this->getRecentFixtures(),
             'seoTopScorers'    => $this->getTopScorers(),
             'seoStandings'     => array_slice($this->standings, 0, 8),
         ])->layout('layouts.app', [
