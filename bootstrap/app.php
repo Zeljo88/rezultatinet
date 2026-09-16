@@ -12,11 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(\App\Http\Middleware\RedirectToCanonicalHost::class);
+
         // SetCacheHeaders runs in web group first,
         // but Livewire also pushes DisableBackButtonCacheMiddleware as global.
         // We register both as web AND push globally so we run last.
         $middleware->web(append: [
-            \App\Http\Middleware\RedirectToCanonicalHost::class,
             \App\Http\Middleware\SetCacheHeaders::class,
         ]);
     })
