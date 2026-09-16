@@ -7,13 +7,14 @@ use App\Models\Fixture;
 use App\Models\League;
 use App\Models\Team;
 use Carbon\Carbon;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class SeoHubPhaseTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -23,7 +24,6 @@ class SeoHubPhaseTest extends TestCase
         URL::forceRootUrl('https://rezultati.net');
         URL::forceScheme('https');
         Carbon::setTestNow('2026-09-16 10:00:00');
-        $this->createTestSchema();
     }
 
     protected function tearDown(): void
@@ -131,60 +131,6 @@ class SeoHubPhaseTest extends TestCase
             ->assertSee('href="https://rezultati.net/utakmica/dinamo-zagreb-vs-hajduk-split-15-09-2026"', false)
             ->assertSee('href="https://rezultati.net/tim/dinamo-zagreb"', false)
             ->assertDontSee('href="/tim/"', false);
-    }
-
-    private function createTestSchema(): void
-    {
-        Schema::create('leagues', function (Blueprint $table) {
-            $table->id(); $table->unsignedInteger('api_league_id')->unique(); $table->string('name');
-            $table->string('country')->nullable(); $table->string('logo_url')->nullable();
-            $table->string('sport')->default('football'); $table->boolean('is_active')->default(true);
-            $table->unsignedSmallInteger('current_season')->nullable(); $table->timestamps();
-        });
-        Schema::create('teams', function (Blueprint $table) {
-            $table->id(); $table->unsignedInteger('api_team_id')->unique(); $table->string('name');
-            $table->string('short_name')->nullable(); $table->string('logo_url')->nullable();
-            $table->string('slug')->nullable(); $table->string('country')->nullable(); $table->timestamps();
-        });
-        Schema::create('fixtures', function (Blueprint $table) {
-            $table->id(); $table->unsignedInteger('api_fixture_id')->unique(); $table->unsignedBigInteger('league_id');
-            $table->unsignedBigInteger('home_team_id'); $table->unsignedBigInteger('away_team_id');
-            $table->unsignedSmallInteger('season'); $table->string('round')->nullable(); $table->dateTime('kick_off');
-            $table->string('status_long')->nullable(); $table->string('status_short')->nullable();
-            $table->unsignedSmallInteger('elapsed_minute')->nullable(); $table->string('venue_name')->nullable();
-            $table->string('referee')->nullable(); $table->timestamp('lineups_fetched_at')->nullable(); $table->timestamps();
-        });
-        Schema::create('fixture_scores', function (Blueprint $table) {
-            $table->id(); $table->unsignedBigInteger('fixture_id')->unique();
-            $table->unsignedTinyInteger('home_fulltime')->nullable(); $table->unsignedTinyInteger('away_fulltime')->nullable();
-            $table->unsignedTinyInteger('goals_home')->nullable(); $table->unsignedTinyInteger('goals_away')->nullable();
-        });
-        Schema::create('basketball_games', function (Blueprint $table) {
-            $table->id(); $table->integer('api_game_id')->unique(); $table->string('league_name')->nullable();
-            $table->string('country_name')->nullable(); $table->string('home_team')->nullable(); $table->string('away_team')->nullable();
-            $table->integer('home_score')->nullable(); $table->integer('away_score')->nullable();
-            $table->string('status_short')->nullable(); $table->integer('elapsed')->nullable();
-            $table->timestamp('game_date')->nullable(); $table->timestamps();
-        });
-        Schema::create('tennis_matches', function (Blueprint $table) {
-            $table->id(); $table->integer('api_match_id')->unique(); $table->string('tournament_name')->nullable();
-            $table->string('country_name')->nullable(); $table->string('player_home')->nullable(); $table->string('player_away')->nullable();
-            $table->string('score')->nullable(); $table->string('status')->nullable(); $table->timestamp('match_date')->nullable(); $table->timestamps();
-        });
-        Schema::create('standings', function (Blueprint $table) {
-            $table->id(); $table->unsignedBigInteger('league_id'); $table->unsignedBigInteger('team_id')->nullable();
-            $table->integer('rank')->nullable(); $table->integer('played')->default(0); $table->integer('win')->default(0);
-            $table->integer('draw')->default(0); $table->integer('lose')->default(0); $table->integer('goals_for')->default(0);
-            $table->integer('goals_against')->default(0); $table->integer('goal_diff')->default(0); $table->integer('points')->default(0);
-            $table->string('form')->nullable(); $table->string('description')->nullable(); $table->timestamps();
-        });
-        Schema::create('players', function (Blueprint $table) {
-            $table->id(); $table->string('name'); $table->string('slug')->nullable(); $table->string('current_club')->nullable(); $table->timestamps();
-        });
-        Schema::create('player_stats', function (Blueprint $table) {
-            $table->id(); $table->unsignedBigInteger('player_id')->nullable(); $table->unsignedBigInteger('league_id')->nullable();
-            $table->integer('goals')->default(0); $table->integer('assists')->default(0); $table->timestamps();
-        });
     }
 
     private function basketballGame(string $league, int $apiId, string $home, string $away): array
