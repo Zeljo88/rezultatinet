@@ -162,7 +162,7 @@
         <section class="bg-[#111] border border-[#2a2a2a] rounded-xl px-5 py-4">
             <p class="text-gray-300 text-sm leading-relaxed">{{ $seoDescription }}</p>
             <div class="mt-3">
-                <a href="/tablica/{{ $slug }}" class="inline-flex items-center gap-1 text-[#CCFF00] hover:underline text-sm font-semibold">
+                <a href="/liga/{{ $slug }}/tablica" class="inline-flex items-center gap-1 text-[#CCFF00] hover:underline text-sm font-semibold">
                     📊 Pogledaj punu tablicu →
                 </a>
             </div>

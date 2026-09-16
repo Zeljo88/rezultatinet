@@ -12,7 +12,6 @@ use App\Livewire\BlogPost;
 use App\Livewire\BalkanPlayers;
 use App\Livewire\PlayerProfile;
 use App\Livewire\RefereeStats;
-use App\Livewire\TablePage;
 use App\Livewire\LeagueTable;
 use App\Livewire\LeagueSchedule;
 use App\Livewire\LeagueScorers;
@@ -46,7 +45,11 @@ Route::get('/liga/{slug}', LeaguePage::class)->name('league.page');
 Route::get('/liga/{slug}/tablica',   LeagueTable::class)->name('league.table');
 Route::get('/liga/{slug}/raspored',  LeagueSchedule::class)->name('league.schedule');
 Route::get('/liga/{slug}/strijelci', LeagueScorers::class)->name('league.scorers');
-Route::get('/tablica/{leagueSlug}', TablePage::class)->name('table.show');
+Route::get('/tablica/{slug}', fn (string $slug) => redirect()->route(
+    'league.table',
+    ['slug' => $slug],
+    301,
+))->name('table.show');
 Route::get('/pretraga', Search::class)->name('search');
 Route::get('/og/match', [OgImageController::class, 'matchImage'])->name('og.match-image');
 
@@ -69,10 +72,10 @@ Route::get('/sudija/{slug}', RefereeStats::class)->name('referee.show');
 // ─────────────────────────────────────────
 Route::get('/sitemap.xml', function () {
     $sitemaps = [
-        ['loc' => url('/sitemap-leagues.xml'),  'lastmod' => now()->toAtomString()],
-        ['loc' => url('/sitemap-teams.xml'),    'lastmod' => now()->toAtomString()],
-        ['loc' => url('/sitemap-blog.xml'),     'lastmod' => now()->toAtomString()],
-        ['loc' => url('/sitemap-matches.xml'),  'lastmod' => now()->toAtomString()],
+        ['loc' => url('/sitemap-leagues.xml')],
+        ['loc' => url('/sitemap-teams.xml')],
+        ['loc' => url('/sitemap-blog.xml')],
+        ['loc' => url('/sitemap-matches.xml')],
     ];
 
     $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
@@ -80,7 +83,6 @@ Route::get('/sitemap.xml', function () {
     foreach ($sitemaps as $sm) {
         $xml .= "  <sitemap>\n";
         $xml .= "    <loc>{$sm['loc']}</loc>\n";
-        $xml .= "    <lastmod>{$sm['lastmod']}</lastmod>\n";
         $xml .= "  </sitemap>\n";
     }
     $xml .= '</sitemapindex>';
@@ -100,40 +102,19 @@ Route::get('/sitemap-leagues.xml', function () {
     $urls->push(['loc' => url('/strijelci'),   'changefreq' => 'daily',   'priority' => '0.8']);
     $urls->push(['loc' => url('/igraci/balkan'), 'changefreq' => 'weekly', 'priority' => '0.7']);
 
-    // All active league pages with known slugs
+    // Canonical league landing pages and supported sub-pages.
     $leagues = [
-        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija', 'first-nl-hrvatska', 'prva-liga-fbih', 'hnl-2',
-        'prva-liga-fbih', 'prva-liga-rs', 'champions-liga', 'europa-liga',
-        'konferencijska-liga', 'premier-league', 'la-liga', 'serie-a',
-        'bundesliga', 'ligue-1',
+        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija',
+        'first-nl-hrvatska', 'hnl-2', 'prva-liga-fbih', 'prva-liga-rs',
+        'champions-liga', 'europa-liga', 'konferencijska-liga',
+        'premier-league', 'la-liga', 'serie-a', 'bundesliga', 'ligue-1',
         'snl', 'prva-liga-crne-gore', 'superliga-kosova', 'prva-liga-makedonije',
     ];
+
     foreach ($leagues as $slug) {
         $urls->push(['loc' => url("/liga/{$slug}"), 'changefreq' => 'hourly', 'priority' => '0.8']);
-    }
-
-    // Tablica (standings) pages — high SEO value for '{league} tablica' searches
-    $tablicaLeagues = [
-        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija', 'first-nl-hrvatska', 'prva-liga-fbih',
-        'premier-league', 'la-liga', 'serie-a', 'bundesliga', 'ligue-1',
-        'champions-liga', 'europa-liga', 'konferencijska-liga',
-        'snl', 'prva-liga-crne-gore', 'superliga-kosova', 'prva-liga-makedonije',
-    ];
-    foreach ($tablicaLeagues as $slug) {
-        $urls->push(['loc' => url("/tablica/{$slug}"), 'changefreq' => 'daily', 'priority' => '0.9']);
-    }
-
-    // New league sub-pages (tablica, raspored, strijelci)
-    $subPageLeagues = [
-        'hnl', 'superliga-srbija', 'premijer-liga-bih', 'prva-liga-srbija', 'first-nl-hrvatska', 'prva-liga-fbih', 'hnl-2',
-        'prva-liga-fbih', 'prva-liga-rs', 'champions-liga', 'europa-liga',
-        'konferencijska-liga', 'premier-league', 'la-liga', 'serie-a',
-        'bundesliga', 'ligue-1',
-        'snl', 'prva-liga-crne-gore', 'superliga-kosova', 'prva-liga-makedonije',
-    ];
-    foreach ($subPageLeagues as $slug) {
-        $urls->push(['loc' => url("/liga/{$slug}/tablica"),   'changefreq' => 'daily',  'priority' => '0.8']);
-        $urls->push(['loc' => url("/liga/{$slug}/raspored"),  'changefreq' => 'daily',  'priority' => '0.7']);
+        $urls->push(['loc' => url("/liga/{$slug}/tablica"), 'changefreq' => 'daily', 'priority' => '0.9']);
+        $urls->push(['loc' => url("/liga/{$slug}/raspored"), 'changefreq' => 'daily', 'priority' => '0.7']);
         $urls->push(['loc' => url("/liga/{$slug}/strijelci"), 'changefreq' => 'weekly', 'priority' => '0.7']);
     }
 

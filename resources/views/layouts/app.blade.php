@@ -3,7 +3,9 @@
 <head>
     @php
         $schemaBlocks   = $schemaBlocks ?? [];
-        $canonicalUrl   = $canonicalUrl ?? null;
+        $canonicalUrl   = $canonicalUrl ?? url()->current();
+        $robots          = $robots ?? 'index, follow';
+        $showCanonical   = $showCanonical ?? true;
         $resolvedTitle  = $metaTitle ?? null;
         $resolvedDesc   = $metaDescription ?? null;
         $resolvedImage  = ($ogImage ?? null) ?: asset('images/og/default.jpg');
@@ -19,16 +21,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $resolvedTitle ?: $__env->yieldContent('title', 'Rezultati uživo | Nogomet, HNL, Liga prvaka — rezultati.net') }}</title>
     <meta name="description" content="{{ $resolvedDesc ?: $__env->yieldContent('meta_description', 'Pratite live rezultate na rezultati.net') }}">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
-    <link rel="alternate" hreflang="bs" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="hr" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="sr" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="x-default" href="{{ url()->current() }}">
+    <meta name="robots" content="{{ $robots }}">
+    @if($showCanonical)
+        <link rel="canonical" href="{{ $canonicalUrl }}">
+    @endif
     <meta property="og:title" content="{{ $resolvedTitle ?? 'Rezultati uživo — rezultati.net' }}">
     <meta property="og:description" content="{{ $resolvedDesc ?? 'Pratite live rezultate na rezultati.net' }}">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
     <meta property="og:image" content="{{ $resolvedImage }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">

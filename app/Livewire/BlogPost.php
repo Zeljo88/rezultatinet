@@ -18,13 +18,27 @@ class BlogPost extends Component
             ->firstOrFail();
     }
 
+    private function truncateAtWord(string $value, int $maxLength): string
+    {
+        if (mb_strlen($value) <= $maxLength) {
+            return $value;
+        }
+
+        $truncated = rtrim(mb_substr($value, 0, $maxLength));
+        $lastSpace = mb_strrpos($truncated, ' ');
+
+        return $lastSpace === false
+            ? $truncated
+            : rtrim(mb_substr($truncated, 0, $lastSpace));
+    }
+
     public function render()
     {
         // Build SEO meta title (max 60 chars) per spec
         $rawTitle   = $this->post->meta_title ?? $this->post->title;
         $suffix     = " | rezultati.net";
         $maxLen     = 60 - strlen($suffix);
-        $trimmed    = strlen($rawTitle) > $maxLen ? mb_substr($rawTitle, 0, $maxLen) : $rawTitle;
+        $trimmed    = $this->truncateAtWord($rawTitle, $maxLen);
         $metaTitle  = $trimmed . $suffix;
 
         // Build SEO meta description (max 155 chars) per spec

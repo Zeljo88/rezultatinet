@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Canonical host: keep every www path/query on a one-hop HTTPS apex URL.
+    RewriteCond %{HTTP_HOST} ^www\.rezultati\.net$ [NC]
+    RewriteRule ^ https://rezultati.net%{REQUEST_URI} [R=301,L,NE]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

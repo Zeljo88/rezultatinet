@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // but Livewire also pushes DisableBackButtonCacheMiddleware as global.
         // We register both as web AND push globally so we run last.
         $middleware->web(append: [
+            \App\Http\Middleware\RedirectToCanonicalHost::class,
             \App\Http\Middleware\SetCacheHeaders::class,
         ]);
     })

@@ -1,3 +1,7 @@
+@php
+    $robots = 'noindex, follow';
+    $showCanonical = false;
+@endphp
 @extends('layouts.app')
 @section('title', '404 — Stranica nije pronađena')
 @section('content')
