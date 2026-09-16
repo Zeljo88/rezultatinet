@@ -6,7 +6,7 @@ OUT=${2:-"$ROOT/build/a1b-rehearsal"}
 COMPOSE=(docker compose -f "$ROOT/tools/a1b/compose.yaml")
 mkdir -p "$OUT"
 command -v docker >/dev/null || { echo "BLOCKED: docker is required for exact MariaDB 10.11 rehearsal" >&2; exit 2; }
-"${COMPOSE[@]}" up -d --build db
+"${COMPOSE[@]}" up -d --build --wait db
 version=$("${COMPOSE[@]}" exec -T db mariadb -uroot --skip-column-names -e 'SELECT VERSION()')
 [[ "$version" == 10.11.*-MariaDB* ]] || { echo "BLOCKED: expected MariaDB 10.11, got $version" >&2; exit 2; }
 "${COMPOSE[@]}" build app
