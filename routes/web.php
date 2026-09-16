@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
+use App\Support\MatchRoute;
 use App\Livewire\MatchDetail;
 use App\Livewire\LeaguePage;
 use App\Livewire\TopScorers;
@@ -232,14 +232,11 @@ Route::get('/sitemap-matches.xml', function () {
         ->select(['id', 'home_team_id', 'away_team_id', 'kick_off', 'status_short', 'updated_at'])
         ->get();
 
-    $urls = $fixtures->map(function ($f) {
-        $homeSlug = $f->homeTeam?->slug ?: Str::slug($f->homeTeam?->name ?? '');
-        $awaySlug = $f->awayTeam?->slug ?: Str::slug($f->awayTeam?->name ?? '');
-        if (!$homeSlug || !$awaySlug) return null;
-        $dateStr  = $f->kick_off ? $f->kick_off->format('d-m-Y') : null;
-        if (!$dateStr) return null;
+    $fixtures = MatchRoute::filterRoutableSitemapFixtures($fixtures);
 
-        $slug = "{$homeSlug}-vs-{$awaySlug}-{$dateStr}";
+    $urls = $fixtures->map(function ($f) {
+        $slug = MatchRoute::slugFor($f);
+        if (!$slug) return null;
 
         return [
             'loc'        => url("/utakmica/{$slug}"),
