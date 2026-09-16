@@ -17,13 +17,26 @@ class TechnicalSeoTest extends TestCase
         URL::forceScheme('https');
     }
 
-    public function test_www_request_redirects_directly_to_https_apex_with_path_and_query(): void
+    public function test_http_www_request_redirects_directly_to_https_apex_with_path_and_query(): void
     {
         config()->set('seo.enforce_canonical_host', true);
 
         $response = $this->withServerVariables([
             'HTTP_HOST' => 'www.rezultati.net',
             'HTTPS' => 'off',
+        ])->get('/provjera/putanje?foo=bar&baz=1');
+
+        $response->assertStatus(301);
+        $response->assertRedirect('https://rezultati.net/provjera/putanje?foo=bar&baz=1');
+    }
+
+    public function test_https_www_request_redirects_directly_to_https_apex_with_path_and_query(): void
+    {
+        config()->set('seo.enforce_canonical_host', true);
+
+        $response = $this->withServerVariables([
+            'HTTP_HOST' => 'www.rezultati.net',
+            'HTTPS' => 'on',
         ])->get('/provjera/putanje?foo=bar&baz=1');
 
         $response->assertStatus(301);
