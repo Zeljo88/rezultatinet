@@ -32,7 +32,7 @@ reset_db
   cd /tmp/proposed
   php artisan migrate --force --no-interaction
   php artisan migrate:status --no-interaction
-  php artisan test --testsuite=Unit --no-interaction
+  php artisan test --testsuite=Unit
 ' >"$OUT/proposed-clean-install.log" 2>&1
 "${COMPOSE[@]}" exec -T db mariadb -uroot --batch --raw --skip-column-names a1b \
   < "$ROOT/tools/a1b/capture_information_schema.sql" > "$OUT/actual-critical-schema.ndjson"

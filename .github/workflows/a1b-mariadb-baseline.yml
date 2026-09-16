@@ -92,7 +92,7 @@ jobs:
                 | xargs -0 -n1 php -l
               export DB_CONNECTION=sqlite
               export DB_DATABASE=:memory:
-              php artisan test --no-interaction
+              php artisan test
             ' > "$A1B_OUT/test.log" 2>&1
             test_rc=$?
           else
