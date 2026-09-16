@@ -43,29 +43,16 @@ class MatchPrediction extends Component
         $ip         = Request::ip();
         $sessionId  = session()->getId();
 
-        $alreadyVoted = Prediction::where('fixture_id', $this->fixtureId)
-            ->where(function ($q) use ($ip, $sessionId) {
-                $q->where('ip', $ip)->orWhere('session_id', $sessionId);
-            })
-            ->exists();
-
-        if ($alreadyVoted) {
-            $this->hasVoted = true;
-            $this->userVote = $choice;
-            session([$sessionKey => $choice]);
-            return;
-        }
-
-        Prediction::create([
-            'fixture_id' => $this->fixtureId,
-            'vote'       => $choice,
-            'ip'         => $ip,
-            'session_id' => $sessionId,
-        ]);
+        // The database contract is one vote per fixture and IP. firstOrCreate
+        // uses that same unique key, so concurrent requests converge safely.
+        $prediction = Prediction::firstOrCreate(
+            ['fixture_id' => $this->fixtureId, 'ip' => $ip],
+            ['vote' => $choice, 'session_id' => $sessionId],
+        );
 
         $this->hasVoted = true;
-        $this->userVote = $choice;
-        session([$sessionKey => $choice]);
+        $this->userVote = $prediction->vote;
+        session([$sessionKey => $prediction->vote]);
     }
 
     public function getStatsProperty(): array
