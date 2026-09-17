@@ -1,0 +1,2513 @@
+{
+  "tables": [
+    {
+      "table": "api_call_logs",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "endpoint",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "called_date",
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "api_call_logs_called_date_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "called_date",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "basketball_games",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "api_game_id",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "league_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "country_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_team",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_team",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_score",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_score",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "status_short",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "elapsed",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "game_date",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "basketball_games_api_game_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "api_game_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "basketball_games_game_date_status_short_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "game_date",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "basketball_games_game_date_status_short_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "status_short",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "cache",
+      "columns": [
+        {
+          "COLUMN_NAME": "key",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "value",
+          "COLUMN_TYPE": "mediumtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "expiration",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "cache_expiration_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "expiration",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "key",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "cache_locks",
+      "columns": [
+        {
+          "COLUMN_NAME": "key",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "owner",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "expiration",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "cache_locks_expiration_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "expiration",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "key",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "failed_jobs",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "uuid",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "connection",
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "queue",
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "payload",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "exception",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "failed_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "current_timestamp()",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "failed_jobs_uuid_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "uuid",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "fixtures",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "api_fixture_id",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "league_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_team_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_team_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "season",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "round",
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "kick_off",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "status_long",
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "status_short",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "elapsed_minute",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "elapsed_extra",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "venue_name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "referee",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "lineups_fetched_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "fixtures_api_fixture_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "api_fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixtures_away_team_id_foreign",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "away_team_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixtures_home_team_id_foreign",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "home_team_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixtures_kick_off_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "kick_off",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixtures_league_id_season_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "league_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixtures_league_id_season_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "season",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixtures_status_short_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "status_short",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "idx_kickoff_status",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "kick_off",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "idx_kickoff_status",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "status_short",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "fixtures_away_team_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "away_team_id",
+          "REFERENCED_TABLE_NAME": "teams",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "RESTRICT"
+        },
+        {
+          "CONSTRAINT_NAME": "fixtures_home_team_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "home_team_id",
+          "REFERENCED_TABLE_NAME": "teams",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "RESTRICT"
+        },
+        {
+          "CONSTRAINT_NAME": "fixtures_league_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "league_id",
+          "REFERENCED_TABLE_NAME": "leagues",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "RESTRICT"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "fixture_events",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "fixture_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "team_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "player_name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "assist_name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "type",
+          "COLUMN_TYPE": "enum('Goal','Card','subst','Var')",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "detail",
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "elapsed_minute",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "elapsed_extra",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "fixture_events_fixture_id_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixture_events_team_id_foreign",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "team_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "fixture_events_fixture_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "fixture_id",
+          "REFERENCED_TABLE_NAME": "fixtures",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        },
+        {
+          "CONSTRAINT_NAME": "fixture_events_team_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "team_id",
+          "REFERENCED_TABLE_NAME": "teams",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "SET NULL"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "fixture_lineups",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "fixture_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "team_side",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "formation",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "coach_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "startxi",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "substitutes",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "fixture_lineups_fixture_id_team_side_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixture_lineups_fixture_id_team_side_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "team_side",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "fixture_lineups_fixture_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "fixture_id",
+          "REFERENCED_TABLE_NAME": "fixtures",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        }
+      ],
+      "check_constraints": [
+        {
+          "CONSTRAINT_NAME": "startxi",
+          "CHECK_CLAUSE": "json_valid(`startxi`)"
+        },
+        {
+          "CONSTRAINT_NAME": "substitutes",
+          "CHECK_CLAUSE": "json_valid(`substitutes`)"
+        }
+      ]
+    },
+    {
+      "table": "fixture_polls",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "fixture_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "vote",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "voter_ip",
+          "COLUMN_TYPE": "varchar(45)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "voter_session",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "fixture_polls_fixture_id_voter_ip_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "fixture_polls_fixture_id_voter_ip_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "voter_ip",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "fixture_polls_fixture_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "fixture_id",
+          "REFERENCED_TABLE_NAME": "fixtures",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "fixture_scores",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "fixture_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "goals_home",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "goals_away",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_halftime",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_halftime",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_fulltime",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_fulltime",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_extratime",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_extratime",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_penalties",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_penalties",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "fixture_scores_fixture_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "fixture_scores_fixture_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "fixture_id",
+          "REFERENCED_TABLE_NAME": "fixtures",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "jobs",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "queue",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "payload",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "attempts",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "reserved_at",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "available_at",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "jobs_queue_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "queue",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "job_batches",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "total_jobs",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "pending_jobs",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "failed_jobs",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "failed_job_ids",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "options",
+          "COLUMN_TYPE": "mediumtext",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "cancelled_at",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "finished_at",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "leagues",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "api_league_id",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "country",
+          "COLUMN_TYPE": "varchar(60)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "logo_url",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "sport",
+          "COLUMN_TYPE": "enum('football','basketball','tennis')",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "'football'",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "is_active",
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "1",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "current_season",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "leagues_api_league_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "api_league_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "leagues_is_active_sport_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "is_active",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "leagues_is_active_sport_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "sport",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "migrations",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "migration",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "batch",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "password_reset_tokens",
+      "columns": [
+        {
+          "COLUMN_NAME": "email",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "token",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "email",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "players",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "api_player_id",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "slug",
+          "COLUMN_TYPE": "varchar(120)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "nationality",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "country_name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "position",
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "date_of_birth",
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "photo_url",
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "current_club",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "current_league",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "current_club_logo",
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "country_flag",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "is_featured",
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "is_active",
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "1",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "bio",
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "players_api_player_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "api_player_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "players_slug_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "slug",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "player_stats",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "player_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "league_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "season",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "'2024'",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "appearances",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "goals",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "assists",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "yellow_cards",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "red_cards",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "rating",
+          "COLUMN_TYPE": "decimal(4,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "minutes_played",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "player_stats_league_id_foreign",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "league_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "player_stats_player_league_season_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "player_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "player_stats_player_league_season_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "league_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "player_stats_player_league_season_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "season",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "player_stats_league_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "league_id",
+          "REFERENCED_TABLE_NAME": "leagues",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        },
+        {
+          "CONSTRAINT_NAME": "player_stats_player_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "player_id",
+          "REFERENCED_TABLE_NAME": "players",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "posts",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "title",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "slug",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "meta_title",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "meta_description",
+          "COLUMN_TYPE": "varchar(200)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "content",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "keyword",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "featured_image",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "fixture_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "published",
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "1",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "fk_posts_fixture_id",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "posts_slug_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "slug",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "fk_posts_fixture_id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "fixture_id",
+          "REFERENCED_TABLE_NAME": "fixtures",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "SET NULL"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "predictions",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "fixture_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "vote",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "ip",
+          "COLUMN_TYPE": "varchar(45)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "session_id",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "predictions_fixture_id_ip_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "fixture_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "predictions_fixture_id_ip_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "ip",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "predictions_fixture_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "fixture_id",
+          "REFERENCED_TABLE_NAME": "fixtures",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "sessions",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "user_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "ip_address",
+          "COLUMN_TYPE": "varchar(45)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "user_agent",
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "payload",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "last_activity",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "sessions_last_activity_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "last_activity",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "sessions_user_id_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "user_id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "standings",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "league_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "team_id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "season",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "rank",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "played",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "win",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "draw",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "lose",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "goals_for",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "goals_against",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "goal_diff",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "points",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "form",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_played",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_win",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_draw",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_lose",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_goals_for",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "home_goals_against",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_played",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_win",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_draw",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_lose",
+          "COLUMN_TYPE": "tinyint(3) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_goals_for",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "away_goals_against",
+          "COLUMN_TYPE": "smallint(5) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "description",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "standings_league_id_team_id_season_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "league_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "standings_league_id_team_id_season_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "team_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "standings_league_id_team_id_season_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "season",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "standings_team_id_foreign",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "team_id",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "CONSTRAINT_NAME": "standings_league_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "league_id",
+          "REFERENCED_TABLE_NAME": "leagues",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        },
+        {
+          "CONSTRAINT_NAME": "standings_team_id_foreign",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_NAME": "team_id",
+          "REFERENCED_TABLE_NAME": "teams",
+          "REFERENCED_COLUMN_NAME": "id",
+          "UPDATE_RULE": "RESTRICT",
+          "DELETE_RULE": "CASCADE"
+        }
+      ],
+      "check_constraints": []
+    },
+    {
+      "table": "teams",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "api_team_id",
+          "COLUMN_TYPE": "int(10) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "slug",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "short_name",
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "logo_url",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "country",
+          "COLUMN_TYPE": "varchar(60)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "teams_api_team_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "api_team_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "teams_slug_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "slug",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "tennis_matches",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "api_match_id",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "tournament_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "country_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "player_home",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "player_away",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "score",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "status",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "match_date",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "tennis_matches_api_match_id_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "api_match_id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "tennis_matches_match_date_status_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "match_date",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "tennis_matches_match_date_status_index",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    },
+    {
+      "table": "users",
+      "columns": [
+        {
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20) unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": "auto_increment"
+        },
+        {
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "email",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "email_verified_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "password",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "remember_token",
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "created_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        },
+        {
+          "COLUMN_NAME": "updated_at",
+          "COLUMN_TYPE": "timestamp",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "NULL",
+          "EXTRA": ""
+        }
+      ],
+      "indexes": [
+        {
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "INDEX_NAME": "users_email_unique",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "email",
+          "SUB_PART": null
+        }
+      ],
+      "foreign_keys": [],
+      "check_constraints": []
+    }
+  ]
+}
