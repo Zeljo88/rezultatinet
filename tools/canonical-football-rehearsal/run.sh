@@ -93,6 +93,6 @@ run_cycle() {
 run_cycle cycle-1 checkpoint
 run_cycle cycle-2 direct
 
-sha256sum "${ARTIFACT_DIR}"/*.sql "${ARTIFACT_DIR}/docker-compose.yml "${ARTIFACT_DIR}/run.sh     >"${EVIDENCE_DIR}/artifact-sha256.txt"
+sha256sum "${ARTIFACT_DIR}"/*.sql "${ARTIFACT_DIR}/docker-compose.yml" "${ARTIFACT_DIR}/run.sh" >"${EVIDENCE_DIR}/artifact-sha256.txt"
 printf '%s\n' 'VALIDATED: two fresh MariaDB 10.11.13 cycles passed; containers and volumes removed.'     >"${EVIDENCE_DIR}/verdict.txt"
 CURRENT_CYCLE="complete"

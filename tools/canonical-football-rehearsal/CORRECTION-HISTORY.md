@@ -29,3 +29,5 @@
 - Before SHA-256: `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
 - After SHA-256: `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
 - Database behavior, SQL, assertions, cleanup, and network isolation are unchanged.
+- Implementation note: commit `cdbbeea` recorded the intended checksum-path fix but its substitution was ineffective; run 35221969645 therefore still used SHA-256 `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
+- Effective follow-up SHA-256: `ed6ee1bd38d09a7a6c63e54326d9ec832b34d75a266dd3b55c154637dd85216f`.
