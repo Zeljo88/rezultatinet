@@ -1,6 +1,6 @@
 <?php
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
+use App\Support\MatchRoute;
 use App\Livewire\MatchDetail;
 use App\Livewire\LeaguePage;
 use App\Livewire\TopScorers;
@@ -8,6 +8,7 @@ use App\Livewire\TeamPage;
 use App\Livewire\Search;
 use App\Livewire\Blog;
 use App\Http\Controllers\OgImageController;
+use App\Http\Controllers\SeoHubController;
 use App\Livewire\BlogPost;
 use App\Livewire\BalkanPlayers;
 use App\Livewire\PlayerProfile;
@@ -17,13 +18,15 @@ use App\Livewire\LeagueSchedule;
 use App\Livewire\LeagueScorers;
 
 Route::get('/', fn() => view('home', ['sport' => 'football', 'initialTab' => 'live']));
+Route::get('/nogomet', [SeoHubController::class, 'sport'])->defaults('sport', 'football')->name('hub.football');
+Route::get('/utakmice-danas', [SeoHubController::class, 'today'])->name('hub.today');
 
 // SEO redirects: external URLs that Google has indexed
 Route::get('/soccer/usa', fn() => redirect('/liga/major-league-soccer', 301));
 Route::get('/soccer/usa/', fn() => redirect('/liga/major-league-soccer', 301));
 Route::get('/soccer/{any}', fn() => redirect('/', 301))->where('any', '.*');
-Route::get('/kosarka', fn() => view('home', ['sport' => 'basketball', 'initialTab' => 'live']));
-Route::get('/tenis', fn() => view('home', ['sport' => 'tennis', 'initialTab' => 'live']));
+Route::get('/kosarka', [SeoHubController::class, 'sport'])->defaults('sport', 'basketball')->name('hub.basketball');
+Route::get('/tenis', [SeoHubController::class, 'sport'])->defaults('sport', 'tennis')->name('hub.tennis');
 Route::get('/jucer', fn() => view('home', ['sport' => 'football', 'initialTab' => 'yesterday']));
 Route::get('/sutra', fn() => view('home', ['sport' => 'football', 'initialTab' => 'tomorrow']));
 
@@ -39,6 +42,13 @@ Route::get('/utakmica/{slug}', MatchDetail::class)
 
 Route::get('/strijelci', TopScorers::class)->name('top.scorers');
 Route::get('/tim/{slug}', TeamPage::class)->name('team.page');
+Route::get('/liga/superliga-srbije', fn () => redirect()->route('league.page', ['slug' => 'superliga-srbija'], 301));
+Route::get('/liga/euroleague', fn () => redirect()->route('league.evroliga', status: 301));
+Route::get('/liga/aba-league', fn () => redirect()->route('league.aba', status: 301));
+Route::get('/liga/evroliga', [SeoHubController::class, 'basketballLeague'])
+    ->defaults('slug', 'evroliga')->name('league.evroliga');
+Route::get('/liga/aba-liga', [SeoHubController::class, 'basketballLeague'])
+    ->defaults('slug', 'aba-liga')->name('league.aba');
 Route::get('/liga/{slug}', LeaguePage::class)->name('league.page');
 
 // League sub-pages: tablica, raspored, strijelci
@@ -97,8 +107,18 @@ Route::get('/sitemap-leagues.xml', function () {
     $urls = collect();
 
     // Core pages
-    $urls->push(['loc' => url('/'),            'changefreq' => 'always',  'priority' => '1.0']);
-    $urls->push(['loc' => url('/blog'),        'changefreq' => 'daily',   'priority' => '0.9']);
+    $urls->push(['loc' => url('/'),                 'changefreq' => 'always', 'priority' => '1.0']);
+    $urls->push(['loc' => url('/nogomet'),          'changefreq' => 'hourly', 'priority' => '0.9']);
+    $urls->push(['loc' => url('/kosarka'),          'changefreq' => 'hourly', 'priority' => '0.9']);
+    $urls->push(['loc' => url('/tenis'),            'changefreq' => 'hourly', 'priority' => '0.9']);
+    $urls->push(['loc' => url('/utakmice-danas'),   'changefreq' => 'hourly', 'priority' => '0.9']);
+    if (\Illuminate\Support\Facades\Schema::hasTable('basketball_games') && \App\Models\BasketballGame::where('league_name', 'Euroleague')->exists()) {
+        $urls->push(['loc' => url('/liga/evroliga'), 'changefreq' => 'daily', 'priority' => '0.8']);
+    }
+    if (\Illuminate\Support\Facades\Schema::hasTable('basketball_games') && \App\Models\BasketballGame::where('league_name', 'ABA League')->exists()) {
+        $urls->push(['loc' => url('/liga/aba-liga'), 'changefreq' => 'daily', 'priority' => '0.8']);
+    }
+    $urls->push(['loc' => url('/blog'),             'changefreq' => 'daily',  'priority' => '0.9']);
     $urls->push(['loc' => url('/strijelci'),   'changefreq' => 'daily',   'priority' => '0.8']);
     $urls->push(['loc' => url('/igraci/balkan'), 'changefreq' => 'weekly', 'priority' => '0.7']);
 
@@ -232,14 +252,11 @@ Route::get('/sitemap-matches.xml', function () {
         ->select(['id', 'home_team_id', 'away_team_id', 'kick_off', 'status_short', 'updated_at'])
         ->get();
 
-    $urls = $fixtures->map(function ($f) {
-        $homeSlug = $f->homeTeam?->slug ?: Str::slug($f->homeTeam?->name ?? '');
-        $awaySlug = $f->awayTeam?->slug ?: Str::slug($f->awayTeam?->name ?? '');
-        if (!$homeSlug || !$awaySlug) return null;
-        $dateStr  = $f->kick_off ? $f->kick_off->format('d-m-Y') : null;
-        if (!$dateStr) return null;
+    $fixtures = MatchRoute::filterRoutableSitemapFixtures($fixtures);
 
-        $slug = "{$homeSlug}-vs-{$awaySlug}-{$dateStr}";
+    $urls = $fixtures->map(function ($f) {
+        $slug = MatchRoute::slugFor($f);
+        if (!$slug) return null;
 
         return [
             'loc'        => url("/utakmica/{$slug}"),

@@ -79,7 +79,7 @@ class LiveScores extends Component
             ->join('leagues', 'fixtures.league_id', '=', 'leagues.id')
             ->select('fixtures.*')
             ->whereDate('fixtures.kick_off', $this->selectedDate)
-            ->orderByRaw('FIELD(leagues.api_league_id, ' . implode(',', $this->priorityLeagues) . ') DESC')
+            ->orderByRaw('CASE leagues.api_league_id ' . collect($this->priorityLeagues)->map(fn ($id, $index) => 'WHEN ' . (int) $id . ' THEN ' . ($index + 1))->implode(' ') . ' ELSE 999 END ASC')
             ->orderBy('fixtures.kick_off');
     }
 

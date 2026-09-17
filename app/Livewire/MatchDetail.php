@@ -4,7 +4,8 @@ namespace App\Livewire;
 
 use App\Models\Fixture;
 use App\Models\FixtureLineup;
-use Illuminate\Support\Str;
+use App\Support\MatchRoute;
+use App\Support\SportsEventStatus;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Layout;
@@ -45,40 +46,7 @@ class MatchDetail extends Component
      */
     protected function resolveBySlug(string $slug): Fixture
     {
-        // Parse: {home-slug}-vs-{away-slug}-{dd-mm-yyyy}
-        if (!preg_match('/^(.+)-vs-(.+)-(\d{2})-(\d{2})-(\d{4})$/', $slug, $m)) {
-            abort(404);
-        }
-
-        $homeSlug = $m[1];
-        $awaySlug = $m[2];
-        $day      = $m[3];
-        $month    = $m[4];
-        $year     = $m[5];
-
-        $date = "{$year}-{$month}-{$day}";
-
-        $homeTeam = \App\Models\Team::where('slug', $homeSlug)->first();
-        $awayTeam = \App\Models\Team::where('slug', $awaySlug)->first();
-
-        if (!$homeTeam || !$awayTeam) {
-            if (!$homeTeam) {
-                $homeTeam = \App\Models\Team::whereRaw('LOWER(REPLACE(REPLACE(name, " ", "-"), ".", "")) = ?', [$homeSlug])->first();
-            }
-            if (!$awayTeam) {
-                $awayTeam = \App\Models\Team::whereRaw('LOWER(REPLACE(REPLACE(name, " ", "-"), ".", "")) = ?', [$awaySlug])->first();
-            }
-        }
-
-        if (!$homeTeam || !$awayTeam) {
-            abort(404);
-        }
-
-        $fixture = Fixture::with(['homeTeam', 'awayTeam', 'score', 'league', 'events'])
-            ->where('home_team_id', $homeTeam->id)
-            ->where('away_team_id', $awayTeam->id)
-            ->whereDate('kick_off', $date)
-            ->first();
+        $fixture = MatchRoute::resolve($slug);
 
         if (!$fixture) {
             abort(404);
@@ -145,16 +113,10 @@ class MatchDetail extends Component
      */
     public function getCanonicalUrl(): string
     {
-        $homeSlug = $this->fixture->homeTeam?->slug
-            ?: Str::slug($this->fixture->homeTeam?->name ?? '');
-        $awaySlug = $this->fixture->awayTeam?->slug
-            ?: Str::slug($this->fixture->awayTeam?->name ?? '');
-        $dateStr  = $this->fixture->kick_off
-            ? \Carbon\Carbon::parse($this->fixture->kick_off)->format('d-m-Y')
-            : null;
+        $slug = MatchRoute::slugFor($this->fixture);
 
-        if ($homeSlug && $awaySlug && $dateStr) {
-            return url("/utakmica/{$homeSlug}-vs-{$awaySlug}-{$dateStr}");
+        if ($slug) {
+            return url("/utakmica/{$slug}");
         }
 
         return url("/utakmica/{$this->fixture->id}");
@@ -222,13 +184,10 @@ class MatchDetail extends Component
             ? \Carbon\Carbon::parse($this->fixture->kick_off)->toIso8601String()
             : '';
 
-        // Determine event status for schema
-        $eventStatus = 'https://schema.org/EventScheduled';
-        if ($this->isFinished()) {
-            $eventStatus = 'https://schema.org/EventCompleted';
-        } elseif (in_array($this->fixture->status_short, ['CANC', 'PST', 'ABD'])) {
-            $eventStatus = 'https://schema.org/EventCancelled';
-        }
+        $eventStatus = SportsEventStatus::fromFixture(
+            $this->fixture->status_short,
+            $this->fixture->kick_off,
+        );
 
         $sportsEvent = [
             '@context'   => 'https://schema.org',
@@ -251,10 +210,13 @@ class MatchDetail extends Component
                 '@type' => 'Organization',
                 'name'  => $liga,
             ],
-            'eventStatus' => $eventStatus,
             'sport'       => 'Football',
             'url'         => $this->getCanonicalUrl(),
         ];
+
+        if ($eventStatus) {
+            $sportsEvent['eventStatus'] = $eventStatus;
+        }
 
         // Add score if finished
         if ($this->isFinished()) {

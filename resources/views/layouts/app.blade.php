@@ -144,7 +144,7 @@
                     <span class="text-[#CCFF00] font-black text-xl tracking-tight">rezultati</span><span class="text-white font-black text-xl tracking-tight">.net</span>
                 </a>
                 <div class="hidden md:flex items-center gap-1">
-                    <a href="/" class="px-3 py-1.5 rounded-full text-xs font-bold transition {{ request()->is('/') || request()->is('fudbal*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
+                    <a href="/nogomet" class="px-3 py-1.5 rounded-full text-xs font-bold transition {{ request()->is('nogomet') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
                         Fudbal
                     </a>
                     <a href="/kosarka" class="px-3 py-1.5 rounded-full text-xs font-bold transition {{ request()->is('kosarka*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
@@ -189,8 +189,8 @@
              class="md:hidden bg-[#1a1a1a] border-t border-[#2a2a2a] shadow-xl"
              style="display:none">
             <nav class="flex flex-col py-2 max-w-7xl mx-auto px-4">
-                <a href="/" @click="mobileOpen = false"
-                   class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold transition {{ request()->is('/') || request()->is('fudbal*') ? 'text-[#CCFF00] bg-[#2a2a2a]' : 'text-gray-300 hover:text-white hover:bg-[#2a2a2a]' }}">
+                <a href="/nogomet" @click="mobileOpen = false"
+                   class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold transition {{ request()->is('nogomet') ? 'text-[#CCFF00] bg-[#2a2a2a]' : 'text-gray-300 hover:text-white hover:bg-[#2a2a2a]' }}">
                     <span class="text-lg">⚽</span> Fudbal
                 </a>
                 <a href="/kosarka" @click="mobileOpen = false"

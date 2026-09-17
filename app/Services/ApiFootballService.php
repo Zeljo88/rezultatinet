@@ -1,97 +1,60 @@
 <?php
+
 namespace App\Services;
 
-use App\Models\ApiCallLog;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Services\ApiFootball\ApiFootballGateway;
 
 class ApiFootballService
 {
-    protected $client;
+    public function __construct(private readonly ApiFootballGateway $gateway) {}
 
-    public function __construct()
+    public function getLiveFixtures(string $caller = 'FetchLiveFixtures'): array
     {
-        $this->client = Http::baseUrl('https://v3.football.api-sports.io')
-            ->withHeaders([
-                'X-RapidAPI-Key'  => config('services.api_football.key'),
-                'X-RapidAPI-Host' => 'v3.football.api-sports.io',
-            ])
-            ->timeout(15)
-            ->retry(2, 500);
+        return $this->gateway->get('/fixtures', ['live' => 'all'], 'live', $caller);
     }
 
-
-    /**
-     * Check if daily API quota has been reached.
-     * Hard limit: 7000 calls/day (500 buffer for safety).
-     */
-    protected function quotaExceeded(): bool
+    public function getFixturesByDate(string $date, string $caller = 'SyncFixtures'): array
     {
-        $count = ApiCallLog::getTodayCount();
-        if ($count >= 7000) {
-            Log::warning('ApiFootballService: daily quota limit reached (' . $count . '/7000), skipping call.');
-            return true;
-        }
-        return false;
+        return $this->gateway->get('/fixtures', ['date' => $date], 'backfill', $caller);
     }
 
-    public function getLiveFixtures(): array
+    public function getTodayFixtures(string $caller = 'ApiFootballService'): array
     {
-        if ($this->quotaExceeded()) return [];
-
-        $response = $this->client->get('/fixtures', ['live' => 'all']);
-        if (!$response->successful()) return [];
-        return $response->json('response', []);
+        return $this->getFixturesByDate(now('UTC')->format('Y-m-d'), $caller);
     }
 
-    public function getTodayFixtures(): array
+    public function getFixtureById(int $id, string $caller = 'fixture_repair', string $class = 'fixture_repair'): array
     {
-        if ($this->quotaExceeded()) return [];
-
-        $response = $this->client->get('/fixtures', ['date' => now()->format('Y-m-d')]);
-        if (!$response->successful()) return [];
-        return $response->json('response', []);
+        return $this->gateway->get('/fixtures', ['id' => $id], $class, $caller)[0] ?? [];
     }
 
-    public function getFixtureById(int $apiFixtureId): array
+    public function getLineups(int $id, string $caller = 'FetchFixtureLineups'): array
     {
-        if ($this->quotaExceeded()) return [];
-
-        $response = $this->client->get('/fixtures', ['id' => $apiFixtureId]);
-        if (!$response->successful()) return [];
-        return $response->json('response', [])[0] ?? [];
+        return $this->gateway->get('/fixtures/lineups', ['fixture' => $id], 'lineups', $caller);
     }
 
-    public function getTopScorers(int $leagueId, int $season): array
+    public function getStandings(int $league, int $season, string $caller = 'SyncStandings'): array
     {
-        if ($this->quotaExceeded()) return [];
-
-        $response = $this->client->get('/players/topscorers', [
-            'league' => $leagueId,
-            'season' => $season,
-        ]);
-        if (!$response->successful()) return [];
-        return $response->json('response', []);
+        return $this->gateway->get('/standings', compact('league', 'season'), 'standings', $caller);
     }
 
-    public function getTopAssists(int $leagueId, int $season): array
+    public function getLeagues(string $caller = 'SyncLeagues'): array
     {
-        if ($this->quotaExceeded()) return [];
-
-        $response = $this->client->get('/players/topassists', [
-            'league' => $leagueId,
-            'season' => $season,
-        ]);
-        if (!$response->successful()) return [];
-        return $response->json('response', []);
+        return $this->gateway->get('/leagues', ['current' => 'true'], 'manual', $caller);
     }
 
-    public function getLineups(int $apiFixtureId): array
+    public function getFixtureEvents(int $id, string $caller = 'SyncFixtureEvents'): array
     {
-        if ($this->quotaExceeded()) return [];
+        return $this->gateway->get('/fixtures/events', ['fixture' => $id], 'events', $caller);
+    }
 
-        $response = $this->client->get('/fixtures/lineups', ['fixture' => $apiFixtureId]);
-        if (!$response->successful()) return [];
-        return $response->json('response', []);
+    public function getTopScorers(int $leagueId, int $season, string $caller = 'SyncTopScorers'): array
+    {
+        return $this->gateway->get('/players/topscorers', ['league' => $leagueId, 'season' => $season], 'scorers', $caller);
+    }
+
+    public function getTopAssists(int $leagueId, int $season, string $caller = 'SyncTopScorers'): array
+    {
+        return $this->gateway->get('/players/topassists', ['league' => $leagueId, 'season' => $season], 'scorers', $caller);
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 use App\Jobs\FetchLiveFixtures;
 use App\Jobs\FinalizeFinishedFixtures;
 use App\Jobs\FixZombieFixtures;
@@ -6,7 +7,9 @@ use Illuminate\Support\Facades\Schedule;
 
 // ✅ ACTIVE — Fetch live football scores every 30 seconds (~2,880/day)
 Schedule::job(new FetchLiveFixtures)
-    ->everyThirtySeconds();
+    ->everyThirtySeconds()
+    ->name('api-football-live-poll')
+    ->withoutOverlapping(2);
 
 // ✅ ACTIVE — Finalize fixtures stuck in 2H/ET after 15+ min (FT cleanup)
 Schedule::job(new FinalizeFinishedFixtures)
@@ -14,9 +17,9 @@ Schedule::job(new FinalizeFinishedFixtures)
     ->withoutOverlapping();
 
 // ✅ ACTIVE — sync:standings daily at 04:30 (~14 API calls, all leagues)
-Schedule::command("sync:standings")
-    ->dailyAt("04:30")
-    ->name("sync-standings")
+Schedule::command('sync:standings')
+    ->dailyAt('04:30')
+    ->name('sync-standings')
     ->withoutOverlapping();
 
 // ✅ ACTIVE — Zombie watcher: re-fetches all fixtures >3h old not in final status
@@ -90,18 +93,18 @@ Schedule::job(new FixZombieFixtures)
 
 // Schedule::command('sync:basketball')->hourly()->name('basketball-hourly');
 
-//// ──────────────────────────────────────────────────────────────────────────────
-//// TENNIS — already paused
-//// ──────────────────────────────────────────────────────────────────────────────
-//Schedule::call(function() {
+// // ──────────────────────────────────────────────────────────────────────────────
+// // TENNIS — already paused
+// // ──────────────────────────────────────────────────────────────────────────────
+// Schedule::call(function() {
 //    $liveStatuses = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
 //    $hasLive = \App\Models\TennisMatch::whereIn('status', $liveStatuses)->exists();
 //    if ($hasLive) {
 //        \Illuminate\Support\Facades\Artisan::call('sync:tennis');
 //    }
-//})->everyFifteenMinutes()->name('tennis-live-check');
+// })->everyFifteenMinutes()->name('tennis-live-check');
 //
-//Schedule::command('sync:tennis')->hourly()->name('tennis-hourly');
+// Schedule::command('sync:tennis')->hourly()->name('tennis-hourly');
 
 // ❌ PAUSED — fix stuck fixtures every 30 min
 // Schedule::command('sync:fix-stuck')

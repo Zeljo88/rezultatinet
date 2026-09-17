@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\ApiCallLog;
 use App\Models\Fixture;
 use App\Models\FixtureLineup;
 use App\Services\ApiFootballService;
@@ -14,9 +13,13 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class FetchFixtureLineups implements ShouldQueue, ShouldBeUnique
+class FetchFixtureLineups implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 1;
+
+    public int $uniqueFor = 3600;
 
     public function __construct(
         public readonly int $fixtureId,
@@ -32,7 +35,7 @@ class FetchFixtureLineups implements ShouldQueue, ShouldBeUnique
     {
         $fixture = Fixture::with(['homeTeam', 'awayTeam'])->find($this->fixtureId);
 
-        if (!$fixture) {
+        if (! $fixture) {
             return;
         }
 
@@ -45,18 +48,12 @@ class FetchFixtureLineups implements ShouldQueue, ShouldBeUnique
         // even if the API call fails or returns empty data
         $fixture->update(['lineups_fetched_at' => now()]);
 
-        // Budget guard
-        if (ApiCallLog::getTodayCount() >= 7000) {
-            Log::warning("API daily budget reached, skipping lineup fetch for fixture {$this->fixtureId}");
-            return;
-        }
-
         try {
             $lineupData = $api->getLineups($this->apiFixtureId);
-            ApiCallLog::create(['endpoint' => '/fixtures/lineups', 'called_date' => today()]);
 
             if (empty($lineupData)) {
-                Log::info("No lineup data returned for fixture {$this->fixtureId}");
+                Log::channel('api_football')->info('lineup_empty', ['fixture_id' => $this->fixtureId]);
+
                 return;
             }
 
@@ -70,33 +67,35 @@ class FetchFixtureLineups implements ShouldQueue, ShouldBeUnique
                         $side = 'away';
                     }
                 }
-                if (!$side) continue;
+                if (! $side) {
+                    continue;
+                }
 
-                $startxi = collect($teamLineup['startXI'] ?? [])->map(fn($p) => [
+                $startxi = collect($teamLineup['startXI'] ?? [])->map(fn ($p) => [
                     'number' => $p['player']['number'] ?? null,
-                    'name'   => $p['player']['name'] ?? null,
-                    'pos'    => $p['player']['pos'] ?? null,
-                    'grid'   => $p['player']['grid'] ?? null,
+                    'name' => $p['player']['name'] ?? null,
+                    'pos' => $p['player']['pos'] ?? null,
+                    'grid' => $p['player']['grid'] ?? null,
                 ])->toArray();
 
-                $substitutes = collect($teamLineup['substitutes'] ?? [])->map(fn($p) => [
+                $substitutes = collect($teamLineup['substitutes'] ?? [])->map(fn ($p) => [
                     'number' => $p['player']['number'] ?? null,
-                    'name'   => $p['player']['name'] ?? null,
-                    'pos'    => $p['player']['pos'] ?? null,
+                    'name' => $p['player']['name'] ?? null,
+                    'pos' => $p['player']['pos'] ?? null,
                 ])->toArray();
 
                 FixtureLineup::updateOrCreate(
                     ['fixture_id' => $fixture->id, 'team_side' => $side],
                     [
-                        'formation'   => $teamLineup['formation'] ?? null,
-                        'coach_name'  => $teamLineup['coach']['name'] ?? null,
-                        'startxi'     => $startxi,
+                        'formation' => $teamLineup['formation'] ?? null,
+                        'coach_name' => $teamLineup['coach']['name'] ?? null,
+                        'startxi' => $startxi,
                         'substitutes' => $substitutes,
                     ]
                 );
             }
         } catch (\Throwable $e) {
-            Log::warning("Lineup sync failed for fixture {$this->fixtureId}: " . $e->getMessage());
+            Log::channel('api_football')->warning('lineup_failed', ['fixture_id' => $this->fixtureId, 'exception' => get_class($e)]);
         }
     }
 }

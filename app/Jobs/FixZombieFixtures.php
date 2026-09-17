@@ -2,153 +2,87 @@
 
 namespace App\Jobs;
 
-use App\Models\ApiCallLog;
+use App\Contracts\ApiFootballQuotaStore;
+use App\Exceptions\ApiFootballBlocked;
 use App\Models\Fixture;
 use App\Models\FixtureScore;
 use App\Services\ApiFootballService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-/**
- * FixZombieFixtures — Safety net job that runs every 30 minutes.
- *
- * Finds fixtures that kicked off more than 3 hours ago but are still
- * in a non-final status and re-fetches correct status from the API.
- *
- * OPTIMIZED: Night guard (01-07 UTC) skips processing entirely when
- * no live matches exist in DB, preventing unnecessary API usage.
- */
-class FixZombieFixtures implements ShouldQueue
+class FixZombieFixtures implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Maximum fixtures to process per run (API budget protection) */
-    private const MAX_PER_RUN = 10;
+    public int $tries = 1;
 
-    /** Daily API call budget ceiling */
-    private const API_BUDGET = 7000;
+    public int $uniqueFor = 1800;
 
-    /** Statuses considered truly "final" — no re-fetch needed */
-    private const FINAL_STATUSES = [
-        'FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD', 'PST', 'INT', 'SUSP', 'TBD', 'NS',
-    ];
+    private const FINAL = ['FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD', 'PST', 'INT', 'SUSP', 'TBD', 'NS'];
 
-    public function handle(ApiFootballService $api): void
+    public function uniqueId(): string
     {
-        // Night guard — 01:00 to 07:00 UTC, skip entirely if no live matches
-        $hour = (int) now()->format('G');
+        return 'fix-zombie-fixtures';
+    }
+
+    public function handle(ApiFootballService $api, ApiFootballQuotaStore $quota): void
+    {
+        $hour = (int) now('UTC')->format('G');
         if ($hour >= 1 && $hour < 7) {
-            $hasLive = Fixture::whereIn('status_short', ['1H', 'HT', '2H', 'ET', 'P', 'BT'])->exists();
-            if (!$hasLive) {
-                Log::info('FixZombieFixtures: night-time (01-07 UTC), no live matches — skipping.');
+            $recentLive = Fixture::whereIn('status_short', ['1H', 'HT', '2H', 'ET', 'P', 'BT'])
+                ->where('kick_off', '>=', now()->subHours(4))->where('updated_at', '>=', now()->subMinutes(20))->exists();
+            if (! $recentLive) {
                 return;
             }
         }
 
-        $zombies = Fixture::where('kick_off', '<', now()->subHours(3))
-            ->whereNotIn('status_short', self::FINAL_STATUSES)
-            ->where('updated_at', '<', now()->subMinutes(60))  // cooldown: don't re-fetch same zombie < 60min
-            ->orderBy('kick_off', 'desc')
-            ->limit(self::MAX_PER_RUN)
-            ->get(['id', 'api_fixture_id', 'status_short', 'elapsed_minute', 'kick_off', 'updated_at']);
-
-        if ($zombies->isEmpty()) {
-            Log::info('FixZombieFixtures: no zombie fixtures found. ✓');
-            return;
-        }
-
-        $count = $zombies->count();
-        Log::warning("FixZombieFixtures: found {$count} zombie fixture(s) — re-fetching from API.");
-
-        $byStatus = $zombies->groupBy('status_short')->map->count();
-        $statusSummary = $byStatus->map(fn($c, $s) => "{$s}:{$c}")->implode(', ');
-        Log::info("FixZombieFixtures: breakdown = [{$statusSummary}]");
-
-        $repaired = 0;
-        $skipped  = 0;
-        $failed   = 0;
-
-        foreach ($zombies as $fixture) {
-            if (ApiCallLog::getTodayCount() >= self::API_BUDGET) {
-                Log::warning('FixZombieFixtures: daily API budget reached, stopping early.');
+        $limit = max(1, (int) config('api_football.repair.zombie_per_run', 5));
+        $fixtures = Fixture::where('kick_off', '<', now()->subHours(3))->where('kick_off', '>=', now()->subDays(2))
+            ->whereNotIn('status_short', self::FINAL)->orderByDesc('kick_off')->limit($limit * 6)->get();
+        $checked = $repaired = 0;
+        foreach ($fixtures as $fixture) {
+            if ($checked >= $limit || ! $fixture->api_fixture_id || ! $quota->acquireRepair($fixture->id, 'FixZombieFixtures')) {
+                continue;
+            }
+            $checked++;
+            try {
+                $data = $api->getFixtureById($fixture->api_fixture_id, 'FixZombieFixtures');
+            } catch (ApiFootballBlocked) {
+                $quota->recordRepair($fixture->id, 'quota_blocked');
                 break;
             }
-
-            $data = $api->getFixtureById($fixture->api_fixture_id);
-
-            ApiCallLog::create([
-                'endpoint'    => '/fixtures?id=' . $fixture->api_fixture_id,
-                'called_date' => today(),
-            ]);
-
             if (empty($data)) {
-                Log::error("FixZombieFixtures: empty API response for fixture id={$fixture->id}");
-                // touch() to prevent retry next run (will wait until next natural cycle)
-                $fixture->touch();
-                $failed++;
+                $quota->recordRepair($fixture->id, 'empty');
+
                 continue;
             }
 
-            $newStatus  = $data['fixture']['status']['short'] ?? null;
-            $newLong    = $data['fixture']['status']['long']  ?? null;
-            $newElapsed = $data['fixture']['status']['elapsed'] ?? null;
-            $oldStatus  = $fixture->status_short;
+            $new = $data['fixture']['status']['short'] ?? null;
+            if (! $new || $new === $fixture->status_short) {
+                $quota->recordRepair($fixture->id, 'unchanged_'.$new);
 
-            if ($newStatus === $oldStatus) {
-                Log::info("FixZombieFixtures: fixture id={$fixture->id} still {$oldStatus} in API, skipping.");
-                // touch() to push updated_at — prevents immediate re-fetch next 30min cycle
-                // for fixtures genuinely stuck by API delay
-                $fixture->touch();
-                $skipped++;
                 continue;
             }
-
-            $fixture->update([
-                'status_short'   => $newStatus,
-                'status_long'    => $newLong,
-                'elapsed_minute' => $newElapsed,
+            $fixture->update(['status_short' => $new, 'status_long' => $data['fixture']['status']['long'] ?? null,
+                'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null]);
+            FixtureScore::updateOrCreate(['fixture_id' => $fixture->id], [
+                'goals_home' => $data['goals']['home'] ?? null, 'goals_away' => $data['goals']['away'] ?? null,
+                'home_halftime' => $data['score']['halftime']['home'] ?? null, 'away_halftime' => $data['score']['halftime']['away'] ?? null,
+                'home_fulltime' => $data['score']['fulltime']['home'] ?? null, 'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
+                'home_extratime' => $data['score']['extratime']['home'] ?? null, 'away_extratime' => $data['score']['extratime']['away'] ?? null,
+                'home_penalties' => $data['score']['penalty']['home'] ?? null, 'away_penalties' => $data['score']['penalty']['away'] ?? null,
             ]);
-
-            FixtureScore::updateOrCreate(
-                ['fixture_id' => $fixture->id],
-                [
-                    'goals_home'      => $data['goals']['home'] ?? null,
-                    'goals_away'      => $data['goals']['away'] ?? null,
-                    'home_halftime'   => $data['score']['halftime']['home']  ?? null,
-                    'away_halftime'   => $data['score']['halftime']['away']  ?? null,
-                    'home_fulltime'   => $data['score']['fulltime']['home']  ?? null,
-                    'away_fulltime'   => $data['score']['fulltime']['away']  ?? null,
-                    'home_extratime'  => $data['score']['extratime']['home'] ?? null,
-                    'away_extratime'  => $data['score']['extratime']['away'] ?? null,
-                    'home_penalties'  => $data['score']['penalty']['home']   ?? null,
-                    'away_penalties'  => $data['score']['penalty']['away']   ?? null,
-                ]
-            );
-
-            Log::info(
-                "FixZombieFixtures: REPAIRED fixture id={$fixture->id} api_id={$fixture->api_fixture_id} " .
-                "kick_off={$fixture->kick_off} | {$oldStatus} → {$newStatus}"
-            );
-
+            $terminal = in_array($new, self::FINAL, true);
+            $quota->recordRepair($fixture->id, 'updated_'.$new, $terminal);
             $repaired++;
         }
-
-        Log::info(
-            "FixZombieFixtures: run complete. " .
-            "zombies_found={$count}, repaired={$repaired}, skipped={$skipped}, failed={$failed}"
-        );
-
-        $remaining = Fixture::where('kick_off', '<', now()->subHours(3))
-            ->whereNotIn('status_short', self::FINAL_STATUSES)
-            ->where('updated_at', '<', now()->subMinutes(60))
-            ->count();
-
-        if ($remaining > 0) {
-            Log::warning("FixZombieFixtures: {$remaining} zombie fixture(s) still remain.");
+        if ($checked || $repaired) {
+            Log::channel('api_football')->info('repair_zombie_run', compact('checked', 'repaired', 'limit'));
         }
     }
 }

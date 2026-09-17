@@ -53,13 +53,12 @@ $readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) /
         @endif
 
         <div class="text-gray-300 leading-relaxed space-y-4
-            [&_h1]:hidden
             [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-[#2a2a2a] [&_h2]:pb-1
             [&_h3]:text-[#CCFF00] [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-1
             [&_p]:mb-3 [&_p]:leading-7
             [&_a]:text-[#CCFF00] [&_a]:underline [&_a]:hover:text-white
             [&_strong]:text-white [&_strong]:font-bold">
-            {!! $post->content !!}
+            {!! \App\Support\BlogContent::withBodyHeadings($post->content) !!}
         </div>
     </article>
 
