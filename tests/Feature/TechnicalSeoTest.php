@@ -21,10 +21,7 @@ class TechnicalSeoTest extends TestCase
     {
         config()->set('seo.enforce_canonical_host', true);
 
-        $response = $this->withServerVariables([
-            'HTTP_HOST' => 'www.rezultati.net',
-            'HTTPS' => 'off',
-        ])->get('/provjera/putanje?foo=bar&baz=1');
+        $response = $this->get('http://www.rezultati.net/provjera/putanje?foo=bar&baz=1');
 
         $response->assertStatus(301);
         $response->assertRedirect('https://rezultati.net/provjera/putanje?foo=bar&baz=1');
@@ -34,10 +31,7 @@ class TechnicalSeoTest extends TestCase
     {
         config()->set('seo.enforce_canonical_host', true);
 
-        $response = $this->withServerVariables([
-            'HTTP_HOST' => 'www.rezultati.net',
-            'HTTPS' => 'on',
-        ])->get('/provjera/putanje?foo=bar&baz=1');
+        $response = $this->get('https://www.rezultati.net/provjera/putanje?foo=bar&baz=1');
 
         $response->assertStatus(301);
         $response->assertRedirect('https://rezultati.net/provjera/putanje?foo=bar&baz=1');
