@@ -8,7 +8,7 @@ class Fixture extends Model
     protected $fillable = [
         'api_fixture_id','league_id','home_team_id','away_team_id',
         'season','round','kick_off','status_long','status_short',
-        'elapsed_minute','venue_name','referee','lineups_fetched_at'
+        'elapsed_minute','elapsed_extra','venue_name','referee','lineups_fetched_at'
     ];
 
     protected $casts = [
