@@ -33,9 +33,20 @@ sql_call() {
 }
 
 start_database() {
+    local attempt database_info
     "${COMPOSE[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || true
     "${COMPOSE[@]}" up --detach --wait mariadb
-    "${COMPOSE[@]}" exec -T mariadb mariadb --protocol=socket -uroot --execute         "SELECT VERSION() AS mariadb_version, DATABASE() AS current_database;" "${DB_NAME}"
+    for ((attempt=1; attempt<=30; attempt++)); do
+        if database_info=$("${COMPOSE[@]}" exec -T mariadb mariadb --protocol=socket -uroot --execute \
+            "SELECT VERSION() AS mariadb_version, DATABASE() AS current_database;" "${DB_NAME}" 2>/dev/null); then
+            printf '%s\n' "${database_info}"
+            return 0
+        fi
+        sleep 1
+    done
+    printf '%s\n' 'MariaDB socket did not become stable after 30 attempts.' >&2
+    "${COMPOSE[@]}" logs --no-color --tail 100 mariadb >&2 || true
+    return 1
 }
 
 run_cycle() {
