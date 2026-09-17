@@ -35,7 +35,7 @@ class CanonicalFootballMigrationContractTest extends TestCase
             $contents = file_get_contents($file);
             $table = self::TABLES[$position];
 
-            $this->assertStringContainsString('public bool $withinTransaction = false;', $contents);
+            $this->assertStringContainsString('public $withinTransaction = false;', $contents);
             $this->assertSame(1, substr_count($contents, 'CREATE TABLE '));
             $this->assertSame(1, substr_count($contents, "DROP TABLE IF EXISTS $table"));
         }
