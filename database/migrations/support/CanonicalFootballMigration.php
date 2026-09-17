@@ -78,13 +78,26 @@ final class CanonicalFootballMigration
             DB::unprepared($createSql);
         }
 
-        self::assertSafeToAdopt($table, $contract);
+        self::assertExactEmptyTable($table, $contract, 'restart recovery');
+    }
+
+    public static function drop(string $table, string $migration): void
+    {
+        $contract = self::contract($table, $migration);
+
+        if (! self::exists($table)) {
+            throw self::unsafe($table, 'rollback', 'table is unexpectedly missing');
+        }
+
+        self::assertExactEmptyTable($table, $contract, 'rollback');
+
+        DB::statement(sprintf('DROP TABLE `%s`', $table));
     }
 
     /**
      * @param  array{migration: string, marker: string, show_create_sha256: string}  $contract
      */
-    private static function assertSafeToAdopt(string $table, array $contract): void
+    private static function assertExactEmptyTable(string $table, array $contract, string $operation): void
     {
         $metadata = DB::selectOne(
             <<<'SQL'
@@ -99,12 +112,12 @@ SQL,
             || $metadata->table_type !== 'BASE TABLE'
             || $metadata->engine !== 'InnoDB'
             || $metadata->table_comment !== $contract['marker']) {
-            throw self::unsafe($table, 'table type, engine, or canonical migration marker does not match');
+            throw self::unsafe($table, $operation, 'table type, engine, or canonical migration marker does not match');
         }
 
         $rowCount = (int) DB::scalar(sprintf('SELECT COUNT(*) FROM `%s`', $table));
         if ($rowCount !== 0) {
-            throw self::unsafe($table, "table is not empty (rows=$rowCount)");
+            throw self::unsafe($table, $operation, "table is not empty (rows=$rowCount)");
         }
 
         $inboundCount = (int) DB::scalar(
@@ -118,16 +131,15 @@ SQL,
             [$table, $table],
         );
         if ($inboundCount !== 0) {
-            throw self::unsafe($table, "table has inbound foreign-key dependents (references=$inboundCount)");
+            throw self::unsafe($table, $operation, "table has inbound foreign-key dependents (references=$inboundCount)");
         }
 
         $showCreate = DB::select(sprintf('SHOW CREATE TABLE `%s`', $table));
         $values = isset($showCreate[0]) ? array_values((array) $showCreate[0]) : [];
         $actualHash = isset($values[1]) ? hash('sha256', $values[1]) : '';
 
-
         if (! hash_equals($contract['show_create_sha256'], $actualHash)) {
-            throw self::unsafe($table, "schema fingerprint does not match (actual=$actualHash)");
+            throw self::unsafe($table, $operation, "schema fingerprint does not match (actual=$actualHash)");
         }
     }
 
@@ -157,10 +169,10 @@ SQL,
         return $contract;
     }
 
-    private static function unsafe(string $table, string $reason): RuntimeException
+    private static function unsafe(string $table, string $operation, string $reason): RuntimeException
     {
         return new RuntimeException(
-            "Refusing restart recovery for canonical table `$table`: $reason. "
+            "Refusing $operation for canonical table `$table`: $reason. "
             .'Leave the table and migration ledger unchanged; stop and escalate for independent inspection.',
         );
     }

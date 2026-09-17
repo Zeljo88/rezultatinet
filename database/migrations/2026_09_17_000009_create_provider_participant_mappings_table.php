@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
-
 require_once __DIR__.'/support/CanonicalFootballMigration.php';
 
 return new class extends Migration
@@ -33,6 +31,6 @@ SQL);
 
     public function down(): void
     {
-        DB::statement('DROP TABLE IF EXISTS provider_participant_mappings');
+        CanonicalFootballMigration::drop('provider_participant_mappings', '2026_09_17_000009_create_provider_participant_mappings_table');
     }
 };

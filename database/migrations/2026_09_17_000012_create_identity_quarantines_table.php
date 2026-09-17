@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
-
 require_once __DIR__.'/support/CanonicalFootballMigration.php';
 
 return new class extends Migration
@@ -42,6 +40,6 @@ SQL);
 
     public function down(): void
     {
-        DB::statement('DROP TABLE IF EXISTS identity_quarantines');
+        CanonicalFootballMigration::drop('identity_quarantines', '2026_09_17_000012_create_identity_quarantines_table');
     }
 };

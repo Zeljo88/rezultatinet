@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
-
 require_once __DIR__.'/support/CanonicalFootballMigration.php';
 
 return new class extends Migration
@@ -31,6 +29,6 @@ SQL);
 
     public function down(): void
     {
-        DB::statement('DROP TABLE IF EXISTS competition_seasons');
+        CanonicalFootballMigration::drop('competition_seasons', '2026_09_17_000004_create_competition_seasons_table');
     }
 };

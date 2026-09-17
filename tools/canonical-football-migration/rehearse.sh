@@ -5,6 +5,11 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 OUT=${1:-"$ROOT/build/canonical-football-migration"}
 COMPOSE=(docker compose -f "$ROOT/tools/a1b/compose.yaml")
 TARGET_TABLES="'sports','providers','competitions','competition_seasons','participants','events','event_participants','provider_competition_mappings','provider_participant_mappings','provider_event_mappings','import_runs','identity_quarantines'"
+TARGET_TABLE_LIST=(
+    sports providers competitions competition_seasons participants events
+    event_participants provider_competition_mappings provider_participant_mappings
+    provider_event_mappings import_runs identity_quarantines
+)
 
 mkdir -p "$OUT"
 command -v docker >/dev/null || {
@@ -331,6 +336,153 @@ expect_recovery_abort() {
     printf 'scenario=%s abort=pass ledger_unchanged=pass collision_preserved=pass legacy_unchanged=pass\n' \
         "$label" > "$negative_out/summary.txt"
 }
+assert_all_canonical_empty() {
+    local label=$1
+    local log=$2
+    local table
+
+    for table in "${TARGET_TABLE_LIST[@]}"; do
+        assert_scalar "${label}_${table}_rows" "0" "SELECT COUNT(*) FROM `$table`" >> "$log"
+    done
+}
+
+expect_rollback_abort() {
+    local label=$1
+    local expected_reason=$2
+    local setup=$3
+    local expected_table_count=$4
+    local expected_target_exists=$5
+    local state_assertion=$6
+    local negative_out="$OUT/rollback-negative-$label"
+    local normalized_rollback
+    local table_id_before=''
+    local table_id_after=''
+
+    mkdir -p "$negative_out"
+    reset_recovery_database "$negative_out"
+    run_artisan canonical_migration php artisan migrate --force --no-interaction \
+        > "$negative_out/migrate-up.log" 2>&1
+
+    case "$setup" in
+        wrong-marker)
+            db_exec canonical_migration -e \
+                "ALTER TABLE identity_quarantines COMMENT='not the canonical migration marker'"
+            ;;
+        wrong-schema)
+            db_exec canonical_migration -e \
+                'ALTER TABLE identity_quarantines ADD COLUMN collision_column INT NULL'
+            ;;
+        nonempty)
+            db_exec canonical_migration <<'SQL'
+INSERT INTO sports (id, code, name, created_at, updated_at)
+VALUES (1, 'rollback-test', 'Rollback Test', NOW(6), NOW(6));
+INSERT INTO providers (
+    id, sport_id, code, vendor_code, product_namespace, name, created_at, updated_at
+) VALUES (
+    1, 1, 'rollback-provider', 'test', 'rollback', 'Rollback Provider', NOW(6), NOW(6)
+);
+INSERT INTO identity_quarantines (
+    provider_id, sport_id, entity_type, external_id, source_table, source_legacy_id,
+    reason_code, first_seen_at, last_seen_at
+) VALUES (
+    1, 1, 'fixture', 'rollback-collision', 'fixtures', 999999,
+    'rollback_test', NOW(6), NOW(6)
+);
+SQL
+            ;;
+        inbound-dependent)
+            db_exec canonical_migration -e \
+                'CREATE TABLE rollback_external_dependent (
+                    id BIGINT UNSIGNED NOT NULL,
+                    identity_quarantine_id BIGINT UNSIGNED NOT NULL,
+                    PRIMARY KEY (id),
+                    CONSTRAINT rollback_external_identity_quarantine_fk
+                        FOREIGN KEY (identity_quarantine_id) REFERENCES identity_quarantines (id)
+                ) ENGINE=InnoDB'
+            ;;
+        missing)
+            db_exec canonical_migration -e 'DROP TABLE identity_quarantines'
+            ;;
+        wrong-type)
+            db_exec canonical_migration -e \
+                'DROP TABLE identity_quarantines; CREATE VIEW identity_quarantines AS SELECT 1 AS collision'
+            ;;
+        *)
+            echo "Unknown negative rollback case: $setup" >&2
+            return 1
+            ;;
+    esac
+
+    assert_scalar "rollback_${label}_ledger_before" "12" \
+        "SELECT COUNT(*) FROM migrations WHERE migration LIKE '2026_09_17_0000%'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_target_ledger_before" "1" \
+        "SELECT COUNT(*) FROM migrations WHERE migration='2026_09_17_000012_create_identity_quarantines_table'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_table_count_before" "$expected_table_count" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ($TARGET_TABLES)" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_target_exists_before" "$expected_target_exists" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='identity_quarantines'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_specific_state_before" "1" "$state_assertion" \
+        >> "$negative_out/assertions.log"
+
+    capture_schema canonical_migration "$negative_out/schema-before.txt"
+    if [[ "$setup" != missing && "$setup" != wrong-type ]]; then
+        table_id_before=$(db_query canonical_migration \
+            "SELECT table_id FROM information_schema.innodb_sys_tables WHERE name=CONCAT(DATABASE(),'/identity_quarantines')")
+        [[ "$table_id_before" =~ ^[0-9]+$ ]]
+        db_exec canonical_migration --batch --raw -e 'SHOW CREATE TABLE identity_quarantines' \
+            > "$negative_out/show-create-before.txt"
+    fi
+
+    if run_artisan canonical_migration php artisan migrate:rollback --force --no-interaction \
+        > "$negative_out/rollback.log" 2>&1; then
+        echo "FAIL: rollback unexpectedly accepted $label" >&2
+        return 1
+    fi
+    normalized_rollback=$(tr '\n' ' ' < "$negative_out/rollback.log" | tr -s ' ')
+    grep -Fq 'Refusing rollback for canonical table `identity_quarantines`' <<< "$normalized_rollback"
+    grep -Fq "$expected_reason" <<< "$normalized_rollback"
+
+    assert_scalar "rollback_${label}_ledger_after" "12" \
+        "SELECT COUNT(*) FROM migrations WHERE migration LIKE '2026_09_17_0000%'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_target_ledger_after" "1" \
+        "SELECT COUNT(*) FROM migrations WHERE migration='2026_09_17_000012_create_identity_quarantines_table'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_table_count_after" "$expected_table_count" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ($TARGET_TABLES)" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_target_exists_after" "$expected_target_exists" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='identity_quarantines'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "rollback_${label}_specific_state_after" "1" "$state_assertion" \
+        >> "$negative_out/assertions.log"
+
+    capture_schema canonical_migration "$negative_out/schema-after.txt"
+    diff -u "$negative_out/schema-before.txt" "$negative_out/schema-after.txt" \
+        > "$negative_out/schema-unchanged.diff"
+    if [[ "$setup" != missing && "$setup" != wrong-type ]]; then
+        table_id_after=$(db_query canonical_migration \
+            "SELECT table_id FROM information_schema.innodb_sys_tables WHERE name=CONCAT(DATABASE(),'/identity_quarantines')")
+        [[ "$table_id_after" = "$table_id_before" ]]
+        printf 'PASS target_table_identity_preserved=%s\n' "$table_id_after" \
+            >> "$negative_out/assertions.log"
+        db_exec canonical_migration --batch --raw -e 'SHOW CREATE TABLE identity_quarantines' \
+            > "$negative_out/show-create-after.txt"
+        diff -u "$negative_out/show-create-before.txt" "$negative_out/show-create-after.txt" \
+            > "$negative_out/show-create-unchanged.diff"
+    fi
+
+    capture_legacy canonical_migration "$negative_out/legacy-after-abort.txt"
+    diff -u "$negative_out/legacy-before.txt" "$negative_out/legacy-after-abort.txt" \
+        > "$negative_out/legacy-after-abort.diff"
+    printf 'scenario=%s abort=pass no_partial_progress=pass ledger_preserved=pass target_preserved=pass legacy_unchanged=pass\n' \
+        "$label" > "$negative_out/summary.txt"
+}
+
 run_cycle() {
     local cycle=$1
     local cycle_out="$OUT/cycle-$cycle"
@@ -354,10 +506,10 @@ run_cycle() {
     capture_schema canonical_contract "$cycle_out/reviewed-schema.txt"
     diff -u "$cycle_out/reviewed-schema.txt" "$cycle_out/actual-schema.txt"         > "$cycle_out/schema-parity.diff"
 
-    exercise_constraints "$cycle_out/constraints.log"
-
     capture_legacy canonical_migration "$cycle_out/legacy-after-up.txt"
     diff -u "$cycle_out/legacy-before.txt" "$cycle_out/legacy-after-up.txt"         > "$cycle_out/legacy-after-up.diff"
+
+    assert_all_canonical_empty "cycle_${cycle}_pre_rollback" "$cycle_out/rollback.log"
 
     run_artisan canonical_migration php artisan migrate:rollback --force --no-interaction         > "$cycle_out/migrate-down.log" 2>&1
 
@@ -367,6 +519,14 @@ run_cycle() {
 
     capture_legacy canonical_migration "$cycle_out/legacy-after-rollback.txt"
     diff -u "$cycle_out/legacy-before.txt" "$cycle_out/legacy-after-rollback.txt"         > "$cycle_out/legacy-after-rollback.diff"
+
+    reset_recovery_database "$cycle_out"
+    run_artisan canonical_migration php artisan migrate --force --no-interaction \
+        > "$cycle_out/invariant-migrate-up.log" 2>&1
+    exercise_constraints "$cycle_out/constraints.log"
+    capture_legacy canonical_migration "$cycle_out/legacy-after-invariants.txt"
+    diff -u "$cycle_out/legacy-before.txt" "$cycle_out/legacy-after-invariants.txt" \
+        > "$cycle_out/legacy-after-invariants.diff"
 
     printf 'cycle=%s schema_parity=pass constraints=pass legacy_unchanged=pass rollback=pass\n'         "$cycle" > "$cycle_out/summary.txt"
 }
@@ -415,7 +575,43 @@ expect_recovery_abort \
     'references=1' \
     "SELECT COUNT(*) FROM information_schema.key_column_usage WHERE referenced_table_schema=DATABASE() AND referenced_table_name='sports' AND table_name='collision_dependent'"
 
-printf 'MariaDB=%s\ncycles=2\ncrash_recoveries=2\nnegative_recovery_cases=4\nresult=PASS\n' \
+expect_rollback_abort \
+    wrong-marker \
+    'table type, engine, or canonical migration marker does not match' \
+    wrong-marker 12 1 \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='identity_quarantines' AND table_comment='not the canonical migration marker'"
+
+expect_rollback_abort \
+    wrong-schema \
+    'schema fingerprint does not match' \
+    wrong-schema 12 1 \
+    "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='identity_quarantines' AND column_name='collision_column'"
+
+expect_rollback_abort \
+    nonempty \
+    'table is not empty (rows=1)' \
+    nonempty 12 1 \
+    "SELECT COUNT(*) FROM identity_quarantines WHERE external_id='rollback-collision'"
+
+expect_rollback_abort \
+    inbound-dependent \
+    'references=1' \
+    inbound-dependent 12 1 \
+    "SELECT COUNT(*) FROM information_schema.key_column_usage WHERE referenced_table_schema=DATABASE() AND referenced_table_name='identity_quarantines' AND table_name='rollback_external_dependent'"
+
+expect_rollback_abort \
+    missing-table \
+    'table is unexpectedly missing' \
+    missing 11 0 \
+    "SELECT COUNT(*) = 0 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='identity_quarantines'"
+
+expect_rollback_abort \
+    wrong-type \
+    'table type, engine, or canonical migration marker does not match' \
+    wrong-type 12 1 \
+    "SELECT COUNT(*) FROM information_schema.views WHERE table_schema=DATABASE() AND table_name='identity_quarantines'"
+
+printf 'MariaDB=%s\ncycles=2\ncrash_recoveries=2\nnegative_recovery_cases=4\nnegative_rollback_cases=6\nresult=PASS\n' \
     "$version" > "$OUT/summary.txt"
 
 echo "PASS: canonical football migration contract on exact MariaDB 10.11.13"

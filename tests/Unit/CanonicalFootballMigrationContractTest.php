@@ -42,7 +42,8 @@ class CanonicalFootballMigrationContractTest extends TestCase
                 "COMMENT='rezultati.net canonical-football v1 ".pathinfo($file, PATHINFO_FILENAME)."'",
                 $contents,
             );
-            $this->assertSame(1, substr_count($contents, "DROP TABLE IF EXISTS $table"));
+            $this->assertSame(1, substr_count($contents, "CanonicalFootballMigration::drop('$table'"));
+            $this->assertStringNotContainsString('DROP TABLE', $contents);
         }
     }
 
@@ -118,6 +119,7 @@ class CanonicalFootballMigrationContractTest extends TestCase
             'table is not empty',
             'table has inbound foreign-key dependents',
             'schema fingerprint does not match',
+            'table is unexpectedly missing',
             'Leave the table and migration ledger unchanged',
         ] as $required) {
             $this->assertStringContainsString($required, $helper);
@@ -137,8 +139,13 @@ class CanonicalFootballMigrationContractTest extends TestCase
             $all,
         );
 
-        preg_match_all('/DROP TABLE IF EXISTS ([a-z_]+)/', $all, $drops);
+        preg_match_all(
+            "/CanonicalFootballMigration::drop\('([a-z_]+)'/",
+            $all,
+            $drops,
+        );
         $this->assertSame(self::TABLES, $drops[1]);
+        $this->assertStringNotContainsString('DROP TABLE', $all);
     }
 
     public function test_publication_and_home_away_invariants_are_frozen(): void

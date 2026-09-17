@@ -15,7 +15,10 @@ the exact marker, InnoDB base-table metadata, zero rows, and zero inbound foreig
 dependents. If an interruption commits DDL before the Laravel ledger insert, a retry
 adopts that exact empty table without dropping or replacing it; return from `up()`
 then lets Laravel record the missing ledger row. Every mismatch aborts before any
-recovery mutation.
+recovery mutation. The same allow-listed contract guards every `down()`: the table must
+still exist as the exact marked MariaDB 10.11.13 object, have the pinned `SHOW CREATE
+TABLE` fingerprint, contain zero rows, and have zero inbound foreign-key dependents
+before a plain `DROP TABLE` is issued.
 
 The marker comment is the only overlay on the approved 12 `CREATE TABLE` statements.
 Removing the 12 comments reproduces the reviewed extracted contract SHA-256
@@ -37,8 +40,18 @@ resumes at the next file. A successful retry yields all 12 ledger rows.
 
 A normal completed batch rolls back in reverse dependency order. Crash-window tests also
 prove `migrate:rollback --step=12` removes all 12 canonical tables when prerequisites
-and the resumed migration landed in different batches. Rollback is authorized only
-while the canonical schema is empty; it does not target legacy tables.
+and the resumed migration landed in different batches. Rollback is allowed only while
+every targeted canonical table is present, exact, empty, and free of inbound dependencies;
+it does not target legacy tables. An unexpectedly missing table is drift and fails closed:
+the helper preserves the corresponding ledger row and available evidence instead of
+silently treating the migration as rolled back.
+
+MariaDB DDL and Laravel rollback are nontransactional across migration files. If a later
+reverse-order file passes and drops before an earlier file fails its guard, those completed
+files and their ledger rows remain rolled back; the failing table and its ledger row remain
+unchanged. Operators must stop and preserve that partial state for separately reviewed
+remediation. The negative suite targets the first reverse-order table to prove each unsafe
+condition itself causes no partial destructive progress.
 
 ## Operator recovery and abort procedure
 
@@ -49,13 +62,16 @@ empty-schema window:
 2. rerun `php artisan migrate --force --no-interaction` from the exact reviewed head;
 3. if guarded adoption succeeds, verify all 12 canonical ledger rows and tables before
    any separately authorized rollback or later phase;
-4. if recovery aborts, stop. Leave the table, its data, dependents, and Laravel ledger
+4. before rollback, independently verify that all targeted canonical tables are exact and
+   empty; any data, drift, missing object, or inbound dependency is a hard abort requiring
+   separate reviewed remediation;
+5. if recovery or rollback aborts, stop. Leave the table, its data, dependents, and Laravel ledger
    unchanged. Capture `SHOW CREATE TABLE`, table comment/type/engine, exact row count,
    inbound foreign keys, and migration-ledger state for independent escalation.
 
 Never repair an abort by editing the ledger, dropping/renaming/altering a table, loading
 baseline/design SQL, running `schema:load` or `migrate:fresh`, or copying manual SQL.
-A wrong marker, wrong schema fingerprint, non-empty table, inbound dependent, view,
+A wrong marker, wrong schema fingerprint, non-empty table, inbound dependent, missing table, view,
 legacy table, or unknown name collision is deliberately not recoverable by this PR.
 
 ## Operational boundaries
