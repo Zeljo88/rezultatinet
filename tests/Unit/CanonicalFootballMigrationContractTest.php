@@ -37,6 +37,11 @@ class CanonicalFootballMigrationContractTest extends TestCase
 
             $this->assertStringContainsString('public $withinTransaction = false;', $contents);
             $this->assertSame(1, substr_count($contents, 'CREATE TABLE '));
+            $this->assertSame(1, substr_count($contents, 'CanonicalFootballMigration::create('));
+            $this->assertStringContainsString(
+                "COMMENT='rezultati.net canonical-football v1 ".pathinfo($file, PATHINFO_FILENAME)."'",
+                $contents,
+            );
             $this->assertSame(1, substr_count($contents, "DROP TABLE IF EXISTS $table"));
         }
     }
@@ -69,6 +74,53 @@ class CanonicalFootballMigrationContractTest extends TestCase
 
             $this->assertArrayHasKey($table, $reviewedByTable);
             $this->assertSame($reviewedByTable[$table], $match[1]);
+        }
+    }
+
+    public function test_marker_overlay_is_cryptographically_linked_to_the_approved_contract(): void
+    {
+        $reviewed = file_get_contents($this->root().'/tools/canonical-football-migration/reviewed-schema.sql');
+        $manifest = json_decode(
+            file_get_contents($this->root().'/tools/canonical-football-migration/approved-contract-manifest.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $withoutMarkers = preg_replace(
+            "/ COMMENT='rezultati\\.net canonical-football v1 2026_09_17_[0-9_]+_create_[a-z_]+_table'/",
+            '',
+            $reviewed,
+        );
+
+        $this->assertSame(
+            'cdd6283cffb62861af5b5a287cb79c98a6d441920f42d93183a0666297e3ce7e',
+            $manifest['approved_artifact_sha256'],
+        );
+        $this->assertSame(
+            $manifest['extracted_create_statements_sha256'],
+            hash('sha256', $withoutMarkers),
+        );
+        $this->assertSame(
+            $manifest['marked_reviewed_schema_sha256'],
+            hash('sha256', $reviewed),
+        );
+    }
+
+    public function test_recovery_helper_is_fully_pinned_and_fails_closed(): void
+    {
+        $helper = file_get_contents(
+            $this->root().'/database/migrations/support/CanonicalFootballMigration.php',
+        );
+
+        $this->assertSame(12, substr_count($helper, "'show_create_sha256' => '"));
+        $this->assertStringNotContainsString('DISCOVER', $helper);
+        foreach ([
+            'canonical migration marker does not match',
+            'table is not empty',
+            'table has inbound foreign-key dependents',
+            'schema fingerprint does not match',
+            'Leave the table and migration ledger unchanged',
+        ] as $required) {
+            $this->assertStringContainsString($required, $helper);
         }
     }
 

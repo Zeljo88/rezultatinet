@@ -11,62 +11,62 @@ final class CanonicalFootballMigration
         'sports' => [
             'migration' => '2026_09_17_000001_create_sports_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000001_create_sports_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '0701f9b01b4d67eb2ec8954c0837ebbeed4d2359fa46118756a8a0656958c337',
         ],
         'providers' => [
             'migration' => '2026_09_17_000002_create_providers_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000002_create_providers_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '27674bed40a17eb032f45d87506a4bb9fa8b1624d046e0c13d0a99cda0e1f47c',
         ],
         'competitions' => [
             'migration' => '2026_09_17_000003_create_competitions_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000003_create_competitions_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '04ad97842b08824de552426e5c166fe9bf309268109e4ee4e0afc0cd523880aa',
         ],
         'competition_seasons' => [
             'migration' => '2026_09_17_000004_create_competition_seasons_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000004_create_competition_seasons_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '280249987bf1f8b1a7d735162eb9fdd6c249876db9eafbac2f62d6f79b596bbd',
         ],
         'participants' => [
             'migration' => '2026_09_17_000005_create_participants_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000005_create_participants_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '432cba6eec05627aa47b762b7af82bfe5fc728727e76cb18d88ebb4fe3e41d76',
         ],
         'events' => [
             'migration' => '2026_09_17_000006_create_events_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000006_create_events_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '82d4c02650f01b5bf6ab7c68f7f802c6664d5b0ca25f5c26d96cd8655146d933',
         ],
         'event_participants' => [
             'migration' => '2026_09_17_000007_create_event_participants_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000007_create_event_participants_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '93697e8fbf695571a2b7d66477d214a98b3474b21090ad4c06b0d4ceb615213d',
         ],
         'provider_competition_mappings' => [
             'migration' => '2026_09_17_000008_create_provider_competition_mappings_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000008_create_provider_competition_mappings_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '8254107fa0464c50fd773b0f87a5065a93e9d04c6ea8f5ff19a52b30de47216d',
         ],
         'provider_participant_mappings' => [
             'migration' => '2026_09_17_000009_create_provider_participant_mappings_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000009_create_provider_participant_mappings_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '993e941be75b47c6d290bc9162302c29252bcc1cde9d4345743912baed036cd0',
         ],
         'provider_event_mappings' => [
             'migration' => '2026_09_17_000010_create_provider_event_mappings_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000010_create_provider_event_mappings_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => '4a9d3137387714fea9ae9d5de3410c787fb872a2233dfbec719ad2144359743b',
         ],
         'import_runs' => [
             'migration' => '2026_09_17_000011_create_import_runs_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000011_create_import_runs_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => 'a2b26fc96c0a3bf12e3f956c6f42c88939f5ee6a2445d2c0942f856af3b20221',
         ],
         'identity_quarantines' => [
             'migration' => '2026_09_17_000012_create_identity_quarantines_table',
             'marker' => 'rezultati.net canonical-football v1 2026_09_17_000012_create_identity_quarantines_table',
-            'show_create_sha256' => 'DISCOVER',
+            'show_create_sha256' => 'ed530e2c9b15c9f553f26bd0d800ac99099e03c9aa107cac7b4a5794eb8e17f9',
         ],
     ];
 
@@ -76,8 +76,6 @@ final class CanonicalFootballMigration
 
         if (! self::exists($table)) {
             DB::unprepared($createSql);
-
-            return;
         }
 
         self::assertSafeToAdopt($table, $contract);
@@ -127,9 +125,6 @@ SQL,
         $values = isset($showCreate[0]) ? array_values((array) $showCreate[0]) : [];
         $actualHash = isset($values[1]) ? hash('sha256', $values[1]) : '';
 
-        if ($contract['show_create_sha256'] === 'DISCOVER') {
-            throw self::unsafe($table, "schema fingerprint is not pinned (actual=$actualHash)");
-        }
 
         if (! hash_equals($contract['show_create_sha256'], $actualHash)) {
             throw self::unsafe($table, "schema fingerprint does not match (actual=$actualHash)");

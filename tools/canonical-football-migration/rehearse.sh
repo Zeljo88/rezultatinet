@@ -142,6 +142,7 @@ SQL
     assert_scalar "canonical_table_count" "12"         "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ($TARGET_TABLES)"         >> "$log"
     assert_scalar "default_unpublished_events" "1"         "SELECT COUNT(*) FROM events WHERE id=1 AND publishable=0" >> "$log"
     assert_scalar "default_event_version" "1"         "SELECT COUNT(*) FROM events WHERE id=1 AND version=1" >> "$log"
+    assert_scalar "default_event_scores_null" "1"         "SELECT COUNT(*) FROM events WHERE id=1 AND home_score IS NULL AND away_score IS NULL" >> "$log"
     assert_scalar "default_open_quarantine" "1"         "SELECT COUNT(*) FROM identity_quarantines WHERE status='open' AND occurrences=1" >> "$log"
 
     expect_failure "sports code unique"         "INSERT INTO sports (code,name,created_at,updated_at) VALUES ('football','Duplicate',NOW(6),NOW(6))" "$log"
@@ -155,6 +156,179 @@ SQL
     expect_failure "one open quarantine unique"         "INSERT INTO identity_quarantines (provider_id,sport_id,entity_type,external_id,source_table,source_legacy_id,reason_code,first_seen_at,last_seen_at) VALUES (1,1,'fixture','other','fixtures',9202,'unknown_status',NOW(6),NOW(6))" "$log"
 }
 
+reset_recovery_database() {
+    local evidence_dir=$1
+
+    "${COMPOSE[@]}" exec -T db mariadb -uroot -e \
+        "DROP DATABASE IF EXISTS canonical_migration;
+         DROP DATABASE IF EXISTS canonical_contract;
+         CREATE DATABASE canonical_migration CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+         CREATE DATABASE canonical_contract CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+    db_exec canonical_migration < "$ROOT/database/schema/mariadb-schema.sql"
+    db_exec canonical_migration < "$ROOT/tools/canonical-football-migration/legacy-fixtures.sql"
+    capture_legacy canonical_migration "$evidence_dir/legacy-before.txt"
+}
+
+create_reviewed_table() {
+    local table=$1
+    local ddl
+
+    ddl=$(awk -v start="CREATE TABLE $table (" '
+        $0 == start { emit = 1 }
+        emit { print }
+        emit && /;$/ { exit }
+    ' "$ROOT/tools/canonical-football-migration/reviewed-schema.sql")
+
+    [[ "$ddl" == "CREATE TABLE $table ("* ]]
+    [[ "$ddl" == *"COMMENT='rezultati.net canonical-football v1 "* ]]
+    printf '%s\n' "$ddl" | db_exec canonical_migration
+}
+
+run_crash_recovery() {
+    local label=$1
+    local table=$2
+    local migration=$3
+    shift 3
+    local recovery_out="$OUT/crash-$label"
+    local table_id_before
+    local table_id_after
+    local migrate_args=(php artisan migrate --force --no-interaction)
+
+    mkdir -p "$recovery_out"
+    reset_recovery_database "$recovery_out"
+
+    for path in "$@"; do
+        migrate_args+=(--path="$path")
+    done
+    if [[ "$#" -gt 0 ]]; then
+        run_artisan canonical_migration "${migrate_args[@]}" \
+            > "$recovery_out/prerequisites.log" 2>&1
+    else
+        : > "$recovery_out/prerequisites.log"
+    fi
+
+    create_reviewed_table "$table"
+    assert_scalar "crash_${label}_table_committed" "1" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='$table'" \
+        >> "$recovery_out/crash-window.log"
+    assert_scalar "crash_${label}_ledger_absent" "0" \
+        "SELECT COUNT(*) FROM migrations WHERE migration='$migration'" \
+        >> "$recovery_out/crash-window.log"
+
+    table_id_before=$(db_query canonical_migration \
+        "SELECT table_id FROM information_schema.innodb_sys_tables WHERE name=CONCAT(DATABASE(),'/$table')")
+    [[ "$table_id_before" =~ ^[0-9]+$ ]]
+
+    run_artisan canonical_migration php artisan migrate --force --no-interaction \
+        > "$recovery_out/retry.log" 2>&1
+
+    table_id_after=$(db_query canonical_migration \
+        "SELECT table_id FROM information_schema.innodb_sys_tables WHERE name=CONCAT(DATABASE(),'/$table')")
+    [[ "$table_id_after" = "$table_id_before" ]]
+    printf 'PASS table_identity_preserved=%s\n' "$table_id_after" >> "$recovery_out/crash-window.log"
+
+    assert_scalar "crash_${label}_ledger_repaired" "1" \
+        "SELECT COUNT(*) FROM migrations WHERE migration='$migration'" \
+        >> "$recovery_out/crash-window.log"
+    assert_scalar "crash_${label}_all_ledgers_present" "12" \
+        "SELECT COUNT(*) FROM migrations WHERE migration LIKE '2026_09_17_0000%'" \
+        >> "$recovery_out/crash-window.log"
+    assert_scalar "crash_${label}_all_tables_present" "12" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ($TARGET_TABLES)" \
+        >> "$recovery_out/crash-window.log"
+
+    db_exec canonical_contract < "$ROOT/tools/canonical-football-migration/reviewed-schema.sql"
+    capture_schema canonical_migration "$recovery_out/actual-schema.txt"
+    capture_schema canonical_contract "$recovery_out/reviewed-schema.txt"
+    diff -u "$recovery_out/reviewed-schema.txt" "$recovery_out/actual-schema.txt" \
+        > "$recovery_out/schema-parity.diff"
+
+    capture_legacy canonical_migration "$recovery_out/legacy-after-retry.txt"
+    diff -u "$recovery_out/legacy-before.txt" "$recovery_out/legacy-after-retry.txt" \
+        > "$recovery_out/legacy-after-retry.diff"
+
+    run_artisan canonical_migration php artisan migrate:rollback --step=12 --force --no-interaction \
+        > "$recovery_out/rollback.log" 2>&1
+
+    assert_scalar "crash_${label}_canonical_tables_after_rollback" "0" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ($TARGET_TABLES)" \
+        >> "$recovery_out/rollback-assertions.log"
+    assert_scalar "crash_${label}_legacy_tables_after_rollback" "4" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name IN ('leagues','teams','fixtures','fixture_scores')" \
+        >> "$recovery_out/rollback-assertions.log"
+    assert_scalar "crash_${label}_ledgers_after_rollback" "0" \
+        "SELECT COUNT(*) FROM migrations WHERE migration LIKE '2026_09_17_0000%'" \
+        >> "$recovery_out/rollback-assertions.log"
+
+    capture_legacy canonical_migration "$recovery_out/legacy-after-rollback.txt"
+    diff -u "$recovery_out/legacy-before.txt" "$recovery_out/legacy-after-rollback.txt" \
+        > "$recovery_out/legacy-after-rollback.diff"
+    printf 'scenario=%s recovery=pass parity=pass identity_preserved=pass rollback=pass\n' \
+        "$label" > "$recovery_out/summary.txt"
+}
+
+expect_recovery_abort() {
+    local label=$1
+    local expected_reason=$2
+    local negative_out="$OUT/negative-$label"
+    local row_assertion=$3
+
+    mkdir -p "$negative_out"
+    reset_recovery_database "$negative_out"
+    create_reviewed_table sports
+
+    case "$label" in
+        wrong-marker)
+            db_exec canonical_migration -e \
+                "ALTER TABLE sports COMMENT='not the canonical migration marker'"
+            ;;
+        wrong-schema)
+            db_exec canonical_migration -e \
+                'ALTER TABLE sports ADD COLUMN collision_column INT NULL'
+            ;;
+        nonempty)
+            db_exec canonical_migration -e \
+                "INSERT INTO sports (code,name,created_at,updated_at) VALUES ('collision','Collision',NOW(6),NOW(6))"
+            ;;
+        inbound-dependent)
+            db_exec canonical_migration -e \
+                'CREATE TABLE collision_dependent (
+                    id BIGINT UNSIGNED NOT NULL,
+                    sport_id BIGINT UNSIGNED NOT NULL,
+                    PRIMARY KEY (id),
+                    CONSTRAINT collision_dependent_sport_fk
+                        FOREIGN KEY (sport_id) REFERENCES sports (id)
+                ) ENGINE=InnoDB'
+            ;;
+        *)
+            echo "Unknown negative recovery case: $label" >&2
+            return 1
+            ;;
+    esac
+
+    if run_artisan canonical_migration php artisan migrate --force --no-interaction \
+        > "$negative_out/retry.log" 2>&1; then
+        echo "FAIL: recovery unexpectedly accepted $label" >&2
+        return 1
+    fi
+    grep -Fq "$expected_reason" "$negative_out/retry.log"
+
+    assert_scalar "negative_${label}_ledger_unchanged" "0" \
+        "SELECT COUNT(*) FROM migrations WHERE migration='2026_09_17_000001_create_sports_table'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "negative_${label}_table_preserved" "1" \
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='sports'" \
+        >> "$negative_out/assertions.log"
+    assert_scalar "negative_${label}_specific_state_preserved" "1" "$row_assertion" \
+        >> "$negative_out/assertions.log"
+
+    capture_legacy canonical_migration "$negative_out/legacy-after-abort.txt"
+    diff -u "$negative_out/legacy-before.txt" "$negative_out/legacy-after-abort.txt" \
+        > "$negative_out/legacy-after-abort.diff"
+    printf 'scenario=%s abort=pass ledger_unchanged=pass collision_preserved=pass legacy_unchanged=pass\n' \
+        "$label" > "$negative_out/summary.txt"
+}
 run_cycle() {
     local cycle=$1
     local cycle_out="$OUT/cycle-$cycle"
@@ -203,5 +377,43 @@ version=$("${COMPOSE[@]}" exec -T db mariadb -uroot --skip-column-names -e 'SELE
 
 run_cycle 1
 run_cycle 2
-printf 'MariaDB=%s\ncycles=2\nresult=PASS\n' "$version" > "$OUT/summary.txt"
+run_crash_recovery \
+    root \
+    sports \
+    2026_09_17_000001_create_sports_table
+
+run_crash_recovery \
+    dependent \
+    event_participants \
+    2026_09_17_000007_create_event_participants_table \
+    database/migrations/2026_09_17_000001_create_sports_table.php \
+    database/migrations/2026_09_17_000002_create_providers_table.php \
+    database/migrations/2026_09_17_000003_create_competitions_table.php \
+    database/migrations/2026_09_17_000004_create_competition_seasons_table.php \
+    database/migrations/2026_09_17_000005_create_participants_table.php \
+    database/migrations/2026_09_17_000006_create_events_table.php
+
+expect_recovery_abort \
+    wrong-marker \
+    'table type, engine, or canonical migration marker does not match' \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='sports' AND table_comment='not the canonical migration marker'"
+
+expect_recovery_abort \
+    wrong-schema \
+    'schema fingerprint does not match' \
+    "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='sports' AND column_name='collision_column'"
+
+expect_recovery_abort \
+    nonempty \
+    'table is not empty (rows=1)' \
+    "SELECT COUNT(*) FROM sports WHERE code='collision'"
+
+expect_recovery_abort \
+    inbound-dependent \
+    'table has inbound foreign-key dependents (references=1)' \
+    "SELECT COUNT(*) FROM information_schema.key_column_usage WHERE referenced_table_schema=DATABASE() AND referenced_table_name='sports' AND table_name='collision_dependent'"
+
+printf 'MariaDB=%s\ncycles=2\ncrash_recoveries=2\nnegative_recovery_cases=4\nresult=PASS\n' \
+    "$version" > "$OUT/summary.txt"
+
 echo "PASS: canonical football migration contract on exact MariaDB 10.11.13"
