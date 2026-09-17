@@ -1,0 +1,21 @@
+source_status,canonical_status,terminal,backfill_action
+NS,scheduled,false,map
+TBD,scheduled,false,map
+1H,live,false,map
+HT,live,false,map
+2H,live,false,map
+ET,live,false,map
+BT,live,false,map
+P,live,false,map
+LIVE,live,false,map
+FT,completed,true,map
+AET,completed,true,map
+PEN,completed,true,map
+PST,postponed,false,map
+CANC,cancelled,true,map
+ABD,cancelled,true,map
+AWD,awarded,true,map
+WO,walkover,true,map
+INT,suspended,false,map
+SUSP,suspended,false,map
+UNKNOWN,unknown,false,quarantine and do not create event

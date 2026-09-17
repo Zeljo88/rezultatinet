@@ -1,0 +1,112 @@
+name: Canonical football rehearsal
+
+on:
+  push:
+    branches:
+      - rex/canonical-football-rehearsal-ci-2026-09-17
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canonical-football-rehearsal-ci-2026-09-17
+  cancel-in-progress: false
+
+jobs:
+  rehearse:
+    if: github.ref == 'refs/heads/rex/canonical-football-rehearsal-ci-2026-09-17'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HARNESS_DIR: tools/canonical-football-rehearsal
+      EVIDENCE_DIR: ${{ github.workspace }}/rehearsal-evidence
+      COMPOSE_PROJECT_NAME: canonical-football-rehearsal
+    steps:
+      - name: Check out exact rehearsal head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Verify byte identity and static prechecks
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd "$HARNESS_DIR"
+          sha256sum --check SOURCE-SHA256SUMS.txt
+          python3 verify-artifacts.py
+          bash -n run.sh
+          python3 -m py_compile verify-artifacts.py
+          test "$(find . -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 10
+          while IFS= read -r sql; do
+            test -s "$sql"
+          done < <(find . -maxdepth 1 -type f -name '*.sql' -print | sort)
+          if grep -REn --exclude='COPY-PROVENANCE.md' --exclude='README.md' \
+            '(curl[[:space:]]|wget[[:space:]]|85.93.90.23|rezultati.net)' run.sh docker-compose.yml *.sql; then
+            echo 'Forbidden network or production endpoint found in executable rehearsal artifacts.' >&2
+            exit 1
+          fi
+
+      - name: Execute unchanged two-cycle harness
+        id: harness
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          set +e
+          EVIDENCE_DIR="$EVIDENCE_DIR" "$HARNESS_DIR/run.sh" \
+            >"$EVIDENCE_DIR/harness-stdout.log" \
+            2>"$EVIDENCE_DIR/harness-stderr.log"
+          status=$?
+          set -e
+          printf 'exit_code\t%s\n' "$status" >"$EVIDENCE_DIR/harness-exit-status.tsv"
+          exit "$status"
+
+      - name: Verify exact MariaDB version and complete evidence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          : >"$EVIDENCE_DIR/version-verification.txt"
+          for cycle in cycle-1 cycle-2; do
+            file="$EVIDENCE_DIR/${cycle}-environment.txt"
+            version="$(awk 'NR==2 { split($1, parts, "-"); print parts[1] }' "$file")"
+            test "$version" = '10.11.13'
+            printf '%s\t%s\n' "$cycle" "$version" >>"$EVIDENCE_DIR/version-verification.txt"
+            test -s "$EVIDENCE_DIR/${cycle}-assertions.tsv"
+            test -s "$EVIDENCE_DIR/${cycle}-benchmark.tsv"
+            test ! -s "$EVIDENCE_DIR/${cycle}-legacy-unchanged.diff"
+            test ! -s "$EVIDENCE_DIR/${cycle}-rollback-legacy-unchanged.diff"
+          done
+          grep -Fx 'VALIDATED: two fresh MariaDB 10.11.13 cycles passed; containers and volumes removed.' \
+            "$EVIDENCE_DIR/verdict.txt"
+          docker image inspect mariadb:10.11.13 \
+            --format '{{index .RepoDigests 0}}' >"$EVIDENCE_DIR/mariadb-image-digest.txt"
+
+      - name: Prove runner cleanup
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          docker compose -f "$HARNESS_DIR/docker-compose.yml" \
+            --project-name "$COMPOSE_PROJECT_NAME" down --volumes --remove-orphans >/dev/null 2>&1 || true
+          containers="$(docker ps --all --quiet --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
+          networks="$(docker network ls --quiet --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
+          volumes="$(docker volume ls --quiet --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")"
+          {
+            printf 'containers_remaining\t%s\n' "${containers:-0}"
+            printf 'networks_remaining\t%s\n' "${networks:-0}"
+            printf 'volumes_remaining\t%s\n' "${volumes:-0}"
+          } >"$EVIDENCE_DIR/cleanup-proof.tsv"
+          test -z "$containers"
+          test -z "$networks"
+          test -z "$volumes"
+
+      - name: Upload sanitized rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: canonical-football-rehearsal-${{ github.run_id }}
+          path: rehearsal-evidence/
+          if-no-files-found: error
+          retention-days: 14

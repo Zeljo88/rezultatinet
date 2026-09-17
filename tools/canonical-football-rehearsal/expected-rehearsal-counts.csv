@@ -1,0 +1,17 @@
+metric,checkpoint_after_fixture_3,final
+sports,1,1
+providers,1,1
+competitions,2,2
+competition_seasons,3,3
+participants,4,4
+events,3,4
+event_participants,6,8
+provider_competition_mappings,2,2
+provider_participant_mappings,4,4
+provider_event_mappings,3,4
+open_identity_quarantines,0,2
+published_events,0,0
+legacy_leagues,2,2
+legacy_teams,4,4
+legacy_fixtures,6,6
+legacy_fixture_scores,6,6

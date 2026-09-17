@@ -1,0 +1,14 @@
+legacy_source,legacy_identity,canonical_target,canonical_identity,projection_rule,authority_after_backfill
+leagues,id + api_league_id,competitions + provider_competition_mappings,public_id + provider feed external_id,football rows only; country_code remains null; logo copied into canonical-owned image_url,legacy
+fixtures league_id + season,competition_seasons,competition_id + immutable source_key,source_key is exact decimal season scoped to competition,legacy
+teams referenced by football fixtures,id + api_team_id,participants + provider_participant_mappings,public_id + provider feed external_id,type team only; deterministic collision-proof slug suffix; country_code remains null; logo copied into canonical-owned image_url,legacy
+fixtures,id + api_fixture_id,events + provider_event_mappings,public_id + provider feed external_id,known status and two distinct mapped teams required; publishable false,legacy
+fixtures home_team_id,event_participants,event_id + side_order,role home and side_order 1,legacy
+fixtures away_team_id,event_participants,event_id + side_order,role away and side_order 2,legacy
+fixtures kick_off,events starts_at,event public_id,preserve value under documented UTC application contract,legacy
+fixtures status_short,events status_code,event public_id,explicit versioned mapping in status-normalization.csv; unknown quarantined,legacy
+fixture_scores goals_home + goals_away,events home_score + away_score,event public_id,preserve nullable values; never coerce null to zero,legacy
+fixtures updated_at + fixture_scores updated_at,events source_updated_at,event public_id,null-safe maximum of available source timestamps,legacy
+leagues id,provider_competition_mappings legacy_league_id,unique legacy ID,restart anchor and exact provenance,legacy
+teams id,provider_participant_mappings legacy_team_id,unique legacy ID,restart anchor and exact provenance,legacy
+fixtures id,provider_event_mappings legacy_fixture_id,unique legacy ID,restart anchor and route bridge,legacy
