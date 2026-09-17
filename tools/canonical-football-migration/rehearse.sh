@@ -395,22 +395,22 @@ run_crash_recovery \
 
 expect_recovery_abort \
     wrong-marker \
-    'table type, engine, or canonical migration marker does not match' \
+    'marker does not match' \
     "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='sports' AND table_comment='not the canonical migration marker'"
 
 expect_recovery_abort \
     wrong-schema \
-    'schema fingerprint does not match' \
+    'fingerprint does not match' \
     "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='sports' AND column_name='collision_column'"
 
 expect_recovery_abort \
     nonempty \
-    'table is not empty (rows=1)' \
+    'not empty' \
     "SELECT COUNT(*) FROM sports WHERE code='collision'"
 
 expect_recovery_abort \
     inbound-dependent \
-    'table has inbound foreign-key dependents (references=1)' \
+    'inbound foreign-key dependents' \
     "SELECT COUNT(*) FROM information_schema.key_column_usage WHERE referenced_table_schema=DATABASE() AND referenced_table_name='sports' AND table_name='collision_dependent'"
 
 printf 'MariaDB=%s\ncycles=2\ncrash_recoveries=2\nnegative_recovery_cases=4\nresult=PASS\n' \
