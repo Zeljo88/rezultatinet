@@ -78,7 +78,7 @@ jobs:
             -e 's#(ghp_|github_pat_)[A-Za-z0-9_]+#<redacted-token>#g' \
             -e 's#85\.93\.90\.23#<redacted-production-endpoint>#g' \
             >"$diagnostic"
-          annotation="$(tr '\n' ' ' <"$diagnostic" | cut -c1-3500)"
+          annotation="$(tail -c 3500 "$diagnostic" | tr '\n' ' ')"
           printf '::error title=Sanitized harness failure::%s\n' "$annotation"
 
       - name: Verify exact MariaDB version and complete evidence
