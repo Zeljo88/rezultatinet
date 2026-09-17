@@ -78,7 +78,7 @@ class TechnicalSeoTest extends TestCase
         $content = $response->getContent();
 
         $response->assertOk();
-        $this->assertSame(84, substr_count($content, '<loc>'));
+        $this->assertSame(88, substr_count($content, '<loc>'));
         $this->assertSame(0, substr_count($content, 'https://rezultati.net/tablica/'));
         $this->assertSame(
             1,
