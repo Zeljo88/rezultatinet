@@ -354,7 +354,8 @@ expect_rollback_abort() {
     local expected_target_exists=$5
     local state_assertion=$6
     local negative_out="$OUT/rollback-negative-$label"
-    local normalized_rollback
+    local compact_rollback
+    local compact_expected
     local table_id_before=''
     local table_id_after=''
 
@@ -442,9 +443,10 @@ SQL
         echo "FAIL: rollback unexpectedly accepted $label" >&2
         return 1
     fi
-    normalized_rollback=$(tr '\n' ' ' < "$negative_out/rollback.log" | tr -s ' ')
-    grep -Fq 'Refusing rollback for canonical table `identity_quarantines`' <<< "$normalized_rollback"
-    grep -Fq "$expected_reason" <<< "$normalized_rollback"
+    compact_rollback=$(tr -d '[:space:]' < "$negative_out/rollback.log")
+    compact_expected=$(printf '%s' "$expected_reason" | tr -d '[:space:]')
+    grep -Fq 'Refusingrollbackforcanonicaltable`identity_quarantines`' <<< "$compact_rollback"
+    grep -Fq "$compact_expected" <<< "$compact_rollback"
 
     assert_scalar "rollback_${label}_ledger_after" "12" \
         "SELECT COUNT(*) FROM migrations WHERE migration LIKE '2026_09_17_0000%'" \
