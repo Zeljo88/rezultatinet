@@ -92,4 +92,4 @@ For production preflight only, scan each legacy table in reviewed half-open prim
 
 ## Current execution status
 
-The earlier harness passed on GitHub Actions. These final-review corrections are pending a new clean two-cycle GitHub Actions run at the corrected branch head; do not treat them as observed until that run is green and archived. Production DDL/backfill remains NO-GO.
+Final-review corrections passed two fresh MariaDB 10.11.13 cycles in GitHub Actions run `35224791556` at `f03d31326091b54f676c6e1a85d7beb1f7ade39c`. Both cycles proved exact participant roles, bounded distinct-run contention, durable failure/retry/stale recovery, ordered complete-row SHA-256 immutability, rollback, and 0/0/0 cleanup. Production DDL/backfill remains NO-GO.

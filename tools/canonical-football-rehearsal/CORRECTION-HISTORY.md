@@ -32,7 +32,7 @@
 - Implementation note: commit `cdbbeea` recorded the intended checksum-path fix but its substitution was ineffective; run 35221969645 therefore still used SHA-256 `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
 - Effective follow-up SHA-256: `ed6ee1bd38d09a7a6c63e54326d9ec832b34d75a266dd3b55c154637dd85216f`.
 
-## Independent final-review corrections (pending corrected-head CI)
+## Independent final-review corrections
 
 - Review source: `2026-09-17-canonical-football-final-review.md`; findings M1–M4 and L1–L2.
 - M2: `event_participants` now has unique `(event_id, role)` and a MariaDB-compatible CHECK coupling `home=1` and `away=2`; backfill and final assertions require exactly one of each.
@@ -41,3 +41,5 @@
 - L2: legacy evidence now hashes every column of every row with SHA-256 in primary-key order and hashes each ordered table stream. Before/after/rollback manifests must match. The README specifies a bounded production chunk-manifest method without `GROUP_CONCAT`.
 - M1, M4, and L1 are packet/evidence corrections maintained in the Rex report workspace after the corrected branch run is green; they do not add runtime/application scope.
 - The 12-table additive MVP, reverse dependency rollback, legacy read-only contract, unpublished default, no-provider path, and no production hook remain unchanged.
+- Corrected-head proof: run `35224791556`, job `105213485694`, head `f03d31326091b54f676c6e1a85d7beb1f7ade39c`, success; artifact `10498677999`; inner bundle SHA-256 `45c3f1a9d5772122f7ae5de5928d2a8ff5ed68da10a1015d7943ad4f84566046`.
+- Both cycles passed at exact MariaDB 10.11.13 with 3 durable failures, 5 completed runs, free lock, identical before/after/rollback SHA-256 manifests, rollback 0 canonical/4 legacy, and cleanup 0 containers/networks/volumes.
