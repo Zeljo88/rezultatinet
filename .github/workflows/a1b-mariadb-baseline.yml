@@ -19,6 +19,7 @@ on:
       - phpunit.xml
       - tests/**
       - tools/a1b/**
+      - tools/canonical-football-migration/**
   push:
     branches:
       - rex/a1b-main-integration-2026-09-17
@@ -49,6 +50,7 @@ concurrency:
 env:
   A1B_MANIFEST: tools/a1b/fixtures/2026-09-16-a1a-schema-manifest.json
   A1B_OUT: build/a1b-rehearsal
+  CF_OUT: build/canonical-football-migration
 
 jobs:
   rehearse:
@@ -72,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          mkdir -p "$A1B_OUT"
+          mkdir -p "$A1B_OUT" "$CF_OUT"
           : > "$A1B_OUT/current-clean-install.log"
           : > "$A1B_OUT/proposed-clean-install.log"
           : > "$A1B_OUT/parity.log"
@@ -101,6 +103,10 @@ jobs:
           test -x tools/a1b/rehearse.sh
           test -f "$A1B_MANIFEST"
           test -f database/schema/mariadb-schema.sql
+          test -x tools/canonical-football-migration/rehearse.sh
+          test -f tools/canonical-football-migration/reviewed-schema.sql
+          test -f tools/canonical-football-migration/capture-information-schema.sql
+          test -f tools/canonical-football-migration/capture-legacy.sql
           grep -Fxq '    image: mariadb:10.11.13' tools/a1b/compose.yaml
           docker --version
           docker compose version
@@ -127,8 +133,14 @@ jobs:
           bash -x tools/a1b/rehearse.sh "$A1B_MANIFEST" "$A1B_OUT"
           rehearsal_rc=$?
 
-          test_rc=0
+          canonical_rc=0
           if [ "$rehearsal_rc" -eq 0 ]; then
+            bash -x tools/canonical-football-migration/rehearse.sh "$CF_OUT"
+            canonical_rc=$?
+          fi
+
+          test_rc=0
+          if [ "$rehearsal_rc" -eq 0 ] && [ "$canonical_rc" -eq 0 ]; then
             {
               echo 'Preparing isolated disposable MariaDB full-test database a1b_tests'
               docker compose -f tools/a1b/compose.yaml exec -T db \
@@ -179,6 +191,9 @@ jobs:
             else
               test_rc=$setup_rc
             fi
+          elif [ "$canonical_rc" -ne 0 ]; then
+            printf 'SKIPPED: canonical migration rehearsal failed with exit %s\n' "$canonical_rc" \
+              > "$A1B_OUT/test.log"
           else
             printf 'SKIPPED: rehearsal failed with exit %s\n' "$rehearsal_rc" \
               > "$A1B_OUT/test.log"
@@ -188,11 +203,15 @@ jobs:
             > "$A1B_OUT/container.log" 2>&1 || true
           docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans || true
 
-          printf 'rehearsal_rc=%s\ntest_rc=%s\n' "$rehearsal_rc" "$test_rc" \
+          printf 'rehearsal_rc=%s\ncanonical_rc=%s\ntest_rc=%s\n' \
+            "$rehearsal_rc" "$canonical_rc" "$test_rc" \
             >> "$A1B_OUT/workflow-summary.txt"
 
           if [ "$rehearsal_rc" -ne 0 ]; then
             exit "$rehearsal_rc"
+          fi
+          if [ "$canonical_rc" -ne 0 ]; then
+            exit "$canonical_rc"
           fi
           exit "$test_rc"
 
@@ -226,6 +245,16 @@ jobs:
               echo "::endgroup::"
             fi
           done
+          while IFS= read -r file
+          do
+            echo "::group::Sanitized tail (max 200 lines): $file"
+            tail -n 200 "$file" | sanitize
+            echo "::endgroup::"
+          done < <(
+            find "$CF_OUT" -type f \
+              \( -name '*.log' -o -name '*.diff' -o -name 'summary.txt' \) \
+              -print | sort
+          )
 
       - name: Upload current-history expected-failure log
         if: always()
@@ -269,4 +298,14 @@ jobs:
             build/a1b-rehearsal/test.log
             build/a1b-rehearsal/container.log
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload canonical migration evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: canonical-football-migration-${{ github.run_id }}
+          path: |
+            build/canonical-football-migration/**
+          if-no-files-found: warn
           retention-days: 14
