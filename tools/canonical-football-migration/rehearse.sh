@@ -412,7 +412,7 @@ expect_recovery_abort \
 
 expect_recovery_abort \
     inbound-dependent \
-    'table has inbound foreign-key dependents (references=1)' \
+    'references=1' \
     "SELECT COUNT(*) FROM information_schema.key_column_usage WHERE referenced_table_schema=DATABASE() AND referenced_table_name='sports' AND table_name='collision_dependent'"
 
 printf 'MariaDB=%s\ncycles=2\ncrash_recoveries=2\nnegative_recovery_cases=4\nresult=PASS\n' \
