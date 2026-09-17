@@ -1,4 +1,4 @@
--- Restartable, provider-free canonical header backfill.
+-- Restartable, provider-free canonical header backfill with capability-wide single flight.
 -- Load once, then CALL canonical_football_backfill('<run-key>', <inclusive stop fixture id>).
 DELIMITER //
 CREATE PROCEDURE canonical_football_backfill(IN p_run_key VARCHAR(96), IN p_stop_after BIGINT UNSIGNED)
@@ -10,17 +10,40 @@ main: BEGIN
     DECLARE v_end BIGINT UNSIGNED DEFAULT 0;
     DECLARE v_run_status VARCHAR(24);
     DECLARE v_now DATETIME(6) DEFAULT UTC_TIMESTAMP(6);
+    DECLARE v_lock_name VARCHAR(128) DEFAULT 'canonical_football:legacy_header_backfill';
+    DECLARE v_lock_acquired INT DEFAULT 0;
+    DECLARE v_run_registered TINYINT DEFAULT 0;
+    DECLARE v_error_message TEXT DEFAULT 'unknown SQL exception';
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
+        GET DIAGNOSTICS CONDITION 1 v_error_message = MESSAGE_TEXT;
         ROLLBACK;
+        IF v_run_registered = 1 THEN
+            START TRANSACTION;
+            UPDATE import_runs
+               SET status = 'failed',
+                   finished_at = UTC_TIMESTAMP(6),
+                   error_summary = LEFT(CONCAT('backfill failed: ', COALESCE(v_error_message, 'unknown SQL exception')), 500)
+             WHERE run_key = p_run_key;
+            COMMIT;
+        END IF;
+        IF v_lock_acquired = 1 THEN
+            DO RELEASE_LOCK(v_lock_name);
+            SET v_lock_acquired = 0;
+        END IF;
         RESIGNAL;
     END;
 
     IF DATABASE() <> 'canonical_football_rehearsal' THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'refusing to run outside canonical_football_rehearsal';
     END IF;
+    IF p_run_key IS NULL OR p_run_key = '' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'run key is required';
+    END IF;
 
+    -- Commit only immutable scope bootstrap and the run ledger before attempting work.
+    -- This lets a later handler persist failure provenance outside rolled-back projection work.
     START TRANSACTION;
 
     INSERT INTO sports (code, name, active, created_at, updated_at)
@@ -40,8 +63,28 @@ main: BEGIN
     INSERT INTO import_runs
         (provider_id, sport_id, run_key, capability, last_legacy_id, status, started_at)
     VALUES
-        (v_provider_id, v_sport_id, p_run_key, 'legacy_header_backfill', 0, 'running', v_now)
+        (v_provider_id, v_sport_id, p_run_key, 'legacy_header_backfill', 0, 'waiting', v_now)
     ON DUPLICATE KEY UPDATE run_key = VALUES(run_key);
+    COMMIT;
+    SET v_run_registered = 1;
+
+    SELECT GET_LOCK(v_lock_name, 2) INTO v_lock_acquired;
+    IF COALESCE(v_lock_acquired, 0) <> 1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'single-flight lock timeout after 2 seconds';
+    END IF;
+
+    START TRANSACTION;
+
+    -- Advisory locks disappear with their owning connection. A waiting/running row observed only
+    -- after this lock is acquired is therefore stale and is closed before this run proceeds.
+    UPDATE import_runs
+       SET status = 'failed',
+           finished_at = v_now,
+           error_summary = LEFT(CONCAT('stale run recovered by ', p_run_key), 500)
+     WHERE capability = 'legacy_header_backfill'
+       AND status IN ('waiting', 'running')
+       AND run_key <> p_run_key;
+
 
     SELECT last_legacy_id, status
       INTO v_checkpoint, v_run_status
@@ -51,6 +94,8 @@ main: BEGIN
 
     IF v_run_status = 'completed' THEN
         COMMIT;
+        DO RELEASE_LOCK(v_lock_name);
+        SET v_lock_acquired = 0;
         LEAVE main;
     END IF;
 
@@ -167,11 +212,15 @@ main: BEGIN
     IF v_checkpoint >= v_max_fixture_id THEN
         UPDATE import_runs SET status='completed', finished_at=v_now WHERE run_key=p_run_key;
         COMMIT;
+        DO RELEASE_LOCK(v_lock_name);
+        SET v_lock_acquired = 0;
         LEAVE main;
     END IF;
 
     IF v_end <= v_checkpoint THEN
         COMMIT;
+        DO RELEASE_LOCK(v_lock_name);
+        SET v_lock_acquired = 0;
         LEAVE main;
     END IF;
 
@@ -304,6 +353,19 @@ main: BEGIN
         ON ppm.provider_id=v_provider_id AND ppm.legacy_team_id=sides.legacy_team_id
     ON DUPLICATE KEY UPDATE role=VALUES(role), participant_id=VALUES(participant_id), updated_at=VALUES(updated_at);
 
+    IF EXISTS (
+        SELECT pem.event_id
+          FROM provider_event_mappings pem
+          LEFT JOIN event_participants ep ON ep.event_id=pem.event_id
+         WHERE pem.provider_id=v_provider_id
+           AND pem.legacy_fixture_id > v_checkpoint AND pem.legacy_fixture_id <= v_end
+         GROUP BY pem.event_id
+        HAVING COUNT(ep.participant_id)<>2 OR COUNT(DISTINCT ep.participant_id)<>2
+            OR SUM(ep.role='home' AND ep.side_order=1)<>1
+            OR SUM(ep.role='away' AND ep.side_order=2)<>1
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'event participant invariant failure';
+    END IF;
     UPDATE import_runs
        SET last_legacy_id = v_end,
            source_rows_seen = source_rows_seen + (
@@ -324,5 +386,7 @@ main: BEGIN
      WHERE run_key=p_run_key;
 
     COMMIT;
+    DO RELEASE_LOCK(v_lock_name);
+    SET v_lock_acquired = 0;
 END//
 DELIMITER ;

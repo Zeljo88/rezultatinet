@@ -37,7 +37,7 @@ jobs:
           python3 verify-artifacts.py
           bash -n run.sh
           python3 -m py_compile verify-artifacts.py
-          test "$(find . -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 10
+          test "$(find . -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 11
           while IFS= read -r sql; do
             test -s "$sql"
           done < <(find . -maxdepth 1 -type f -name '*.sql' -print | sort)
@@ -87,6 +87,9 @@ jobs:
           set -Eeuo pipefail
           : >"$EVIDENCE_DIR/version-verification.txt"
           for cycle in cycle-1 cycle-2; do
+            test -s "$EVIDENCE_DIR/${cycle}-operational-assertions.tsv"
+            test -s "$EVIDENCE_DIR/${cycle}-lock-contention.tsv"
+            grep -F $'table_name\trow_count\tordered_row_sha256' "$EVIDENCE_DIR/${cycle}-legacy-before.tsv"
             file="$EVIDENCE_DIR/${cycle}-environment.txt"
             version="$(awk 'NR==2 { split($1, parts, "-"); print parts[1] }' "$file")"
             test "$version" = '10.11.13'

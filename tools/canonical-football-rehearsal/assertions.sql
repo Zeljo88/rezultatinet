@@ -23,6 +23,13 @@ BEGIN
     SELECT v_failures + IF(COUNT(*)=0,0,1) INTO v_failures FROM (
         SELECT event_id FROM event_participants GROUP BY event_id HAVING COUNT(*)<>2 OR COUNT(DISTINCT participant_id)<>2 OR MIN(side_order)<>1 OR MAX(side_order)<>2
     ) bad_cardinality;
+    SELECT v_failures + IF(COUNT(*)=0,0,1) INTO v_failures FROM (
+        SELECT event_id
+          FROM event_participants
+         GROUP BY event_id
+        HAVING SUM(role='home' AND side_order=1)<>1 OR SUM(role='away' AND side_order=2)<>1
+    ) bad_roles;
+    SELECT v_failures + IF(COUNT(*)=0,0,1) INTO v_failures FROM event_participants WHERE (role='home')<>(side_order=1);
     SELECT v_failures + IF(COUNT(*)=0,0,1) INTO v_failures FROM provider_event_mappings pem
       JOIN fixtures f ON f.id=pem.legacy_fixture_id
      WHERE pem.external_id<>CAST(f.api_fixture_id AS CHAR);

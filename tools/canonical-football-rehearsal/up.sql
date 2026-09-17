@@ -122,11 +122,15 @@ CREATE TABLE event_participants (
     updated_at DATETIME(6) NOT NULL,
     PRIMARY KEY (event_id, side_order),
     UNIQUE KEY event_participants_identity_unique (event_id, participant_id),
+    UNIQUE KEY event_participants_role_unique (event_id, role),
     KEY event_participants_participant_index (participant_id),
     CONSTRAINT event_participants_event_id_foreign FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
     CONSTRAINT event_participants_participant_id_foreign FOREIGN KEY (participant_id) REFERENCES participants (id),
     CONSTRAINT event_participants_side_check CHECK (side_order IN (1, 2)),
-    CONSTRAINT event_participants_role_check CHECK (role IN ('home', 'away'))
+    CONSTRAINT event_participants_role_side_check CHECK (
+        (role = 'home' AND side_order = 1) OR
+        (role = 'away' AND side_order = 2)
+    )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE provider_competition_mappings (
@@ -198,7 +202,8 @@ CREATE TABLE import_runs (
     UNIQUE KEY import_runs_run_key_unique (run_key),
     KEY import_runs_scope_index (sport_id, capability, started_at),
     CONSTRAINT import_runs_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
-    CONSTRAINT import_runs_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id)
+    CONSTRAINT import_runs_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id),
+    CONSTRAINT import_runs_status_check CHECK (status IN ('waiting', 'running', 'paused', 'completed', 'failed'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE identity_quarantines (

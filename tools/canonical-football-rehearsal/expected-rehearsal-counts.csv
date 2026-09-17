@@ -10,6 +10,10 @@ provider_competition_mappings,2,2
 provider_participant_mappings,4,4
 provider_event_mappings,3,4
 open_identity_quarantines,0,2
+events_with_exact_home_away_pair,3,4
+completed_import_runs,1,5
+durably_failed_import_runs,0,3
+advisory_lock_free,1,1
 published_events,0,0
 legacy_leagues,2,2
 legacy_teams,4,4
