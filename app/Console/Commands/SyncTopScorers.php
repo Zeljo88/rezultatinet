@@ -86,7 +86,6 @@ class SyncTopScorers extends Command
                     'slug' => $slug,
                     'photo_url' => $playerData['photo'] ?? null,
                     'nationality' => $playerData['nationality'] ?? null,
-                    'age' => $playerData['age'] ?? null,
                     'current_club' => $teamName,
                     'current_club_logo' => $teamLogo,
                     'current_league' => $league->name,
