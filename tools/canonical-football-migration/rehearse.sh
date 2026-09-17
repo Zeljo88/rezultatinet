@@ -342,7 +342,7 @@ assert_all_canonical_empty() {
     local table
 
     for table in "${TARGET_TABLE_LIST[@]}"; do
-        assert_scalar "${label}_${table}_rows" "0" "SELECT COUNT(*) FROM `$table`" >> "$log"
+        assert_scalar "${label}_${table}_rows" "0" "SELECT COUNT(*) FROM $table" >> "$log"
     done
 }
 
