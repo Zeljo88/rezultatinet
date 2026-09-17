@@ -1,0 +1,272 @@
+name: A1b MariaDB 10.11 baseline
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/a1b-mariadb-baseline.yml
+      - app/Console/Commands/SyncTopScorers.php
+      - app/Livewire/MatchPrediction.php
+      - app/Models/Fixture.php
+      - app/Models/FixtureEvent.php
+      - app/Models/FixtureScore.php
+      - composer.json
+      - composer.lock
+      - config/database.php
+      - database/migrations/**
+      - database/schema/mariadb-schema.sql
+      - phpunit.xml
+      - tests/**
+      - tools/a1b/**
+  push:
+    branches:
+      - rex/a1b-main-integration-2026-09-17
+    paths:
+      - .github/workflows/a1b-mariadb-baseline.yml
+      - app/Console/Commands/SyncTopScorers.php
+      - app/Livewire/MatchPrediction.php
+      - app/Models/Fixture.php
+      - app/Models/FixtureEvent.php
+      - app/Models/FixtureScore.php
+      - composer.json
+      - composer.lock
+      - config/database.php
+      - database/migrations/**
+      - database/schema/mariadb-schema.sql
+      - phpunit.xml
+      - tests/**
+      - tools/a1b/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  A1B_MANIFEST: tools/a1b/fixtures/2026-09-16-a1a-schema-manifest.json
+  A1B_OUT: build/a1b-rehearsal
+
+jobs:
+  rehearse:
+    name: Exact MariaDB 10.11 rehearsal
+    if: >-
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/rex/a1b-main-integration-2026-09-17')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the reviewed branch revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Initialize evidence files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$A1B_OUT"
+          : > "$A1B_OUT/current-clean-install.log"
+          : > "$A1B_OUT/proposed-clean-install.log"
+          : > "$A1B_OUT/parity.log"
+          : > "$A1B_OUT/test.log"
+          : > "$A1B_OUT/container.log"
+
+      - name: Validate isolated inputs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              test "$GITHUB_BASE_REF" = "main"
+              test -n "$GITHUB_HEAD_REF"
+              test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+              ;;
+            push|workflow_dispatch)
+              test "$GITHUB_REF_NAME" = "rex/a1b-main-integration-2026-09-17"
+              test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+              ;;
+            *)
+              echo "Unsupported event: $GITHUB_EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+          test -x tools/a1b/rehearse.sh
+          test -f "$A1B_MANIFEST"
+          test -f database/schema/mariadb-schema.sql
+          grep -Fxq '    image: mariadb:10.11.13' tools/a1b/compose.yaml
+          docker --version
+          docker compose version
+          docker compose -f tools/a1b/compose.yaml config --quiet
+
+      - name: Regenerate and byte-compare the tracked baseline
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          generated_schema="$(mktemp "$RUNNER_TEMP/a1b-mariadb-schema.XXXXXX.sql")"
+          trap 'rm -f "$generated_schema"' EXIT
+          python3 tools/a1b/generate_mariadb_baseline.py \
+            "$A1B_MANIFEST" \
+            "$generated_schema"
+          cmp "$generated_schema" database/schema/mariadb-schema.sql
+
+      - name: Run unchanged rehearsal and relevant tests
+        id: a1b
+        shell: bash
+        run: |
+          set +e
+          set -u
+
+          bash -x tools/a1b/rehearse.sh "$A1B_MANIFEST" "$A1B_OUT"
+          rehearsal_rc=$?
+
+          test_rc=0
+          if [ "$rehearsal_rc" -eq 0 ]; then
+            {
+              echo 'Preparing isolated disposable MariaDB full-test database a1b_tests'
+              docker compose -f tools/a1b/compose.yaml exec -T db \
+                mariadb -uroot -e \
+                'DROP DATABASE IF EXISTS a1b_tests; CREATE DATABASE a1b_tests CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+              echo 'Importing sanitized, data-free MariaDB schema into a1b_tests'
+              docker compose -f tools/a1b/compose.yaml exec -T db \
+                mariadb -uroot a1b_tests < database/schema/mariadb-schema.sql
+              echo 'PASS: isolated MariaDB full-test database prepared'
+            } > "$A1B_OUT/test.log" 2>&1
+            setup_rc=$?
+
+            if [ "$setup_rc" -eq 0 ]; then
+              docker compose -f tools/a1b/compose.yaml run --rm -T \
+                -e DB_CONNECTION=mariadb \
+                -e DB_HOST=db \
+                -e DB_PORT=3306 \
+                -e DB_DATABASE=a1b_tests \
+                -e DB_USERNAME=root \
+                -e DB_PASSWORD= \
+                app sh -lc '
+                set -eu
+                rm -rf /tmp/a1b-tests
+                cp -a /workspace /tmp/a1b-tests
+                cp -a /build/vendor /tmp/a1b-tests/vendor
+                cd /tmp/a1b-tests
+                find app tests database/migrations -type f -name "*.php" -print0 \
+                  | xargs -0 -n1 php -l
+                if grep -Eq '"'"'<env name="(DB_CONNECTION|DB_HOST|DB_PORT|DB_DATABASE|DB_USERNAME|DB_PASSWORD)"[^>]*force="true"'"'"' phpunit.xml; then
+                  echo '"'"'FAIL: phpunit.xml force-overrides an explicit database environment value'"'"' >&2
+                  exit 1
+                fi
+                php -r '"'"'
+                  require "vendor/autoload.php";
+                  $app = require "bootstrap/app.php";
+                  $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+                  $connection = config("database.default");
+                  $database = config("database.connections.$connection.database");
+                  if ($connection !== "mariadb" || $database !== "a1b_tests") {
+                      fwrite(STDERR, "FAIL: Laravel effective test database does not match the approved isolated MariaDB database\n");
+                      exit(1);
+                  }
+                  echo "PASS: Laravel default DB connection=mariadb database=a1b_tests\n";
+                '"'"'
+                php artisan test
+              ' >> "$A1B_OUT/test.log" 2>&1
+              test_rc=$?
+            else
+              test_rc=$setup_rc
+            fi
+          else
+            printf 'SKIPPED: rehearsal failed with exit %s\n' "$rehearsal_rc" \
+              > "$A1B_OUT/test.log"
+          fi
+
+          docker compose -f tools/a1b/compose.yaml logs --no-color \
+            > "$A1B_OUT/container.log" 2>&1 || true
+          docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans || true
+
+          printf 'rehearsal_rc=%s\ntest_rc=%s\n' "$rehearsal_rc" "$test_rc" \
+            >> "$A1B_OUT/workflow-summary.txt"
+
+          if [ "$rehearsal_rc" -ne 0 ]; then
+            exit "$rehearsal_rc"
+          fi
+          exit "$test_rc"
+
+      - name: Print bounded sanitized failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          sanitize() {
+            sed -E \
+              -e 's#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\1[REDACTED]@#g' \
+              -e 's#([Aa]uthorization[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+#\1[REDACTED]#g' \
+              -e 's#((password|passwd|pwd|token|secret|api[_-]?key|access[_-]?key|client[_-]?secret)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+#\1[REDACTED]#Ig' \
+              -e 's#(gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})#[REDACTED]#g' \
+              -e 's#(Bearer[[:space:]]+)[A-Za-z0-9._~+/-]+=*#\1[REDACTED]#Ig'
+          }
+
+          for name in \
+            current-clean-install.log \
+            proposed-clean-install.log \
+            parity.log \
+            test.log \
+            container.log \
+            workflow-summary.txt
+          do
+            file="$A1B_OUT/$name"
+            if [ -f "$file" ]; then
+              echo "::group::Sanitized tail (max 200 lines): $name"
+              tail -n 200 "$file" | sanitize
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Upload current-history expected-failure log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a1b-current-failure-${{ github.run_id }}
+          path: build/a1b-rehearsal/current-clean-install.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload proposed-success logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a1b-proposed-success-${{ github.run_id }}
+          path: |
+            build/a1b-rehearsal/proposed-clean-install.log
+            build/a1b-rehearsal/summary.txt
+            build/a1b-rehearsal/workflow-summary.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload parity evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a1b-parity-${{ github.run_id }}
+          path: |
+            build/a1b-rehearsal/parity.log
+            build/a1b-rehearsal/actual-critical-schema.json
+            build/a1b-rehearsal/actual-critical-schema.ndjson
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload test and container logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: a1b-tests-${{ github.run_id }}
+          path: |
+            build/a1b-rehearsal/test.log
+            build/a1b-rehearsal/container.log
+          if-no-files-found: error
+          retention-days: 14
