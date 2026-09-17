@@ -250,7 +250,7 @@ main: BEGIN
             NOT (competition_season_id <=> VALUES(competition_season_id))
             OR NOT (status_code <=> VALUES(status_code))
             OR NOT (starts_at <=> VALUES(starts_at))
-            OR NOT (source_updated_at <=> VALUES(source_updated_at))
+            OR NOT (events.source_updated_at <=> VALUES(source_updated_at))
             OR NOT (home_score <=> VALUES(home_score))
             OR NOT (away_score <=> VALUES(away_score)),
             version + 1, version),
