@@ -15,7 +15,9 @@
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "called_date",
@@ -56,7 +58,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "basketball_games",
@@ -80,28 +84,36 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "country_name",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "home_team",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "away_team",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "home_score",
@@ -122,7 +134,9 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "elapsed",
@@ -184,7 +198,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "cache",
@@ -194,14 +210,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "value",
           "COLUMN_TYPE": "mediumtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "expiration",
@@ -228,7 +248,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "cache_locks",
@@ -238,14 +260,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "owner",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "expiration",
@@ -272,7 +298,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "failed_jobs",
@@ -289,35 +317,45 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "connection",
           "COLUMN_TYPE": "text",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "queue",
           "COLUMN_TYPE": "text",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "payload",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "exception",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "failed_at",
@@ -344,7 +382,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "fixtures",
@@ -396,7 +436,9 @@
           "COLUMN_TYPE": "varchar(50)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "kick_off",
@@ -410,14 +452,18 @@
           "COLUMN_TYPE": "varchar(50)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "status_short",
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "elapsed_minute",
@@ -438,14 +484,18 @@
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "referee",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "lineups_fetched_at",
@@ -570,7 +620,9 @@
           "DELETE_RULE": "RESTRICT"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "fixture_events",
@@ -601,28 +653,36 @@
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "assist_name",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "type",
           "COLUMN_TYPE": "enum('Goal','Card','subst','Var')",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "detail",
           "COLUMN_TYPE": "varchar(50)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "elapsed_minute",
@@ -696,7 +756,9 @@
           "DELETE_RULE": "SET NULL"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "fixture_lineups",
@@ -720,35 +782,45 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "formation",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "coach_name",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "startxi",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_bin"
         },
         {
           "COLUMN_NAME": "substitutes",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_bin"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -808,7 +880,9 @@
           "CONSTRAINT_NAME": "substitutes",
           "CHECK_CLAUSE": "json_valid(`substitutes`)"
         }
-      ]
+      ],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "fixture_polls",
@@ -832,21 +906,27 @@
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "voter_ip",
           "COLUMN_TYPE": "varchar(45)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "voter_session",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -897,7 +977,9 @@
           "DELETE_RULE": "CASCADE"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "fixture_scores",
@@ -1021,7 +1103,9 @@
           "DELETE_RULE": "CASCADE"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "jobs",
@@ -1038,14 +1122,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "payload",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "attempts",
@@ -1093,7 +1181,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "job_batches",
@@ -1103,14 +1193,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "name",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "total_jobs",
@@ -1138,14 +1232,18 @@
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "options",
           "COLUMN_TYPE": "mediumtext",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "cancelled_at",
@@ -1179,7 +1277,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "leagues",
@@ -1203,28 +1303,36 @@
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "country",
           "COLUMN_TYPE": "varchar(60)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "logo_url",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "sport",
           "COLUMN_TYPE": "enum('football','basketball','tennis')",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": "'football'",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "is_active",
@@ -1286,7 +1394,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "migrations",
@@ -1303,7 +1413,9 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "batch",
@@ -1323,7 +1435,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "password_reset_tokens",
@@ -1333,14 +1447,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "token",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -1360,7 +1478,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "players",
@@ -1384,35 +1504,45 @@
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "slug",
           "COLUMN_TYPE": "varchar(120)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "nationality",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "country_name",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "position",
           "COLUMN_TYPE": "varchar(50)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "date_of_birth",
@@ -1426,35 +1556,45 @@
           "COLUMN_TYPE": "varchar(500)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "current_club",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "current_league",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "current_club_logo",
           "COLUMN_TYPE": "varchar(500)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "country_flag",
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "is_featured",
@@ -1475,7 +1615,9 @@
           "COLUMN_TYPE": "text",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -1516,7 +1658,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "player_stats",
@@ -1547,7 +1691,9 @@
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": "'2024'",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "appearances",
@@ -1670,7 +1816,9 @@
           "DELETE_RULE": "CASCADE"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "posts",
@@ -1687,49 +1835,63 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "slug",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "meta_title",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "meta_description",
           "COLUMN_TYPE": "varchar(200)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "content",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "keyword",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "featured_image",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "fixture_id",
@@ -1794,7 +1956,9 @@
           "DELETE_RULE": "SET NULL"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "predictions",
@@ -1818,21 +1982,27 @@
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "ip",
           "COLUMN_TYPE": "varchar(45)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "session_id",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -1883,7 +2053,9 @@
           "DELETE_RULE": "CASCADE"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "sessions",
@@ -1893,7 +2065,9 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "user_id",
@@ -1907,21 +2081,27 @@
           "COLUMN_TYPE": "varchar(45)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "user_agent",
           "COLUMN_TYPE": "text",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "payload",
           "COLUMN_TYPE": "longtext",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "last_activity",
@@ -1955,7 +2135,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "standings",
@@ -2056,7 +2238,9 @@
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "home_played",
@@ -2147,7 +2331,9 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -2221,7 +2407,9 @@
           "DELETE_RULE": "CASCADE"
         }
       ],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "teams",
@@ -2245,35 +2433,45 @@
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "slug",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "short_name",
           "COLUMN_TYPE": "varchar(10)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "logo_url",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "country",
           "COLUMN_TYPE": "varchar(60)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -2314,7 +2512,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "tennis_matches",
@@ -2338,42 +2538,54 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "country_name",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "player_home",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "player_away",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "score",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "status",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "match_date",
@@ -2428,7 +2640,9 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
     },
     {
       "table": "users",
@@ -2445,14 +2659,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "email",
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "email_verified_at",
@@ -2466,14 +2684,18 @@
           "COLUMN_TYPE": "varchar(255)",
           "IS_NULLABLE": "NO",
           "COLUMN_DEFAULT": null,
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "remember_token",
           "COLUMN_TYPE": "varchar(100)",
           "IS_NULLABLE": "YES",
           "COLUMN_DEFAULT": "NULL",
-          "EXTRA": ""
+          "EXTRA": "",
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci"
         },
         {
           "COLUMN_NAME": "created_at",
@@ -2507,7 +2729,95 @@
         }
       ],
       "foreign_keys": [],
-      "check_constraints": []
+      "check_constraints": [],
+      "engine": "InnoDB",
+      "collation": "utf8mb4_unicode_ci"
+    }
+  ],
+  "migration_ledger": [
+    {
+      "migration": "0001_01_01_000000_create_users_table",
+      "batch": 1
+    },
+    {
+      "migration": "0001_01_01_000001_create_cache_table",
+      "batch": 1
+    },
+    {
+      "migration": "0001_01_01_000002_create_jobs_table",
+      "batch": 1
+    },
+    {
+      "migration": "2026_03_17_132245_create_leagues_table",
+      "batch": 2
+    },
+    {
+      "migration": "2026_03_17_132246_create_teams_table",
+      "batch": 2
+    },
+    {
+      "migration": "2026_03_17_132247_create_fixtures_table",
+      "batch": 2
+    },
+    {
+      "migration": "2026_03_17_132248_create_fixture_scores_table",
+      "batch": 2
+    },
+    {
+      "migration": "2026_03_17_132249_create_api_call_logs_table",
+      "batch": 2
+    },
+    {
+      "migration": "2026_03_17_132249_create_fixture_events_table",
+      "batch": 2
+    },
+    {
+      "migration": "2026_03_18_000001_create_predictions_table",
+      "batch": 3
+    },
+    {
+      "migration": "2026_03_19_084449_add_league_id_to_player_stats_table",
+      "batch": 4
+    },
+    {
+      "migration": "2026_03_19_084450_fix_players_nationality_column",
+      "batch": 4
+    },
+    {
+      "migration": "2026_03_19_084723_fix_players_nullable_columns",
+      "batch": 5
+    },
+    {
+      "migration": "2026_03_19_084743_fix_player_stats_unique_index",
+      "batch": 6
+    },
+    {
+      "migration": "2026_03_19_095756_create_fixture_lineups_table",
+      "batch": 7
+    },
+    {
+      "migration": "2026_03_19_100000_create_basketball_games_table",
+      "batch": 8
+    },
+    {
+      "migration": "2026_03_19_100001_create_tennis_matches_table",
+      "batch": 8
+    },
+    {
+      "migration": "2026_03_20_164959_add_lineups_fetched_at_to_fixtures_table",
+      "batch": 9
+    },
+    {
+      "migration": "2026_03_24_085016_add_featured_image_to_posts_table",
+      "batch": 10
+    },
+    {
+      "migration": "2026_03_24_095214_create_fixture_polls_table",
+      "batch": 11
+    },
+    {
+      "migration": "2026_04_22_070442_add_home_away_to_standings_table",
+      "batch": 12
     }
   ]
 }

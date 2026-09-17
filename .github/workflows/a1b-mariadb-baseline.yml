@@ -70,6 +70,17 @@ jobs:
           docker compose version
           docker compose -f tools/a1b/compose.yaml config --quiet
 
+      - name: Regenerate and byte-compare the tracked baseline
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          generated_schema="$(mktemp "$RUNNER_TEMP/a1b-mariadb-schema.XXXXXX.sql")"
+          trap 'rm -f "$generated_schema"' EXIT
+          python3 tools/a1b/generate_mariadb_baseline.py \
+            "$A1B_MANIFEST" \
+            "$generated_schema"
+          cmp "$generated_schema" database/schema/mariadb-schema.sql
+
       - name: Run unchanged rehearsal and relevant tests
         id: a1b
         shell: bash
