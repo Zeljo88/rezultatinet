@@ -45,12 +45,12 @@ class CanonicalFootballMigrationContractTest extends TestCase
     {
         $reviewed = file_get_contents($this->root().'/tools/canonical-football-migration/reviewed-schema.sql');
         $this->assertSame(
-            'cf42a7010b762886e548021b7c4be2e4e580487167014e13d7e55bedb28353b7',
+            'ea5cc7206bd09aba376df0e5f21a0dfba10b34e91113a322ce1642774e724bd5',
             hash('sha256', $reviewed),
         );
 
         preg_match_all(
-            '/CREATE TABLE ([a-z_]+) \(.*?\n\) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/s',
+            "/CREATE TABLE ([a-z_]+) \(.*?\n\) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati\.net canonical-football v1 [^']+';/s",
             $reviewed,
             $matches,
         );
@@ -64,7 +64,7 @@ class CanonicalFootballMigrationContractTest extends TestCase
 
         foreach ($this->migrationFiles() as $file) {
             $contents = file_get_contents($file);
-            preg_match("/DB::unprepared\(<<<'SQL'\n(.*?)\nSQL\);/s", $contents, $match);
+            preg_match("/<<<'SQL'\n(.*?)\nSQL\);/s", $contents, $match);
             $table = $this->createdTable($contents);
 
             $this->assertArrayHasKey($table, $reviewedByTable);

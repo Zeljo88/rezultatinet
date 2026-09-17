@@ -7,7 +7,7 @@ CREATE TABLE sports (
     updated_at DATETIME(6) NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY sports_code_unique (code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000001_create_sports_table';
 
 -- A provider row is an immutable product/feed namespace, not an umbrella vendor account.
 CREATE TABLE providers (
@@ -24,7 +24,7 @@ CREATE TABLE providers (
     UNIQUE KEY providers_code_unique (code),
     UNIQUE KEY providers_sport_product_unique (sport_id, product_namespace),
     CONSTRAINT providers_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000002_create_providers_table';
 
 CREATE TABLE competitions (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -41,7 +41,7 @@ CREATE TABLE competitions (
     UNIQUE KEY competitions_public_id_unique (public_id),
     UNIQUE KEY competitions_sport_slug_unique (sport_id, slug),
     CONSTRAINT competitions_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000003_create_competitions_table';
 
 CREATE TABLE competition_seasons (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -56,7 +56,7 @@ CREATE TABLE competition_seasons (
     PRIMARY KEY (id),
     UNIQUE KEY competition_seasons_source_unique (competition_id, source_key),
     CONSTRAINT competition_seasons_competition_id_foreign FOREIGN KEY (competition_id) REFERENCES competitions (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000004_create_competition_seasons_table';
 
 CREATE TABLE participants (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -76,7 +76,7 @@ CREATE TABLE participants (
     UNIQUE KEY participants_sport_slug_unique (sport_id, slug),
     KEY participants_sport_type_index (sport_id, type),
     CONSTRAINT participants_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000005_create_participants_table';
 
 CREATE TABLE events (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -98,7 +98,7 @@ CREATE TABLE events (
     KEY events_season_starts_index (competition_season_id, starts_at),
     CONSTRAINT events_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id),
     CONSTRAINT events_competition_season_id_foreign FOREIGN KEY (competition_season_id) REFERENCES competition_seasons (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000006_create_events_table';
 
 CREATE TABLE event_participants (
     event_id BIGINT UNSIGNED NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE event_participants (
         (role = 'home' AND side_order = 1) OR
         (role = 'away' AND side_order = 2)
     )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000007_create_event_participants_table';
 
 CREATE TABLE provider_competition_mappings (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -135,7 +135,7 @@ CREATE TABLE provider_competition_mappings (
     KEY provider_competition_canonical_index (competition_id),
     CONSTRAINT provider_competition_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
     CONSTRAINT provider_competition_competition_id_foreign FOREIGN KEY (competition_id) REFERENCES competitions (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000008_create_provider_competition_mappings_table';
 
 CREATE TABLE provider_participant_mappings (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -152,7 +152,7 @@ CREATE TABLE provider_participant_mappings (
     KEY provider_participant_canonical_index (participant_id),
     CONSTRAINT provider_participant_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
     CONSTRAINT provider_participant_participant_id_foreign FOREIGN KEY (participant_id) REFERENCES participants (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000009_create_provider_participant_mappings_table';
 
 CREATE TABLE provider_event_mappings (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -169,7 +169,7 @@ CREATE TABLE provider_event_mappings (
     KEY provider_event_canonical_index (event_id),
     CONSTRAINT provider_event_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
     CONSTRAINT provider_event_event_id_foreign FOREIGN KEY (event_id) REFERENCES events (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000010_create_provider_event_mappings_table';
 
 CREATE TABLE import_runs (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -191,7 +191,7 @@ CREATE TABLE import_runs (
     CONSTRAINT import_runs_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
     CONSTRAINT import_runs_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id),
     CONSTRAINT import_runs_status_check CHECK (status IN ('waiting', 'running', 'paused', 'completed', 'failed'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000011_create_import_runs_table';
 
 CREATE TABLE identity_quarantines (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -217,4 +217,4 @@ CREATE TABLE identity_quarantines (
     CONSTRAINT identity_quarantines_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
     CONSTRAINT identity_quarantines_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id),
     CONSTRAINT identity_quarantines_status_check CHECK (status IN ('open', 'resolved', 'ignored'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000012_create_identity_quarantines_table';

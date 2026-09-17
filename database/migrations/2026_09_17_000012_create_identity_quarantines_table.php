@@ -3,13 +3,15 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
+require_once __DIR__.'/support/CanonicalFootballMigration.php';
+
 return new class extends Migration
 {
     public $withinTransaction = false;
 
     public function up(): void
     {
-        DB::unprepared(<<<'SQL'
+        CanonicalFootballMigration::create('identity_quarantines', '2026_09_17_000012_create_identity_quarantines_table', <<<'SQL'
 CREATE TABLE identity_quarantines (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     provider_id BIGINT UNSIGNED NOT NULL,
@@ -34,7 +36,7 @@ CREATE TABLE identity_quarantines (
     CONSTRAINT identity_quarantines_provider_id_foreign FOREIGN KEY (provider_id) REFERENCES providers (id),
     CONSTRAINT identity_quarantines_sport_id_foreign FOREIGN KEY (sport_id) REFERENCES sports (id),
     CONSTRAINT identity_quarantines_status_check CHECK (status IN ('open', 'resolved', 'ignored'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000012_create_identity_quarantines_table'
 SQL);
     }
 

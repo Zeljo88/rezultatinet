@@ -170,6 +170,8 @@ run_cycle() {
     capture_legacy canonical_migration "$cycle_out/legacy-before.txt"
 
     run_artisan canonical_migration php artisan migrate --force --no-interaction         > "$cycle_out/migrate-up.log" 2>&1
+    run_artisan canonical_migration php tools/canonical-football-migration/show-create-fingerprints.php \
+        > "$cycle_out/show-create-fingerprints.log" 2>&1
     db_exec canonical_contract < "$ROOT/tools/canonical-football-migration/reviewed-schema.sql"
 
     capture_schema canonical_migration "$cycle_out/actual-schema.txt"

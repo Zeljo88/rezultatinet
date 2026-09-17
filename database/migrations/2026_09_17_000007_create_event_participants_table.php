@@ -3,13 +3,15 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
+require_once __DIR__.'/support/CanonicalFootballMigration.php';
+
 return new class extends Migration
 {
     public $withinTransaction = false;
 
     public function up(): void
     {
-        DB::unprepared(<<<'SQL'
+        CanonicalFootballMigration::create('event_participants', '2026_09_17_000007_create_event_participants_table', <<<'SQL'
 CREATE TABLE event_participants (
     event_id BIGINT UNSIGNED NOT NULL,
     participant_id BIGINT UNSIGNED NOT NULL,
@@ -28,7 +30,7 @@ CREATE TABLE event_participants (
         (role = 'home' AND side_order = 1) OR
         (role = 'away' AND side_order = 2)
     )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='rezultati.net canonical-football v1 2026_09_17_000007_create_event_participants_table'
 SQL);
     }
 
