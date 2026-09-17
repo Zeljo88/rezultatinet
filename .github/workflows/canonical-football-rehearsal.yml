@@ -62,6 +62,25 @@ jobs:
           printf 'exit_code\t%s\n' "$status" >"$EVIDENCE_DIR/harness-exit-status.tsv"
           exit "$status"
 
+      - name: Surface sanitized failure diagnostic
+        if: failure() && steps.harness.outcome == 'failure'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          diagnostic="$EVIDENCE_DIR/sanitized-failure-diagnostic.txt"
+          {
+            printf '%s\n' 'harness stderr:'
+            tail -n 80 "$EVIDENCE_DIR/harness-stderr.log" 2>/dev/null || true
+            printf '%s\n' 'harness stdout:'
+            tail -n 40 "$EVIDENCE_DIR/harness-stdout.log" 2>/dev/null || true
+          } | sed -E \
+            -e 's#/(home|opt)/runner/[^[:space:]]+#<runner-path>#g' \
+            -e 's#(ghp_|github_pat_)[A-Za-z0-9_]+#<redacted-token>#g' \
+            -e 's#85\.93\.90\.23#<redacted-production-endpoint>#g' \
+            >"$diagnostic"
+          annotation="$(tr '\n' ' ' <"$diagnostic" | cut -c1-3500)"
+          printf '::error title=Sanitized harness failure::%s\n' "$annotation"
+
       - name: Verify exact MariaDB version and complete evidence
         shell: bash
         run: |
