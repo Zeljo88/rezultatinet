@@ -121,11 +121,39 @@ jobs:
           test -z "$networks"
           test -z "$volumes"
 
+      - name: Scan and export sanitized evidence bundle
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if grep -RIE \
+            '(ghp_|github_pat_|authorization:|bearer[[:space:]]+[A-Za-z0-9._-]+|85\.93\.90\.23|rezultati\.net)' \
+            "$EVIDENCE_DIR"; then
+            echo 'Evidence safety scan found a forbidden token or production endpoint.' >&2
+            exit 1
+          fi
+          printf '%s\n' \
+            'PASS: no credential patterns, production endpoint, or production hostname detected.' \
+            >"$EVIDENCE_DIR/evidence-safety-scan.txt"
+          bundle="$RUNNER_TEMP/canonical-football-rehearsal-evidence.tar.gz"
+          tar --sort=name --mtime='UTC 2026-09-17' --owner=0 --group=0 --numeric-owner \
+            -czf "$bundle" -C "$EVIDENCE_DIR" .
+          digest="$(sha256sum "$bundle" | awk '{print $1}')"
+          printf '::notice title=Evidence bundle SHA-256::%s\n' "$digest"
+          base64 --wrap=0 "$bundle" | split --bytes=3000 --numeric-suffixes=1 \
+            --suffix-length=4 - "$RUNNER_TEMP/evidence-chunk-"
+          for chunk in "$RUNNER_TEMP"/evidence-chunk-*; do
+            number="${chunk##*-}"
+            printf '::notice title=Evidence bundle chunk %s::%s\n' "$number" "$(cat "$chunk")"
+          done
+
       - name: Upload sanitized rehearsal evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: canonical-football-rehearsal-${{ github.run_id }}
-          path: rehearsal-evidence/
+          path: |
+            rehearsal-evidence/
+            ${{ runner.temp }}/canonical-football-rehearsal-evidence.tar.gz
           if-no-files-found: error
           retention-days: 14
