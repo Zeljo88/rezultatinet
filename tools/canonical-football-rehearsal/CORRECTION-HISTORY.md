@@ -19,3 +19,13 @@
 - Before SHA-256: `10137036209f00a1839d76f1fe8f8eb6ac4baa1b4b1409c02a1da48b37ef0c5a`.
 - After SHA-256: `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
 - No host port, provider call, external endpoint, production path, or fallback was added.
+
+## Evidence checksum path fix
+
+- Failing run: 35221833048, after both database cycles completed and cleaned up.
+- Exact terminal failure: `sha256sum` could not open the malformed final runner path.
+- Cause: trailing spaces and a misplaced quote joined the `run.sh` argument to the evidence redirection target.
+- Change: close the `run.sh` argument before the output redirection.
+- Before SHA-256: `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
+- After SHA-256: `d89e49547bb0d30f87e16bc336b22b6a6b72eea473bafe09aa64b8f9d40cb208`.
+- Database behavior, SQL, assertions, cleanup, and network isolation are unchanged.
