@@ -13,6 +13,14 @@ class FixtureScore extends Model
         'home_extratime','away_extratime',
         'home_penalties','away_penalties'
     ];
+    protected $casts = [
+        'goals_home' => 'integer', 'goals_away' => 'integer',
+        'home_halftime' => 'integer', 'away_halftime' => 'integer',
+        'home_fulltime' => 'integer', 'away_fulltime' => 'integer',
+        'home_extratime' => 'integer', 'away_extratime' => 'integer',
+        'home_penalties' => 'integer', 'away_penalties' => 'integer',
+    ];
+
     public $updated_at = true;
     public $created_at = false;
 }
