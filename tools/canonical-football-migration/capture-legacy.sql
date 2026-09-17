@@ -27,13 +27,15 @@ WHERE table_schema = DATABASE()
 ORDER BY table_name, index_name, seq_in_index;
 
 SELECT CONCAT_WS(
-    '|', 'FK', constraint_name, table_name, column_name,
-    referenced_table_name, referenced_column_name, ordinal_position,
-    update_rule, delete_rule
+    '|', 'FK', kcu.constraint_name, kcu.table_name, kcu.column_name,
+    kcu.referenced_table_name, kcu.referenced_column_name, kcu.ordinal_position,
+    rc.update_rule, rc.delete_rule
 )
-FROM information_schema.key_column_usage
-JOIN information_schema.referential_constraints
-  USING (constraint_schema, constraint_name, table_name)
-WHERE constraint_schema = DATABASE()
-  AND table_name IN ('leagues', 'teams', 'fixtures', 'fixture_scores')
-ORDER BY table_name, constraint_name, ordinal_position;
+FROM information_schema.key_column_usage kcu
+JOIN information_schema.referential_constraints rc
+  ON rc.constraint_schema = kcu.constraint_schema
+ AND rc.constraint_name = kcu.constraint_name
+ AND rc.table_name = kcu.table_name
+WHERE kcu.constraint_schema = DATABASE()
+  AND kcu.table_name IN ('leagues', 'teams', 'fixtures', 'fixture_scores')
+ORDER BY kcu.table_name, kcu.constraint_name, kcu.ordinal_position;
