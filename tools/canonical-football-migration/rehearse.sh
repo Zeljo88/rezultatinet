@@ -273,6 +273,7 @@ expect_recovery_abort() {
     local expected_reason=$2
     local negative_out="$OUT/negative-$label"
     local row_assertion=$3
+    local normalized_retry
 
     mkdir -p "$negative_out"
     reset_recovery_database "$negative_out"
@@ -312,7 +313,8 @@ expect_recovery_abort() {
         echo "FAIL: recovery unexpectedly accepted $label" >&2
         return 1
     fi
-    grep -Fq "$expected_reason" "$negative_out/retry.log"
+    normalized_retry=$(tr '\n' ' ' < "$negative_out/retry.log" | tr -s ' ')
+    grep -Fq "$expected_reason" <<< "$normalized_retry"
 
     assert_scalar "negative_${label}_ledger_unchanged" "0" \
         "SELECT COUNT(*) FROM migrations WHERE migration='2026_09_17_000001_create_sports_table'" \
@@ -395,22 +397,22 @@ run_crash_recovery \
 
 expect_recovery_abort \
     wrong-marker \
-    'marker does not match' \
+    'table type, engine, or canonical migration marker does not match' \
     "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='sports' AND table_comment='not the canonical migration marker'"
 
 expect_recovery_abort \
     wrong-schema \
-    'fingerprint does not match' \
+    'schema fingerprint does not match' \
     "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='sports' AND column_name='collision_column'"
 
 expect_recovery_abort \
     nonempty \
-    'not empty' \
+    'table is not empty (rows=1)' \
     "SELECT COUNT(*) FROM sports WHERE code='collision'"
 
 expect_recovery_abort \
     inbound-dependent \
-    'inbound foreign-key dependents' \
+    'table has inbound foreign-key dependents (references=1)' \
     "SELECT COUNT(*) FROM information_schema.key_column_usage WHERE referenced_table_schema=DATABASE() AND referenced_table_name='sports' AND table_name='collision_dependent'"
 
 printf 'MariaDB=%s\ncycles=2\ncrash_recoveries=2\nnegative_recovery_cases=4\nresult=PASS\n' \
