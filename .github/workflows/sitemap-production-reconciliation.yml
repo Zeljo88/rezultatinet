@@ -38,16 +38,14 @@ jobs:
           test -f database/schema/mariadb-schema.sql
           docker compose -f tools/a1b/compose.yaml config --quiet
 
-      - name: Run lint, focused tests, and full suite
+      - name: Build isolated PHP test image
+        shell: bash
+        run: docker compose -f tools/a1b/compose.yaml build app
+
+      - name: Start exact MariaDB 10.11.13
         shell: bash
         run: |
           set -Eeuo pipefail
-          cleanup() {
-            docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-
-          docker compose -f tools/a1b/compose.yaml build app
           docker compose -f tools/a1b/compose.yaml up -d db
           for attempt in $(seq 1 60); do
             if docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent; then
@@ -56,7 +54,6 @@ jobs:
             test "$attempt" -lt 60
             sleep 2
           done
-
           version=$(docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot -e 'SELECT VERSION()')
           case "$version" in
             10.11.13-MariaDB*) ;;
@@ -65,11 +62,31 @@ jobs:
               exit 1
               ;;
           esac
+          echo "MariaDB version: $version"
+
+      - name: Import sanitized data-free baseline
+        shell: bash
+        run: |
+          set -Eeuo pipefail
           docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot -e \
             'CREATE DATABASE reconciliation_tests CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
           docker compose -f tools/a1b/compose.yaml exec -T db \
             mariadb -uroot reconciliation_tests < database/schema/mariadb-schema.sql
 
+      - name: PHP lint
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml run --rm -T app sh -lc '
+            set -eu
+            cp -a /workspace /tmp/reconciliation
+            cp -a /build/vendor /tmp/reconciliation/vendor
+            cd /tmp/reconciliation
+            find app tests routes database/migrations -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+          '
+
+      - name: Focused reconciliation tests
+        shell: bash
+        run: |
           docker compose -f tools/a1b/compose.yaml run --rm -T \
             -e DB_CONNECTION=mariadb \
             -e DB_HOST=db \
@@ -82,7 +99,28 @@ jobs:
               cp -a /workspace /tmp/reconciliation
               cp -a /build/vendor /tmp/reconciliation/vendor
               cd /tmp/reconciliation
-              find app tests routes database/migrations -type f -name "*.php" -print0 | xargs -0 -n1 php -l
               php artisan test --filter=SitemapProductionReconciliationTest
+            '
+
+      - name: Full Laravel suite
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml run --rm -T \
+            -e DB_CONNECTION=mariadb \
+            -e DB_HOST=db \
+            -e DB_PORT=3306 \
+            -e DB_DATABASE=reconciliation_tests \
+            -e DB_USERNAME=root \
+            -e DB_PASSWORD= \
+            app sh -lc '
+              set -eu
+              cp -a /workspace /tmp/reconciliation
+              cp -a /build/vendor /tmp/reconciliation/vendor
+              cd /tmp/reconciliation
               php artisan test
             '
+
+      - name: Remove isolated containers and volumes
+        if: always()
+        shell: bash
+        run: docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans
