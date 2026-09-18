@@ -72,7 +72,7 @@ class SitemapTablicaCleanupTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_all_audited_legacy_urls_redirect_once_to_valid_self_canonical_league_pages(): void
+    public function test_all_audited_legacy_urls_redirect_once_and_all_retained_league_pages_are_self_canonical(): void
     {
         $this->assertSame(array_keys(self::API_LEAGUE_IDS), SitemapLeaguePolicy::SLUGS);
 
@@ -90,6 +90,14 @@ class SitemapTablicaCleanupTest extends TestCase
             $this->get("/liga/{$slug}")
                 ->assertOk()
                 ->assertSee('<link rel="canonical" href="'.$canonical.'">', false);
+
+            foreach (['raspored', 'strijelci'] as $subpage) {
+                $subpageCanonical = "{$canonical}/{$subpage}";
+
+                $this->get("/liga/{$slug}/{$subpage}")
+                    ->assertOk()
+                    ->assertSee('<link rel="canonical" href="'.$subpageCanonical.'">', false);
+            }
         }
     }
 
