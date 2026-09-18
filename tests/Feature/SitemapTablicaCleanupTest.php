@@ -11,6 +11,9 @@ use Tests\TestCase;
 
 class SitemapTablicaCleanupTest extends TestCase
 {
+    /** @var list<string> */
+    private array $createdTables = [];
+
     private const API_LEAGUE_IDS = [
         'hnl' => 210,
         'superliga-srbija' => 286,
@@ -58,10 +61,13 @@ class SitemapTablicaCleanupTest extends TestCase
 
     protected function tearDown(): void
     {
-        Schema::dropIfExists('player_stats');
-        Schema::dropIfExists('standings');
-        Schema::dropIfExists('fixtures');
-        Schema::dropIfExists('leagues');
+        if (! in_array('leagues', $this->createdTables, true)) {
+            DB::table('leagues')->whereIn('api_league_id', array_values(self::API_LEAGUE_IDS))->delete();
+        }
+
+        foreach (array_reverse($this->createdTables) as $table) {
+            Schema::drop($table);
+        }
 
         parent::tearDown();
     }
@@ -151,31 +157,43 @@ class SitemapTablicaCleanupTest extends TestCase
 
     private function createMinimalLeaguePageSchema(): void
     {
-        Schema::create('leagues', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('api_league_id')->unique();
-            $table->string('name');
-            $table->unsignedInteger('current_season')->nullable();
-            $table->string('logo_url')->nullable();
-        });
+        if (! Schema::hasTable('leagues')) {
+            Schema::create('leagues', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('api_league_id')->unique();
+                $table->string('name');
+                $table->unsignedInteger('current_season')->nullable();
+                $table->string('logo_url')->nullable();
+            });
+            $this->createdTables[] = 'leagues';
+        }
 
-        Schema::create('fixtures', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('league_id');
-            $table->dateTime('kick_off')->nullable();
-            $table->string('status_short')->nullable();
-        });
+        if (! Schema::hasTable('fixtures')) {
+            Schema::create('fixtures', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('league_id');
+                $table->dateTime('kick_off')->nullable();
+                $table->string('status_short')->nullable();
+            });
+            $this->createdTables[] = 'fixtures';
+        }
 
-        Schema::create('standings', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('league_id');
-            $table->unsignedInteger('rank')->nullable();
-        });
+        if (! Schema::hasTable('standings')) {
+            Schema::create('standings', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('league_id');
+                $table->unsignedInteger('rank')->nullable();
+            });
+            $this->createdTables[] = 'standings';
+        }
 
-        Schema::create('player_stats', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('league_id');
-            $table->unsignedInteger('goals')->default(0);
-        });
+        if (! Schema::hasTable('player_stats')) {
+            Schema::create('player_stats', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('league_id');
+                $table->unsignedInteger('goals')->default(0);
+            });
+            $this->createdTables[] = 'player_stats';
+        }
     }
 }
