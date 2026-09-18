@@ -1,0 +1,8 @@
+{
+    "approved_artifact": "artifacts/canonical-football/up.sql",
+    "approved_artifact_sha256": "cdd6283cffb62861af5b5a287cb79c98a6d441920f42d93183a0666297e3ce7e",
+    "extraction": "ordered CREATE TABLE statements only, including semicolons and original whitespace",
+    "extracted_create_statements_sha256": "cf42a7010b762886e548021b7c4be2e4e580487167014e13d7e55bedb28353b7",
+    "marker_overlay": "append one migration-specific TABLE COMMENT clause before each statement semicolon",
+    "marked_reviewed_schema_sha256": "ea5cc7206bd09aba376df0e5f21a0dfba10b34e91113a322ce1642774e724bd5"
+}
