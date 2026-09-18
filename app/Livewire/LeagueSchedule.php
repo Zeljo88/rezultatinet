@@ -31,6 +31,7 @@ class LeagueSchedule extends Component
         'bundesliga'          => 78,
         'ligue-1'             => 61,
         'prva-liga-srbija'    => 287,
+        'first-nl-hrvatska'   => 211,
         'hnl-2'               => 946,
         'prva-liga-fbih'      => 316,
         'prva-liga-rs'        => 317,
