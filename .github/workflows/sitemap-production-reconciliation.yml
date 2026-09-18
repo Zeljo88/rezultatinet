@@ -123,7 +123,8 @@ jobs:
               set -e
               cat /tmp/full-suite.log
               if [ "$rc" -ne 0 ]; then
-                diagnostic=$(tail -n 80 /tmp/full-suite.log \
+                diagnostic=$(grep -E '^(There was|There were|[0-9]+\)|Tests:|FAILURES|ERRORS)|SQLSTATE|Expected response|Failed asserting|Exception:' /tmp/full-suite.log \
+                  | head -n 40 \
                   | sed -E \
                     -e "s#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\\1[REDACTED]@#g" \
                     -e "s#((password|passwd|pwd|token|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+#\\1[REDACTED]#Ig" \
