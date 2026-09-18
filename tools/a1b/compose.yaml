@@ -1,0 +1,38 @@
+services:
+  db:
+    image: mariadb:10.11.13
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "1"
+      MARIADB_DATABASE: a1b
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    tmpfs:
+      - /var/lib/mysql
+    networks: [a1b]
+  app:
+    build:
+      context: ../..
+      dockerfile: tools/a1b/Dockerfile
+    environment:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mariadb
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: a1b
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    volumes:
+      - ../..:/workspace:ro
+    networks: [a1b]
+    depends_on:
+      db:
+        condition: service_healthy
+networks:
+  a1b: {}

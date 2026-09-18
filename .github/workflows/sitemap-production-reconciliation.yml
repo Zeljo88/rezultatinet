@@ -1,0 +1,82 @@
+name: Sitemap production reconciliation
+
+on:
+  push:
+    branches:
+      - rex/sitemap-production-reconciliation-2026-09-18
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sitemap-production-reconciliation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Exact MariaDB 10.11.13 full suite
+    if: github.ref == 'refs/heads/rex/sitemap-production-reconciliation-2026-09-18'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact branch head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Validate isolation and pinned inputs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "rex/sitemap-production-reconciliation-2026-09-18"
+          grep -Fxq '    image: mariadb:10.11.13' tools/a1b/compose.yaml
+          ! grep -Eq '^[[:space:]]*ports:' tools/a1b/compose.yaml
+          test -f database/schema/mariadb-schema.sql
+          docker compose -f tools/a1b/compose.yaml config --quiet
+
+      - name: Run lint, focused tests, and full suite
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker compose -f tools/a1b/compose.yaml build app
+          docker compose -f tools/a1b/compose.yaml up -d db
+          for attempt in $(seq 1 60); do
+            if docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent; then
+              break
+            fi
+            test "$attempt" -lt 60
+            sleep 2
+          done
+
+          version=$(docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot -e 'SELECT VERSION()')
+          test "$version" = '10.11.13-MariaDB-ubu2204'
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot -e \
+            'CREATE DATABASE reconciliation_tests CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+          docker compose -f tools/a1b/compose.yaml exec -T db \
+            mariadb -uroot reconciliation_tests < database/schema/mariadb-schema.sql
+
+          docker compose -f tools/a1b/compose.yaml run --rm -T \
+            -e DB_CONNECTION=mariadb \
+            -e DB_HOST=db \
+            -e DB_PORT=3306 \
+            -e DB_DATABASE=reconciliation_tests \
+            -e DB_USERNAME=root \
+            -e DB_PASSWORD= \
+            app sh -lc '
+              set -eu
+              cp -a /workspace /tmp/reconciliation
+              cp -a /build/vendor /tmp/reconciliation/vendor
+              cd /tmp/reconciliation
+              find app tests routes database/migrations -type f -name "*.php" -print0 | xargs -0 -n1 php -l
+              php artisan test --filter=SitemapProductionReconciliationTest
+              php artisan test
+            '

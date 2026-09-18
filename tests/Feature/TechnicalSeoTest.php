@@ -43,7 +43,7 @@ class TechnicalSeoTest extends TestCase
 
         $this->get('/tablica/hnl')
             ->assertStatus(301)
-            ->assertRedirect('https://rezultati.net/liga/hnl/tablica');
+            ->assertRedirect('https://rezultati.net/liga/hnl');
     }
 
     public function test_404_is_noindex_without_canonical_or_hreflang(): void
@@ -70,7 +70,7 @@ class TechnicalSeoTest extends TestCase
         $response->assertDontSee('<lastmod>', false);
     }
 
-    public function test_league_sitemap_contains_only_unique_canonical_table_urls(): void
+    public function test_league_sitemap_contains_only_unique_canonical_urls_without_standings_aliases(): void
     {
         config()->set('seo.enforce_canonical_host', false);
 
@@ -78,10 +78,10 @@ class TechnicalSeoTest extends TestCase
         $content = $response->getContent();
 
         $response->assertOk();
-        $this->assertSame(88, substr_count($content, '<loc>'));
+        $this->assertSame(68, substr_count($content, '<loc>'));
         $this->assertSame(0, substr_count($content, 'https://rezultati.net/tablica/'));
         $this->assertSame(
-            1,
+            0,
             substr_count($content, '<loc>https://rezultati.net/liga/prva-liga-fbih/tablica</loc>'),
         );
     }
