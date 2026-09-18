@@ -117,7 +117,21 @@ jobs:
               cp -a /workspace /tmp/reconciliation
               cp -a /build/vendor /tmp/reconciliation/vendor
               cd /tmp/reconciliation
-              php artisan test
+              set +e
+              php artisan test > /tmp/full-suite.log 2>&1
+              rc=$?
+              set -e
+              cat /tmp/full-suite.log
+              if [ "$rc" -ne 0 ]; then
+                diagnostic=$(tail -n 80 /tmp/full-suite.log \
+                  | sed -E \
+                    -e "s#(https?://)[^/@[:space:]]+:[^/@[:space:]]+@#\\1[REDACTED]@#g" \
+                    -e "s#((password|passwd|pwd|token|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*)[^[:space:],;]+#\\1[REDACTED]#Ig" \
+                  | tr "\n" " " \
+                  | cut -c1-4000)
+                echo "::error title=Full Laravel suite failed::$diagnostic"
+                exit "$rc"
+              fi
             '
 
       - name: Remove isolated containers and volumes
