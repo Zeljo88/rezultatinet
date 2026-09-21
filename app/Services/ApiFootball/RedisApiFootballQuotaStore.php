@@ -10,6 +10,8 @@ class RedisApiFootballQuotaStore implements ApiFootballQuotaStore
 {
     private const PREFIX = 'api-football:quota:';
 
+    private const REPAIR_SCAN_CURSOR_TTL = 604800;
+
     public function reserve(string $endpointClass, string $caller): array
     {
         $this->assertSafeToken($endpointClass);
@@ -169,6 +171,47 @@ LUA;
             Redis::connection('cache')->del(self::PREFIX."repair-lock:{$fixtureId}");
         } catch (Throwable) {
             // Fail conservatively: the short repair lock expires after five minutes.
+        }
+    }
+
+    public function repairScanCursor(string $scan): ?int
+    {
+        $this->assertSafeToken($scan);
+
+        try {
+            $value = Redis::connection('cache')->get(self::PREFIX."repair-scan:v2:{$scan}");
+
+            return $value === null ? 0 : max(0, (int) $value);
+        } catch (Throwable) {
+            // A missing/unavailable cursor safely restarts the bounded ID rotation.
+            return null;
+        }
+    }
+
+    public function advanceRepairScanCursor(string $scan, int $expected, int $next): bool
+    {
+        $this->assertSafeToken($scan);
+        $expected = max(0, $expected);
+        $next = max(0, $next);
+        $script = <<<'LUA'
+local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+if current ~= tonumber(ARGV[1]) then return 0 end
+redis.call('SETEX', KEYS[1], ARGV[3], ARGV[2])
+return 1
+LUA;
+
+        try {
+            return (int) Redis::connection('cache')->eval(
+                $script,
+                1,
+                self::PREFIX."repair-scan:v2:{$scan}",
+                $expected,
+                $next,
+                self::REPAIR_SCAN_CURSOR_TTL,
+            ) === 1;
+        } catch (Throwable) {
+            // Repair eligibility already fails closed when Redis is unavailable.
+            return false;
         }
     }
 

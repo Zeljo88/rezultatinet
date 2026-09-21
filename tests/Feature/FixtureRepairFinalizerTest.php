@@ -282,12 +282,230 @@ class FixtureRepairFinalizerTest extends TestCase
         $quota = new InMemoryRepairQuota(static fn (): bool => false);
         $api = Mockery::mock(ApiFootballService::class);
         $api->shouldNotReceive('getFixtureById');
+        DB::enableQueryLog();
 
         (new FinalizeFinishedFixtures)->handle($api, $quota);
 
-        $this->assertCount(200, $quota->acquireAttempts);
+        $this->assertCount(100, $quota->acquireAttempts);
         $this->assertLessThan(500, count($quota->acquireAttempts));
         $this->assertSame([], $quota->records);
+        $fixtureSelects = array_filter(
+            DB::getQueryLog(),
+            static fn (array $query): bool => str_starts_with(strtolower($query['query']), 'select')
+                && str_contains(strtolower($query['query']), 'from "fixtures"'),
+        );
+        $this->assertLessThanOrEqual(3, count($fixtureSelects));
+    }
+
+    public function test_exact_201_row_interior_candidate_is_reached_across_invocations(): void
+    {
+        $target = null;
+        for ($index = 1; $index <= 201; $index++) {
+            $fixture = $this->insertFixture(16000 + $index, now()->subMinutes(20 + $index));
+            if ($index === 101) {
+                $target = $fixture;
+            }
+        }
+
+        $quota = new InMemoryRepairQuota(
+            static fn (int $fixtureId): bool => $fixtureId === $target->id,
+        );
+        $called = [];
+        $api = $this->apiMock(function (int $apiId) use (&$called): array {
+            $called[] = $apiId;
+
+            return $this->providerFixture('2H');
+        });
+        $job = new FinalizeFinishedFixtures;
+
+        $job->handle($api, $quota);
+        $this->assertSame([], $called);
+        $this->assertSame(100, $quota->scanCursor);
+
+        $job->handle($api, $quota);
+        $this->assertSame([16101], $called);
+        $this->assertGreaterThanOrEqual(101, $quota->scanCursor);
+    }
+
+    public function test_durable_cursor_advances_on_consecutive_successful_runs(): void
+    {
+        for ($index = 0; $index < 250; $index++) {
+            $this->insertFixture(17000 + $index, now()->subHour());
+        }
+
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+        $job = new FinalizeFinishedFixtures;
+
+        $job->handle($api, $quota);
+        $this->assertSame(100, $quota->scanCursor);
+        $job->handle($api, $quota);
+        $this->assertSame(200, $quota->scanCursor);
+        $this->assertSame([[0, 100], [100, 200]], $quota->cursorWrites);
+    }
+
+    public function test_backlog_cursor_wraps_once_and_deterministically(): void
+    {
+        for ($index = 0; $index < 50; $index++) {
+            $this->insertFixture(18000 + $index, now()->subHour());
+        }
+
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $quota->scanCursor = 50;
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+        DB::enableQueryLog();
+
+        (new FinalizeFinishedFixtures)->handle($api, $quota);
+
+        $this->assertSame(50, $quota->scanCursor);
+        $this->assertSame([[50, 50]], $quota->cursorWrites);
+        $fixtureSelects = array_filter(
+            DB::getQueryLog(),
+            static fn (array $query): bool => str_starts_with(strtolower($query['query']), 'select')
+                && str_contains(strtolower($query['query']), 'from "fixtures"'),
+        );
+        $this->assertLessThanOrEqual(3, count($fixtureSelects));
+    }
+
+    public function test_new_ingestion_and_mutable_updated_at_cannot_skip_backlog_progress(): void
+    {
+        $target = null;
+        for ($index = 1; $index <= 201; $index++) {
+            $fixture = $this->insertFixture(19000 + $index, now()->subMinutes(20 + $index));
+            if ($index === 101) {
+                $target = $fixture;
+            }
+        }
+
+        $quota = new InMemoryRepairQuota(
+            static fn (int $fixtureId): bool => $fixtureId === $target->id,
+        );
+        $called = [];
+        $api = $this->apiMock(function (int $apiId) use (&$called): array {
+            $called[] = $apiId;
+
+            return $this->providerFixture('2H');
+        });
+        $job = new FinalizeFinishedFixtures;
+        $job->handle($api, $quota);
+
+        DB::table('fixtures')->where('id', $target->id)->update(['updated_at' => now()->subMinutes(16)]);
+        for ($index = 0; $index < 25; $index++) {
+            $this->insertFixture(19500 + $index, now()->subMinutes(16)->addSeconds($index));
+        }
+        $job->handle($api, $quota);
+
+        $this->assertContains(19101, $called);
+        $this->assertGreaterThanOrEqual(101, $quota->scanCursor);
+    }
+
+    public function test_recent_lane_quickly_finds_a_newly_stale_fixture_behind_cursor(): void
+    {
+        $newlyStale = $this->insertFixture(20001, now(), 'NS', 0);
+        for ($index = 0; $index < 120; $index++) {
+            $this->insertFixture(20100 + $index, now()->subHours(2));
+        }
+
+        $quota = new InMemoryRepairQuota(
+            static fn (int $fixtureId): bool => $fixtureId === $newlyStale->id,
+        );
+        $api = $this->apiMock(fn (): array => $this->providerFixture('2H'));
+        $job = new FinalizeFinishedFixtures;
+        $job->handle($api, $quota);
+        $this->assertSame(101, $quota->scanCursor);
+
+        DB::table('fixtures')->where('id', $newlyStale->id)->update([
+            'status_short' => '2H',
+            'status_long' => 'Second Half',
+            'elapsed_minute' => 90,
+            'updated_at' => now()->subMinutes(16),
+        ]);
+        $job->handle($api, $quota);
+
+        $api->shouldHaveReceived('getFixtureById')->with(20001, 'FinalizeFinishedFixtures')->once();
+    }
+
+    public function test_old_backlog_progresses_under_continuous_recent_arrivals(): void
+    {
+        $target = null;
+        for ($index = 1; $index <= 250; $index++) {
+            $fixture = $this->insertFixture(21000 + $index, now()->subHours(6));
+            if ($index === 201) {
+                $target = $fixture;
+            }
+        }
+
+        $quota = new InMemoryRepairQuota(
+            static fn (int $fixtureId): bool => $fixtureId === $target->id,
+        );
+        $called = [];
+        $api = $this->apiMock(function (int $apiId) use (&$called): array {
+            $called[] = $apiId;
+
+            return $this->providerFixture('2H');
+        });
+        $job = new FinalizeFinishedFixtures;
+
+        for ($run = 0; $run < 3; $run++) {
+            for ($index = 0; $index < 110; $index++) {
+                $this->insertFixture(22000 + ($run * 110) + $index, now()->subMinutes(16)->addSeconds($index));
+            }
+            $job->handle($api, $quota);
+        }
+
+        $this->assertContains(21201, $called);
+        $this->assertLessThanOrEqual(5, count($called));
+    }
+
+    public function test_cursor_unavailable_or_reset_fails_safely_and_then_resumes(): void
+    {
+        for ($index = 0; $index < 150; $index++) {
+            $this->insertFixture(23000 + $index, now()->subHour());
+        }
+
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $quota->cursorReadable = false;
+        $quota->cursorWritable = false;
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+        $job = new FinalizeFinishedFixtures;
+
+        $job->handle($api, $quota);
+        $this->assertSame(0, $quota->scanCursor);
+        $this->assertCount(150, $quota->acquireAttempts);
+
+        $quota->cursorReadable = true;
+        $quota->cursorWritable = true;
+        $job->handle($api, $quota);
+        $this->assertSame(100, $quota->scanCursor);
+
+        $quota->scanCursor = 0;
+        $job->handle($api, $quota);
+        $this->assertSame(100, $quota->scanCursor);
+    }
+
+    public function test_tied_recent_ordering_is_deterministic_and_provider_cap_is_preserved(): void
+    {
+        config()->set('api_football.repair.finalizer_per_run', 2);
+        for ($index = 0; $index < 10; $index++) {
+            $this->insertFixture(24000 + $index, now()->subHour());
+        }
+
+        $quota = new InMemoryRepairQuota;
+        $called = [];
+        $api = $this->apiMock(function (int $apiId) use (&$called): array {
+            $called[] = $apiId;
+
+            return $this->providerFixture('2H');
+        });
+
+        (new FinalizeFinishedFixtures)->handle($api, $quota);
+
+        $this->assertCount(2, $called);
+        $this->assertContains(24009, $called);
+        $this->assertContains(24000, $called);
     }
 
     private function apiMock(Closure $response): ApiFootballService
@@ -460,6 +678,15 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
 
     public int $reserveCalls = 0;
 
+    public int $scanCursor = 0;
+
+    public bool $cursorReadable = true;
+
+    public bool $cursorWritable = true;
+
+    /** @var list<array{0: int, 1: int}> */
+    public array $cursorWrites = [];
+
     /** @var array<int, bool> */
     private array $locked = [];
 
@@ -509,5 +736,26 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
         if ($terminal) {
             $this->terminalFixtures[$fixtureId] = true;
         }
+    }
+
+    public function repairScanCursor(string $scan): ?int
+    {
+        if (! $this->cursorReadable) {
+            return null;
+        }
+
+        return $this->scanCursor;
+    }
+
+    public function advanceRepairScanCursor(string $scan, int $expected, int $next): bool
+    {
+        if (! $this->cursorWritable || $this->scanCursor !== $expected) {
+            return false;
+        }
+
+        $this->cursorWrites[] = [$expected, $next];
+        $this->scanCursor = $next;
+
+        return true;
     }
 }
