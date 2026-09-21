@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Contracts\ApiFootballQuotaStore;
 use App\Exceptions\ApiFootballBlocked;
+use App\Exceptions\ApiFootballLocalAttemptLimitReached;
+use App\Exceptions\ApiFootballRetryableFailure;
 use App\Models\Fixture;
 use App\Models\FixtureScore;
 use App\Services\ApiFootballService;
@@ -67,24 +69,29 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
             return true;
         };
 
-        // Alternate the first lane each scheduler window, then alternate within the
-        // run. This reserves deterministic progress for both fresh and old backlog.
-        $recentFirst = intdiv(now('UTC')->timestamp, 300) % 2 === 0;
-
+        // The first logical opportunity is reserved for an eligible backlog
+        // fixture. Recent work follows immediately and reclaims every slot when
+        // no backlog fixture is eligible. Retries share the same five tokens.
         for ($slot = 0; $slot < $limit; $slot++) {
-            $preferred = ($slot + ($recentFirst ? 0 : 1)) % 2 === 0 ? 'recent' : 'old';
+            $preferred = $slot % 2 === 0 ? 'old' : 'recent';
             $fallback = $preferred === 'recent' ? 'old' : 'recent';
+            $selectedLane = $preferred;
             $fixture = $this->nextEligible(
                 $preferred, $states[$preferred], $seen, $quota, $now, $scanLimit
-            ) ?? $this->nextEligible(
-                $fallback, $states[$fallback], $seen, $quota, $now, $scanLimit
             );
+            if (! $fixture) {
+                $selectedLane = $fallback;
+                $fixture = $this->nextEligible(
+                    $fallback, $states[$fallback], $seen, $quota, $now, $scanLimit
+                );
+            }
 
             if (! $fixture) {
                 break;
             }
 
             $checked++;
+            $providerAttemptsBefore = $providerAttemptsRemaining;
             try {
                 $data = $api->getFixtureById(
                     $fixture->api_fixture_id,
@@ -92,11 +99,30 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                     'fixture_repair',
                     $claimProviderAttempt,
                 );
-            } catch (ApiFootballBlocked) {
-                // A denied reservation made no provider call and must not consume a
-                // fixture attempt/cooldown. Release only this job's short scan lock.
+            } catch (ApiFootballLocalAttemptLimitReached) {
+                // No reservation or HTTP occurred for the denied claim. Persist
+                // inspected progress, but never pass an unrequested old fixture.
+                if ($selectedLane === 'old' && $providerAttemptsRemaining === $providerAttemptsBefore) {
+                    $states['old']['last_id'] = max(
+                        $states['old']['start_id'],
+                        (int) $fixture->id - 1,
+                    );
+                }
                 $quota->releaseRepair($fixture->id);
-                $stopReason = 'provider_blocked';
+                $stopReason = 'local_attempt_limit';
+                break;
+            } catch (ApiFootballRetryableFailure) {
+                // A transient provider/transport failure must not consume the
+                // fixture's bounded repair-attempt allowance. The cursor may move
+                // on, and the fixture becomes eligible again next generation.
+                $quota->releaseRepair($fixture->id);
+
+                continue;
+            } catch (ApiFootballBlocked) {
+                // External quota, circuit, provider, or accounting denial remains
+                // fail-closed. No progress from this run is committed.
+                $quota->releaseRepair($fixture->id);
+                $stopReason = 'external_blocked';
                 break;
             }
 
@@ -137,7 +163,11 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
         $scannedRecent = $states['recent']['scanned'];
         $scannedOld = $states['old']['scanned'];
         $scanStateAdvanced = null;
-        if ($stopReason === null && $states['old']['last_id'] !== null) {
+        if (
+            $stopReason !== 'external_blocked'
+            && $states['old']['last_id'] !== null
+            && $states['old']['last_id'] !== $backlogState['cursor']
+        ) {
             $nextBacklogState = $backlogState;
             $nextBacklogState['cursor'] = $states['old']['last_id'];
             $scanStateAdvanced = $quota->compareAndSetRepairScanState(
@@ -182,7 +212,7 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            if ($state['cursor'] < $state['ceiling']) {
+            if ($state['cursor'] < $state['ceiling'] || $state['generation'] === PHP_INT_MAX) {
                 return $state;
             }
 

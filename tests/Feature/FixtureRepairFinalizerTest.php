@@ -3,16 +3,19 @@
 namespace Tests\Feature;
 
 use App\Contracts\ApiFootballQuotaStore;
+use App\Exceptions\ApiFootballBlocked;
 use App\Jobs\FinalizeFinishedFixtures;
 use App\Models\Fixture;
 use App\Models\FixtureScore;
 use App\Services\ApiFootball\ApiFootballGateway;
 use App\Services\ApiFootball\RedisApiFootballQuotaStore;
 use App\Services\ApiFootballService;
+use App\Support\ApiFootballBlockReason;
 use App\Support\FootballFixtureStatus;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redis;
@@ -764,6 +767,314 @@ class FixtureRepairFinalizerTest extends TestCase
         $this->assertContains(24000, $called);
     }
 
+    public function test_retrying_recent_arrivals_cannot_starve_target_125_or_create_a_sixth_request(): void
+    {
+        config()->set('api_football.retry_base_ms', 0);
+        for ($id = 1; $id <= 250; $id++) {
+            $this->insertFixture(25000 + $id, now()->subHours(8));
+        }
+
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 250];
+        $requested = [];
+        Http::fake(function ($request) use (&$requested) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $requested[] = (int) ($query['id'] ?? 0);
+
+            return Http::response([], 500);
+        });
+        $api = new ApiFootballService(new ApiFootballGateway($quota));
+        $job = new FinalizeFinishedFixtures;
+        $targetRun = null;
+
+        for ($run = 1; $run <= 63; $run++) {
+            for ($arrival = 0; $arrival < 101; $arrival++) {
+                $this->insertFixture(
+                    40000 + (($run - 1) * 101) + $arrival,
+                    now()->subMinutes(20)->addSeconds($arrival),
+                );
+            }
+
+            $before = count($requested);
+            $job->handle($api, $quota);
+            $this->assertSame(5, count($requested) - $before, "run {$run} physical attempt count");
+            if (in_array(25125, $requested, true)) {
+                $targetRun = $run;
+                break;
+            }
+        }
+
+        $this->assertNotNull($targetRun);
+        $this->assertLessThanOrEqual(63, $targetRun);
+        $this->assertGreaterThanOrEqual(125, $quota->scanState['cursor']);
+        $this->assertNotEmpty(array_filter($requested, static fn (int $id): bool => $id >= 40000));
+        $this->assertSame([], $quota->records, 'Retryable failures must not exhaust fixture repair eligibility.');
+    }
+
+    #[DataProvider('typedExternalDenials')]
+    public function test_external_denials_are_typed_and_never_send_http(
+        string $reservationReason,
+        ApiFootballBlockReason $expectedReason,
+    ): void {
+        $quota = new InMemoryRepairQuota;
+        $quota->reservation = ['allowed' => false, 'reason' => $reservationReason];
+        Http::fake();
+
+        try {
+            (new ApiFootballGateway($quota))->get('/fixtures', ['id' => 1], 'fixture_repair', 'test', static fn (): bool => true);
+            $this->fail('Expected an external denial.');
+        } catch (ApiFootballBlocked $blocked) {
+            $this->assertSame($expectedReason, $blocked->reason);
+        }
+
+        Http::assertNothingSent();
+        $this->assertSame(1, $quota->reserveCalls);
+    }
+
+    public static function typedExternalDenials(): array
+    {
+        return [
+            'fixture repair sub-budget' => ['class_hard_stop', ApiFootballBlockReason::FixtureRepairBudget],
+            'global quota' => ['global_hard_stop', ApiFootballBlockReason::GlobalQuota],
+            'circuit breaker' => ['circuit', ApiFootballBlockReason::Circuit],
+        ];
+    }
+
+    public function test_accounting_unavailability_is_typed_and_fails_closed(): void
+    {
+        $quota = new InMemoryRepairQuota;
+        $quota->reserveThrows = true;
+        Http::fake();
+
+        try {
+            (new ApiFootballGateway($quota))->get('/fixtures', ['id' => 1], 'fixture_repair', 'test', static fn (): bool => true);
+            $this->fail('Expected an accounting denial.');
+        } catch (ApiFootballBlocked $blocked) {
+            $this->assertSame(ApiFootballBlockReason::AccountingUnavailable, $blocked->reason);
+        }
+
+        Http::assertNothingSent();
+    }
+
+    public function test_provider_429_is_typed_external_block_and_does_not_advance_cursor(): void
+    {
+        $fixture = $this->insertFixture(51001, now()->subHour());
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => $fixture->id];
+        Http::fakeSequence()->push([], 429, ['Retry-After' => '60']);
+
+        (new FinalizeFinishedFixtures)->handle(
+            new ApiFootballService(new ApiFootballGateway($quota)),
+            $quota,
+        );
+
+        Http::assertSentCount(1);
+        $this->assertSame(0, $quota->scanState['cursor']);
+        $this->assertSame([], $quota->records);
+        $this->assertSame([$fixture->id], $quota->released);
+    }
+
+    public function test_connection_failures_obey_cap_advance_and_remain_retryable(): void
+    {
+        config()->set('api_football.retry_base_ms', 0);
+        for ($id = 1; $id <= 4; $id++) {
+            $this->insertFixture(52000 + $id, now()->subHour());
+        }
+        $quota = new InMemoryRepairQuota;
+        $attempts = 0;
+        Http::fake(static function () use (&$attempts): never {
+            $attempts++;
+
+            throw new ConnectionException('transport down');
+        });
+
+        (new FinalizeFinishedFixtures)->handle(
+            new ApiFootballService(new ApiFootballGateway($quota)),
+            $quota,
+        );
+
+        $this->assertSame(5, $attempts);
+        $this->assertSame(5, $quota->reserveCalls);
+        $this->assertGreaterThan(0, $quota->scanState['cursor']);
+        $this->assertSame([], $quota->records);
+    }
+
+    public function test_cas_contention_during_local_exhaustion_cannot_regress_state(): void
+    {
+        config()->set('api_football.retry_base_ms', 0);
+        for ($id = 1; $id <= 4; $id++) {
+            $this->insertFixture(53000 + $id, now()->subHour());
+        }
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 4];
+        $quota->rejectNextCursorWrite = true;
+        Http::fake(static fn () => Http::response([], 500));
+        $job = new FinalizeFinishedFixtures;
+        $api = new ApiFootballService(new ApiFootballGateway($quota));
+
+        $job->handle($api, $quota);
+        $this->assertSame(0, $quota->scanState['cursor']);
+        Http::assertSentCount(5);
+
+        $job->handle($api, $quota);
+        $this->assertGreaterThan(0, $quota->scanState['cursor']);
+        Http::assertSentCount(10);
+    }
+
+    public function test_malformed_scan_state_self_heals_atomically_with_ttl(): void
+    {
+        $redis = new CapturingRepairScanRedis;
+        Redis::shouldReceive('connection')->with('cache')->andReturn($redis);
+        $store = new RedisApiFootballQuotaStore;
+        $initial = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 10];
+
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', null, $initial));
+        $key = $redis->keys[0];
+        $redis->values[$key] = '{malformed';
+        $this->assertNull($store->repairScanState('finalizer-backlog-id'));
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', null, $initial));
+        $this->assertSame($initial, $store->repairScanState('finalizer-backlog-id'));
+        $this->assertSame(604800, end($redis->ttls));
+    }
+
+    public function test_max_generation_is_a_deterministic_terminal_state_without_overflow(): void
+    {
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $quota->scanState = [
+            'schema' => 3,
+            'generation' => PHP_INT_MAX,
+            'cursor' => 0,
+            'ceiling' => 0,
+        ];
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+
+        (new FinalizeFinishedFixtures)->handle($api, $quota);
+
+        $this->assertSame(PHP_INT_MAX, $quota->scanState['generation']);
+        $this->assertSame([], $quota->cursorWrites);
+    }
+
+    public function test_recent_only_work_reclaims_all_five_physical_attempts(): void
+    {
+        for ($id = 1; $id <= 5; $id++) {
+            $this->insertFixture(54000 + $id, now()->subMinutes(20 + $id));
+        }
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => PHP_INT_MAX, 'cursor' => 0, 'ceiling' => 0];
+        Http::fake(static fn () => Http::response(['response' => [[
+            'fixture' => ['status' => ['short' => '2H', 'long' => '2H', 'elapsed' => 90]],
+            'goals' => ['home' => 1, 'away' => 1],
+            'score' => [],
+        ]]], 200));
+
+        (new FinalizeFinishedFixtures)->handle(
+            new ApiFootballService(new ApiFootballGateway($quota)),
+            $quota,
+        );
+
+        Http::assertSentCount(5);
+        $this->assertCount(5, $quota->records);
+    }
+
+    public function test_all_backlog_work_can_use_the_full_run_capacity(): void
+    {
+        for ($id = 1; $id <= 5; $id++) {
+            $this->insertFixture(55000 + $id, now()->subHours(8));
+        }
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 5];
+        $requested = [];
+        Http::fake(function ($request) use (&$requested) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $requested[] = (int) ($query['id'] ?? 0);
+
+            return Http::response(['response' => [[
+                'fixture' => ['status' => ['short' => '2H', 'long' => '2H', 'elapsed' => 90]],
+                'goals' => ['home' => 1, 'away' => 1],
+                'score' => [],
+            ]]], 200);
+        });
+
+        (new FinalizeFinishedFixtures)->handle(
+            new ApiFootballService(new ApiFootballGateway($quota)),
+            $quota,
+        );
+
+        $this->assertCount(5, $requested);
+        $this->assertSame([55001, 55005, 55002, 55004, 55003], $requested);
+        $this->assertSame(3, $quota->scanState['cursor']);
+    }
+
+    public function test_retryable_failure_returns_in_a_later_fixed_generation(): void
+    {
+        config()->set('api_football.retry_base_ms', 0);
+        $this->insertFixture(56001, now()->subHours(8));
+        $this->insertFixture(56002, now()->subHours(8));
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 2];
+        $requested = [];
+        Http::fake(function ($request) use (&$requested) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $requested[] = (int) ($query['id'] ?? 0);
+
+            return Http::response([], 500);
+        });
+        $job = new FinalizeFinishedFixtures;
+        $api = new ApiFootballService(new ApiFootballGateway($quota));
+
+        $job->handle($api, $quota);
+        $this->assertSame(2, $quota->scanState['cursor']);
+        $job->handle($api, $quota);
+
+        $this->assertSame(2, $quota->scanState['generation']);
+        $this->assertGreaterThanOrEqual(2, count(array_filter(
+            $requested,
+            static fn (int $id): bool => $id === 56001,
+        )));
+        $this->assertSame([], $quota->records);
+    }
+
+    public function test_first_claim_exhaustion_never_advances_past_an_unrequested_old_candidate(): void
+    {
+        config()->set('api_football.retry_base_ms', 0);
+        for ($id = 1; $id <= 200; $id++) {
+            $this->insertFixture(57000 + $id, now()->subHours(8));
+        }
+        $quota = new InMemoryRepairQuota(
+            static fn (int $fixtureId): bool => $fixtureId <= 100 || $fixtureId === 200,
+        );
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 200];
+        $payload = ['response' => [[
+            'fixture' => ['status' => ['short' => '2H', 'long' => '2H', 'elapsed' => 90]],
+            'goals' => ['home' => 1, 'away' => 1],
+            'score' => [],
+        ]]];
+        Http::fakeSequence()
+            ->push([], 500)
+            ->push($payload, 200)
+            ->push([], 500)
+            ->push($payload, 200)
+            ->push($payload, 200);
+
+        (new FinalizeFinishedFixtures)->handle(
+            new ApiFootballService(new ApiFootballGateway($quota)),
+            $quota,
+        );
+
+        Http::assertSentCount(5);
+        $this->assertSame(2, $quota->scanState['cursor']);
+        $this->assertContains(3, $quota->released);
+        $this->assertNotContains(57003, array_map(
+            static function ($request): int {
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+                return (int) ($query['id'] ?? 0);
+            },
+            Http::recorded()->pluck(0)->all(),
+        ));
+    }
+
     private function apiMock(Closure $response): ApiFootballService
     {
         $api = Mockery::mock(ApiFootballService::class);
@@ -986,6 +1297,8 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
 
     public int $reserveCalls = 0;
 
+    public bool $reserveThrows = false;
+
     public int $scanCursor = 0;
 
     /** @var array{schema: int, generation: int, cursor: int, ceiling: int}|null */
@@ -994,6 +1307,8 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
     public bool $cursorReadable = true;
 
     public bool $cursorWritable = true;
+
+    public bool $rejectNextCursorWrite = false;
 
     /** @var list<array{0: int, 1: int}> */
     public array $cursorWrites = [];
@@ -1005,6 +1320,9 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
 
     public function reserve(string $endpointClass, string $caller): array
     {
+        if ($this->reserveThrows) {
+            throw new \RuntimeException('quota unavailable');
+        }
         $this->reserveCalls++;
 
         return $this->reservation;
@@ -1069,6 +1387,11 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
 
     public function compareAndSetRepairScanState(string $scan, ?array $expected, array $next): bool
     {
+        if ($this->rejectNextCursorWrite) {
+            $this->rejectNextCursorWrite = false;
+
+            return false;
+        }
         if (! $this->cursorWritable || $this->scanState !== $expected) {
             return false;
         }
@@ -1125,7 +1448,25 @@ final class CapturingRepairScanRedis
     ): int {
         $this->keys[] = $key;
         $current = $this->values[$key] ?? null;
-        if (($current ?? '') !== $expected) {
+        if ($expected === '' && $current !== null) {
+            try {
+                $decoded = json_decode($current, true, flags: JSON_THROW_ON_ERROR);
+                $valid = is_array($decoded)
+                    && ($decoded['schema'] ?? null) === 3
+                    && is_int($decoded['generation'] ?? null)
+                    && is_int($decoded['cursor'] ?? null)
+                    && is_int($decoded['ceiling'] ?? null)
+                    && $decoded['generation'] >= 1
+                    && $decoded['cursor'] >= 0
+                    && $decoded['cursor'] <= $decoded['ceiling'];
+            } catch (\Throwable) {
+                $valid = false;
+            }
+            if ($valid) {
+                return 0;
+            }
+            $current = null;
+        } elseif (($current ?? '') !== $expected) {
             return 0;
         }
 

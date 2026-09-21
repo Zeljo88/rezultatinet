@@ -206,17 +206,28 @@ LUA;
             : json_encode($this->normalizeRepairScanState($expected), JSON_THROW_ON_ERROR);
         $nextJson = json_encode($this->normalizeRepairScanState($next), JSON_THROW_ON_ERROR);
         $script = <<<'LUA'
-local current = redis.call('GET', KEYS[1])
-if (current or '') ~= ARGV[1] then return 0 end
+local function valid(state)
+ if type(state) ~= 'table' or state.schema ~= 3 then return false end
+ for _, field in ipairs({'generation', 'cursor', 'ceiling'}) do
+  if type(state[field]) ~= 'number' or state[field] ~= math.floor(state[field]) then return false end
+ end
+ return state.generation >= 1 and state.cursor >= 0 and state.ceiling >= 0 and state.cursor <= state.ceiling
+end
 
-local next = cjson.decode(ARGV[2])
-if next.schema ~= 3 or next.generation < 1 or next.cursor < 0 or next.ceiling < 0 or next.cursor > next.ceiling then
+local current = redis.call('GET', KEYS[1])
+if ARGV[1] == '' and current then
+ local decoded, previous = pcall(cjson.decode, current)
+ if decoded and valid(previous) then return 0 end
+ current = false
+elseif (current or '') ~= ARGV[1] then
  return 0
 end
 
+local next = cjson.decode(ARGV[2])
+if not valid(next) then return 0 end
+
 if current then
  local previous = cjson.decode(current)
- if previous.schema ~= 3 then return 0 end
  if next.generation == previous.generation then
   if next.ceiling ~= previous.ceiling or next.cursor < previous.cursor then return 0 end
  elseif next.generation == previous.generation + 1 then
@@ -231,7 +242,6 @@ end
 redis.call('SETEX', KEYS[1], ARGV[3], ARGV[2])
 return 1
 LUA;
-
         try {
             return (int) Redis::connection('cache')->eval(
                 $script,
@@ -242,7 +252,7 @@ LUA;
                 self::REPAIR_SCAN_STATE_TTL,
             ) === 1;
         } catch (Throwable) {
-            // Repair eligibility already fails closed when Redis is unavailable.
+            // Malformed state self-heals atomically; unavailable Redis remains fail-closed.
             return false;
         }
     }

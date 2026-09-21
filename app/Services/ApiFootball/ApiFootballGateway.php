@@ -4,6 +4,9 @@ namespace App\Services\ApiFootball;
 
 use App\Contracts\ApiFootballQuotaStore;
 use App\Exceptions\ApiFootballBlocked;
+use App\Exceptions\ApiFootballLocalAttemptLimitReached;
+use App\Exceptions\ApiFootballRetryableFailure;
+use App\Support\ApiFootballBlockReason;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -23,25 +26,37 @@ class ApiFootballGateway
         ?callable $claimAttempt = null,
     ): array {
         if (! in_array('football', config('api_football.enabled_sports', []), true)) {
-            throw new ApiFootballBlocked('Football provider is not allowlisted.');
+            throw new ApiFootballBlocked(
+                'Football provider is not allowlisted.',
+                ApiFootballBlockReason::SportDisabled,
+            );
         }
 
         $maxAttempts = min(2, max(1, (int) config('api_football.max_attempts', 2)));
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             if ($claimAttempt !== null && ! $claimAttempt()) {
-                throw new ApiFootballBlocked('API-Football request blocked: invocation attempt budget exhausted');
+                throw new ApiFootballLocalAttemptLimitReached;
             }
 
             try {
                 $reservation = $this->quota->reserve($endpointClass, $caller);
             } catch (Throwable $e) {
-                throw new ApiFootballBlocked('API-Football quota state unavailable; request denied.', 0, $e);
+                throw new ApiFootballBlocked(
+                    'API-Football quota state unavailable; request denied.',
+                    ApiFootballBlockReason::AccountingUnavailable,
+                    $e,
+                );
             }
             if (! ($reservation['allowed'] ?? false)) {
                 $this->limitedLog('blocked:'.$endpointClass.':'.($reservation['reason'] ?? 'unknown'), 'warning', 'API-Football request blocked', [
                     'endpoint_class' => $endpointClass, 'caller' => $caller, 'reason' => $reservation['reason'] ?? 'unknown',
                 ]);
-                throw new ApiFootballBlocked('API-Football request blocked: '.($reservation['reason'] ?? 'quota unavailable'));
+                $reason = (string) ($reservation['reason'] ?? 'quota_unknown');
+
+                throw new ApiFootballBlocked(
+                    'API-Football request blocked: '.$reason,
+                    $this->blockReason($reason),
+                );
             }
 
             $started = microtime(true);
@@ -61,9 +76,17 @@ class ApiFootballGateway
                     continue;
                 }
 
+                if ($claimAttempt !== null) {
+                    throw new ApiFootballRetryableFailure('API-Football connection attempts exhausted.', 0, $e);
+                }
+
                 return [];
             } catch (Throwable $e) {
                 $this->recordAttempt($endpointClass, $caller, 'exception', 'failed', $attempt, $started);
+
+                if ($claimAttempt !== null) {
+                    throw new ApiFootballRetryableFailure('API-Football transport failed.', 0, $e);
+                }
 
                 return [];
             }
@@ -76,6 +99,13 @@ class ApiFootballGateway
                 $this->limitedLog('429', 'critical', 'API-Football rate limited; circuit opened', [
                     'endpoint_class' => $endpointClass, 'caller' => $caller, 'circuit_until' => gmdate(DATE_ATOM, $until),
                 ]);
+
+                if ($claimAttempt !== null) {
+                    throw new ApiFootballBlocked(
+                        'API-Football provider rate limited the request.',
+                        ApiFootballBlockReason::ProviderRateLimited,
+                    );
+                }
 
                 return [];
             }
@@ -95,10 +125,24 @@ class ApiFootballGateway
 
             $this->recordAttempt($endpointClass, $caller, $status, $status >= 500 ? 'transient_exhausted' : 'client_error', $attempt, $started);
 
+            if ($status >= 500 && $claimAttempt !== null) {
+                throw new ApiFootballRetryableFailure("API-Football returned retryable status {$status}.");
+            }
+
             return [];
         }
 
         return [];
+    }
+
+    private function blockReason(string $reason): ApiFootballBlockReason
+    {
+        return match ($reason) {
+            'class_hard_stop' => ApiFootballBlockReason::FixtureRepairBudget,
+            'global_hard_stop' => ApiFootballBlockReason::GlobalQuota,
+            'circuit' => ApiFootballBlockReason::Circuit,
+            default => ApiFootballBlockReason::OtherQuota,
+        };
     }
 
     private function recordAttempt(string $class, string $caller, int|string $status, string $outcome, int $attempt, float $started): void
