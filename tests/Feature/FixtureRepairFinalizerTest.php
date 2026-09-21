@@ -937,12 +937,196 @@ class FixtureRepairFinalizerTest extends TestCase
         $this->assertSame(604800, end($redis->ttls));
     }
 
+    #[DataProvider('repairScanStateRepresentations')]
+    public function test_php_and_lua_state_representation_matrix(
+        string $raw,
+        ?array $expected,
+    ): void {
+        $redis = new CapturingRepairScanRedis;
+        Redis::shouldReceive('connection')->with('cache')->andReturn($redis);
+        $store = new RedisApiFootballQuotaStore;
+        $initial = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 10];
+
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', null, $initial));
+        $key = $redis->keys[0];
+        $redis->values[$key] = $raw;
+        $redis->ttlByKey[$key] = 37;
+
+        if ($expected === null) {
+            $this->assertNull($store->repairScanState('finalizer-backlog-id'));
+            $this->assertTrue($store->compareAndSetRepairScanState(
+                'finalizer-backlog-id',
+                null,
+                $initial,
+            ));
+            $this->assertSame(json_encode($initial, JSON_THROW_ON_ERROR), $redis->values[$key]);
+            $this->assertSame(604800, $redis->ttlByKey[$key]);
+
+            return;
+        }
+
+        $this->assertSame($expected, $store->repairScanState('finalizer-backlog-id'));
+        $next = $expected;
+        $next['cursor']++;
+        $this->assertTrue($store->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $expected,
+            $next,
+        ));
+        $this->assertSame(json_encode($next, JSON_THROW_ON_ERROR), $redis->values[$key]);
+        $this->assertSame(604800, $redis->ttlByKey[$key]);
+
+        $ttlWrites = count($redis->ttls);
+        $this->assertFalse($store->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $expected,
+            $next,
+        ));
+        $this->assertCount($ttlWrites, $redis->ttls);
+        $this->assertSame($next, $store->repairScanState('finalizer-backlog-id'));
+    }
+
+    public static function repairScanStateRepresentations(): array
+    {
+        $valid = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 10];
+        $maximum = ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER;
+
+        return [
+            'canonical' => ['{"schema":3,"generation":1,"cursor":0,"ceiling":10}', $valid],
+            'reordered keys' => ['{"ceiling":10,"cursor":0,"generation":1,"schema":3}', $valid],
+            'whitespace' => [" { \n \t\"schema\" : 3, \"generation\" : 1, \"cursor\" : 0, \"ceiling\" : 10 } ", $valid],
+            'integral decimal JSON numbers' => ['{"schema":3.0,"generation":1.0,"cursor":0.0,"ceiling":10.0}', $valid],
+            'integral exponent JSON numbers' => ['{"schema":3e0,"generation":1e0,"cursor":0e0,"ceiling":1e1}', $valid],
+            'maximum safe integers' => [
+                '{"schema":3,"generation":'.($maximum - 1).',"cursor":'.($maximum - 1).',"ceiling":'.$maximum.'}',
+                ['schema' => 3, 'generation' => $maximum - 1, 'cursor' => $maximum - 1, 'ceiling' => $maximum],
+            ],
+            'numeric strings' => ['{"schema":3,"generation":"1","cursor":"0","ceiling":"10"}', null],
+            'fractional schema' => ['{"schema":3.5,"generation":1,"cursor":0,"ceiling":10}', null],
+            'fractional generation' => ['{"schema":3,"generation":1.5,"cursor":0,"ceiling":10}', null],
+            'fractional cursor' => ['{"schema":3,"generation":1,"cursor":0.5,"ceiling":10}', null],
+            'fractional ceiling' => ['{"schema":3,"generation":1,"cursor":0,"ceiling":10.5}', null],
+            'negative generation' => ['{"schema":3,"generation":-1,"cursor":0,"ceiling":10}', null],
+            'negative cursor' => ['{"schema":3,"generation":1,"cursor":-1,"ceiling":10}', null],
+            'negative ceiling' => ['{"schema":3,"generation":1,"cursor":0,"ceiling":-1}', null],
+            'overflow generation' => ['{"schema":3,"generation":9007199254740992,"cursor":0,"ceiling":10}', null],
+            'overflow cursor' => ['{"schema":3,"generation":1,"cursor":9007199254740992,"ceiling":9007199254740992}', null],
+            'overflow exponent' => ['{"schema":3,"generation":1e309,"cursor":0,"ceiling":10}', null],
+            'missing schema' => ['{"generation":1,"cursor":0,"ceiling":10}', null],
+            'missing generation' => ['{"schema":3,"cursor":0,"ceiling":10}', null],
+            'missing cursor' => ['{"schema":3,"generation":1,"ceiling":10}', null],
+            'missing ceiling' => ['{"schema":3,"generation":1,"cursor":0}', null],
+            'unknown field' => ['{"schema":3,"generation":1,"cursor":0,"ceiling":10,"other":0}', null],
+            'null field' => ['{"schema":3,"generation":null,"cursor":0,"ceiling":10}', null],
+            'boolean field' => ['{"schema":3,"generation":true,"cursor":0,"ceiling":10}', null],
+            'array field' => ['{"schema":3,"generation":[],"cursor":0,"ceiling":10}', null],
+            'object field' => ['{"schema":3,"generation":{},"cursor":0,"ceiling":10}', null],
+            'top-level array' => ['[3,1,0,10]', null],
+            'top-level null' => ['null', null],
+            'top-level boolean' => ['true', null],
+            'invalid JSON' => ['{"schema":3', null],
+            'invalid UTF-8' => ['{"schema":3,"generation":1,"cursor":0,"ceiling":"'.chr(0xB1).'"}', null],
+            'cursor above ceiling' => ['{"schema":3,"generation":1,"cursor":11,"ceiling":10}', null],
+            'wrong version' => ['{"schema":2,"generation":1,"cursor":0,"ceiling":10}', null],
+            'zero generation' => ['{"schema":3,"generation":0,"cursor":0,"ceiling":10}', null],
+        ];
+    }
+
+    #[DataProvider('invalidRepairScanStateArrays')]
+    public function test_php_rejects_every_invalid_next_state_without_calling_lua(array $state): void
+    {
+        $redis = new CapturingRepairScanRedis;
+        Redis::shouldReceive('connection')->with('cache')->andReturn($redis);
+        $store = new RedisApiFootballQuotaStore;
+
+        try {
+            $store->compareAndSetRepairScanState('finalizer-backlog-id', null, $state);
+            $this->fail('Invalid PHP state reached the Lua CAS.');
+        } catch (\UnexpectedValueException) {
+            // Expected: invalid caller state is rejected before Redis access.
+        }
+
+        $this->assertSame([], $redis->keys);
+    }
+
+    public static function invalidRepairScanStateArrays(): array
+    {
+        $valid = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 10];
+
+        return [
+            'numeric string' => [array_replace($valid, ['generation' => '1'])],
+            'fraction' => [array_replace($valid, ['cursor' => 0.5])],
+            'negative' => [array_replace($valid, ['cursor' => -1])],
+            'overflow' => [array_replace($valid, ['ceiling' => 9007199254740992])],
+            'not finite' => [array_replace($valid, ['ceiling' => INF])],
+            'null' => [array_replace($valid, ['generation' => null])],
+            'boolean' => [array_replace($valid, ['generation' => true])],
+            'array' => [array_replace($valid, ['generation' => []])],
+            'object' => [array_replace($valid, ['generation' => new \stdClass])],
+            'missing' => [array_diff_key($valid, ['cursor' => true])],
+            'extra' => [$valid + ['other' => 0]],
+            'cursor above ceiling' => [array_replace($valid, ['cursor' => 11])],
+            'wrong version' => [array_replace($valid, ['schema' => 2])],
+        ];
+    }
+
+    public function test_invalid_state_heal_cannot_overwrite_a_concurrent_valid_writer(): void
+    {
+        $redis = new CapturingRepairScanRedis;
+        Redis::shouldReceive('connection')->with('cache')->andReturn($redis);
+        $store = new RedisApiFootballQuotaStore;
+        $initial = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 10];
+
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', null, $initial));
+        $key = $redis->keys[0];
+        $redis->values[$key] = '{invalid';
+        $redis->ttlByKey[$key] = 19;
+        $concurrent = ['schema' => 3, 'generation' => 7, 'cursor' => 40, 'ceiling' => 100];
+        $redis->beforeEval = static function (CapturingRepairScanRedis $redis, string $key) use ($concurrent): void {
+            $redis->values[$key] = json_encode($concurrent, JSON_THROW_ON_ERROR);
+            $redis->ttlByKey[$key] = 321;
+        };
+
+        $this->assertNull($store->repairScanState('finalizer-backlog-id'));
+        $ttlWrites = count($redis->ttls);
+        $this->assertFalse($store->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            null,
+            $initial,
+        ));
+        $this->assertSame(json_encode($concurrent, JSON_THROW_ON_ERROR), $redis->values[$key]);
+        $this->assertSame(321, $redis->ttlByKey[$key]);
+        $this->assertCount($ttlWrites, $redis->ttls);
+    }
+
+    public function test_generation_change_prevents_stale_expected_state_aba(): void
+    {
+        $redis = new CapturingRepairScanRedis;
+        Redis::shouldReceive('connection')->with('cache')->andReturn($redis);
+        $store = new RedisApiFootballQuotaStore;
+        $first = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 10];
+        $completed = ['schema' => 3, 'generation' => 1, 'cursor' => 10, 'ceiling' => 10];
+        $second = ['schema' => 3, 'generation' => 2, 'cursor' => 0, 'ceiling' => 10];
+
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', null, $first));
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', $first, $completed));
+        $this->assertTrue($store->compareAndSetRepairScanState('finalizer-backlog-id', $completed, $second));
+        $staleNext = $completed;
+        $staleNext['cursor'] = 10;
+        $this->assertFalse($store->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $completed,
+            $staleNext,
+        ));
+        $this->assertSame($second, $store->repairScanState('finalizer-backlog-id'));
+    }
+
     public function test_max_generation_is_a_deterministic_terminal_state_without_overflow(): void
     {
         $quota = new InMemoryRepairQuota(static fn (): bool => false);
         $quota->scanState = [
             'schema' => 3,
-            'generation' => PHP_INT_MAX,
+            'generation' => ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER,
             'cursor' => 0,
             'ceiling' => 0,
         ];
@@ -951,7 +1135,7 @@ class FixtureRepairFinalizerTest extends TestCase
 
         (new FinalizeFinishedFixtures)->handle($api, $quota);
 
-        $this->assertSame(PHP_INT_MAX, $quota->scanState['generation']);
+        $this->assertSame(ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER, $quota->scanState['generation']);
         $this->assertSame([], $quota->cursorWrites);
     }
 
@@ -961,7 +1145,12 @@ class FixtureRepairFinalizerTest extends TestCase
             $this->insertFixture(54000 + $id, now()->subMinutes(20 + $id));
         }
         $quota = new InMemoryRepairQuota;
-        $quota->scanState = ['schema' => 3, 'generation' => PHP_INT_MAX, 'cursor' => 0, 'ceiling' => 0];
+        $quota->scanState = [
+            'schema' => 3,
+            'generation' => ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER,
+            'cursor' => 0,
+            'ceiling' => 0,
+        ];
         Http::fake(static fn () => Http::response(['response' => [[
             'fixture' => ['status' => ['short' => '2H', 'long' => '2H', 'elapsed' => 90]],
             'goals' => ['home' => 1, 'away' => 1],
@@ -1431,6 +1620,11 @@ final class CapturingRepairScanRedis
     /** @var list<int> */
     public array $ttls = [];
 
+    /** @var array<string, int> */
+    public array $ttlByKey = [];
+
+    public ?Closure $beforeEval = null;
+
     public function get(string $key): ?string
     {
         $this->keys[] = $key;
@@ -1447,46 +1641,43 @@ final class CapturingRepairScanRedis
         int $ttl,
     ): int {
         $this->keys[] = $key;
+        if ($this->beforeEval !== null) {
+            $callback = $this->beforeEval;
+            $this->beforeEval = null;
+            $callback($this, $key);
+        }
+
         $current = $this->values[$key] ?? null;
-        if ($expected === '' && $current !== null) {
-            try {
-                $decoded = json_decode($current, true, flags: JSON_THROW_ON_ERROR);
-                $valid = is_array($decoded)
-                    && ($decoded['schema'] ?? null) === 3
-                    && is_int($decoded['generation'] ?? null)
-                    && is_int($decoded['cursor'] ?? null)
-                    && is_int($decoded['ceiling'] ?? null)
-                    && $decoded['generation'] >= 1
-                    && $decoded['cursor'] >= 0
-                    && $decoded['cursor'] <= $decoded['ceiling'];
-            } catch (\Throwable) {
-                $valid = false;
-            }
-            if ($valid) {
+        $previousState = $current === null ? null : $this->decodeState($current);
+        $expectedState = $expected === '' ? null : $this->decodeState($expected);
+        if ($previousState !== null) {
+            if ($expectedState === null || $previousState != $expectedState) {
                 return 0;
             }
-            $current = null;
-        } elseif (($current ?? '') !== $expected) {
+        } elseif ($expectedState !== null) {
             return 0;
         }
 
-        $nextState = json_decode($next, true, flags: JSON_THROW_ON_ERROR);
-        if ($current === null) {
+        $nextState = $this->decodeState($next);
+        if ($nextState === null) {
+            return 0;
+        }
+
+        if ($previousState === null) {
             if ($nextState['generation'] !== 1 || $nextState['cursor'] !== 0) {
                 return 0;
             }
         } else {
-            $previous = json_decode($current, true, flags: JSON_THROW_ON_ERROR);
-            if ($nextState['generation'] === $previous['generation']) {
+            if ($nextState['generation'] === $previousState['generation']) {
                 if (
-                    $nextState['ceiling'] !== $previous['ceiling']
-                    || $nextState['cursor'] < $previous['cursor']
+                    $nextState['ceiling'] !== $previousState['ceiling']
+                    || $nextState['cursor'] < $previousState['cursor']
                 ) {
                     return 0;
                 }
             } elseif (
-                $nextState['generation'] !== $previous['generation'] + 1
-                || $previous['cursor'] < $previous['ceiling']
+                $nextState['generation'] !== $previousState['generation'] + 1
+                || $previousState['cursor'] < $previousState['ceiling']
                 || $nextState['cursor'] !== 0
             ) {
                 return 0;
@@ -1495,7 +1686,52 @@ final class CapturingRepairScanRedis
 
         $this->values[$key] = $next;
         $this->ttls[] = $ttl;
+        $this->ttlByKey[$key] = $ttl;
 
         return 1;
+    }
+
+    /**
+     * Mirrors the Lua state validator so the matrix exercises both the PHP
+     * reader and the exact semantic decisions made by the atomic script.
+     *
+     * @return array{schema: int, generation: int, cursor: int, ceiling: int}|null
+     */
+    private function decodeState(string $json): ?array
+    {
+        try {
+            $state = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $fields = ['schema', 'generation', 'cursor', 'ceiling'];
+        if (! is_array($state) || count($state) !== count($fields)) {
+            return null;
+        }
+        foreach ($fields as $field) {
+            $value = $state[$field] ?? null;
+            if (
+                ! array_key_exists($field, $state)
+                || (! is_int($value) && ! is_float($value))
+                || ! is_finite((float) $value)
+                || $value < 0
+                || $value > ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER
+                || floor((float) $value) !== (float) $value
+            ) {
+                return null;
+            }
+            $state[$field] = (int) $value;
+        }
+
+        if (
+            $state['schema'] !== ApiFootballQuotaStore::REPAIR_SCAN_STATE_SCHEMA
+            || $state['generation'] < 1
+            || $state['cursor'] > $state['ceiling']
+        ) {
+            return null;
+        }
+
+        return $state;
     }
 }

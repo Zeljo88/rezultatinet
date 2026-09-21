@@ -34,7 +34,7 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
 
     private const BACKLOG_SCAN = 'finalizer-backlog-id';
 
-    private const BACKLOG_STATE_SCHEMA = 3;
+    private const BACKLOG_STATE_SCHEMA = ApiFootballQuotaStore::REPAIR_SCAN_STATE_SCHEMA;
 
     private const BACKLOG_ID_WINDOW = 10000;
 
@@ -201,7 +201,7 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                     'schema' => self::BACKLOG_STATE_SCHEMA,
                     'generation' => 1,
                     'cursor' => 0,
-                    'ceiling' => (int) (Fixture::query()->max('id') ?? 0),
+                    'ceiling' => $this->backlogCeiling(),
                 ];
                 if ($quota->compareAndSetRepairScanState(self::BACKLOG_SCAN, null, $initial)) {
                     return $initial;
@@ -212,7 +212,10 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            if ($state['cursor'] < $state['ceiling'] || $state['generation'] === PHP_INT_MAX) {
+            if (
+                $state['cursor'] < $state['ceiling']
+                || $state['generation'] === ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER
+            ) {
                 return $state;
             }
 
@@ -220,7 +223,7 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                 'schema' => self::BACKLOG_STATE_SCHEMA,
                 'generation' => $state['generation'] + 1,
                 'cursor' => 0,
-                'ceiling' => (int) (Fixture::query()->max('id') ?? 0),
+                'ceiling' => $this->backlogCeiling(),
             ];
             if ($quota->compareAndSetRepairScanState(self::BACKLOG_SCAN, $state, $nextGeneration)) {
                 return $nextGeneration;
@@ -233,8 +236,16 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
             'schema' => self::BACKLOG_STATE_SCHEMA,
             'generation' => 1,
             'cursor' => 0,
-            'ceiling' => (int) (Fixture::query()->max('id') ?? 0),
+            'ceiling' => $this->backlogCeiling(),
         ];
+    }
+
+    private function backlogCeiling(): int
+    {
+        return min(
+            (int) (Fixture::query()->max('id') ?? 0),
+            ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER,
+        );
     }
 
     /**

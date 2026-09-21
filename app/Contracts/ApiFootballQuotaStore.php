@@ -4,6 +4,20 @@ namespace App\Contracts;
 
 interface ApiFootballQuotaStore
 {
+    /**
+     * Canonical wire state is the JSON object
+     * {schema,generation,cursor,ceiling}, with exactly those fields. Every value
+     * is a finite, mathematically integral JSON number in IEEE-754's safe
+     * integer range; schema is fixed, generation starts at one, and
+     * 0 <= cursor <= ceiling. Readers accept semantically equivalent key order,
+     * whitespace, decimal, or exponent notation and writers emit canonical
+     * integer JSON. The shared exact range prevents Redis Lua from comparing
+     * distinct generations or cursors as the same number.
+     */
+    public const REPAIR_SCAN_STATE_SCHEMA = 3;
+
+    public const REPAIR_SCAN_STATE_MAX_INTEGER = 9007199254740991;
+
     public function reserve(string $endpointClass, string $caller): array;
 
     public function record(string $endpointClass, string $caller, int|string $status, string $outcome): void;

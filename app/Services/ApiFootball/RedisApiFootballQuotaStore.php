@@ -10,8 +10,6 @@ class RedisApiFootballQuotaStore implements ApiFootballQuotaStore
 {
     private const PREFIX = 'api-football:quota:';
 
-    private const REPAIR_SCAN_STATE_SCHEMA = 3;
-
     private const REPAIR_SCAN_STATE_TTL = 604800;
 
     public function reserve(string $endpointClass, string $caller): array
@@ -186,7 +184,7 @@ LUA;
                 return null;
             }
 
-            $state = json_decode((string) $value, true, flags: JSON_THROW_ON_ERROR);
+            $state = json_decode((string) $value, true, 512, JSON_THROW_ON_ERROR);
             if (! is_array($state)) {
                 return null;
             }
@@ -206,28 +204,54 @@ LUA;
             : json_encode($this->normalizeRepairScanState($expected), JSON_THROW_ON_ERROR);
         $nextJson = json_encode($this->normalizeRepairScanState($next), JSON_THROW_ON_ERROR);
         $script = <<<'LUA'
+local MAX_SAFE_INTEGER = __MAX_SAFE_INTEGER__
+
 local function valid(state)
- if type(state) ~= 'table' or state.schema ~= 3 then return false end
- for _, field in ipairs({'generation', 'cursor', 'ceiling'}) do
-  if type(state[field]) ~= 'number' or state[field] ~= math.floor(state[field]) then return false end
+ if type(state) ~= 'table' then return false end
+ local count = 0
+ for key, _ in pairs(state) do
+  if key ~= 'schema' and key ~= 'generation' and key ~= 'cursor' and key ~= 'ceiling' then return false end
+  count = count + 1
  end
- return state.generation >= 1 and state.cursor >= 0 and state.ceiling >= 0 and state.cursor <= state.ceiling
+ if count ~= 4 or state.schema ~= __SCHEMA__ then return false end
+ for _, field in ipairs({'generation', 'cursor', 'ceiling'}) do
+  local value = state[field]
+  if type(value) ~= 'number'
+   or value ~= value
+   or value < 0
+   or value > MAX_SAFE_INTEGER
+   or value ~= math.floor(value) then return false end
+ end
+ return state.generation >= 1 and state.cursor <= state.ceiling
+end
+
+local function decode(value)
+ local decoded, state = pcall(cjson.decode, value)
+ if not decoded or not valid(state) then return false end
+ return state
+end
+
+local function same(left, right)
+ return left.schema == right.schema
+  and left.generation == right.generation
+  and left.cursor == right.cursor
+  and left.ceiling == right.ceiling
 end
 
 local current = redis.call('GET', KEYS[1])
-if ARGV[1] == '' and current then
- local decoded, previous = pcall(cjson.decode, current)
- if decoded and valid(previous) then return 0 end
- current = false
-elseif (current or '') ~= ARGV[1] then
+local previous = current and decode(current) or false
+local expected = ARGV[1] ~= '' and decode(ARGV[1]) or false
+
+if previous then
+ if not expected or not same(previous, expected) then return 0 end
+elseif expected then
  return 0
 end
 
-local next = cjson.decode(ARGV[2])
-if not valid(next) then return 0 end
+local next = decode(ARGV[2])
+if not next then return 0 end
 
-if current then
- local previous = cjson.decode(current)
+if previous then
  if next.generation == previous.generation then
   if next.ceiling ~= previous.ceiling or next.cursor < previous.cursor then return 0 end
  elseif next.generation == previous.generation + 1 then
@@ -242,6 +266,10 @@ end
 redis.call('SETEX', KEYS[1], ARGV[3], ARGV[2])
 return 1
 LUA;
+        $script = strtr($script, [
+            '__SCHEMA__' => (string) ApiFootballQuotaStore::REPAIR_SCAN_STATE_SCHEMA,
+            '__MAX_SAFE_INTEGER__' => (string) ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER,
+        ]);
         try {
             return (int) Redis::connection('cache')->eval(
                 $script,
@@ -278,24 +306,42 @@ LUA;
      */
     private function normalizeRepairScanState(array $state): array
     {
-        $normalized = [
-            'schema' => (int) ($state['schema'] ?? 0),
-            'generation' => (int) ($state['generation'] ?? 0),
-            'cursor' => (int) ($state['cursor'] ?? -1),
-            'ceiling' => (int) ($state['ceiling'] ?? -1),
-        ];
+        $fields = ['schema', 'generation', 'cursor', 'ceiling'];
+        if (count($state) !== count($fields)) {
+            throw new \UnexpectedValueException('Invalid fixture repair scan state fields.');
+        }
+
+        foreach ($fields as $field) {
+            if (! array_key_exists($field, $state) || ! $this->isRepairScanInteger($state[$field])) {
+                throw new \UnexpectedValueException('Invalid fixture repair scan state field.');
+            }
+        }
+
+        $normalized = array_map(static fn (int|float $value): int => (int) $value, [
+            'schema' => $state['schema'],
+            'generation' => $state['generation'],
+            'cursor' => $state['cursor'],
+            'ceiling' => $state['ceiling'],
+        ]);
 
         if (
-            $normalized['schema'] !== self::REPAIR_SCAN_STATE_SCHEMA
+            $normalized['schema'] !== ApiFootballQuotaStore::REPAIR_SCAN_STATE_SCHEMA
             || $normalized['generation'] < 1
-            || $normalized['cursor'] < 0
-            || $normalized['ceiling'] < 0
             || $normalized['cursor'] > $normalized['ceiling']
         ) {
             throw new \UnexpectedValueException('Invalid fixture repair scan state.');
         }
 
         return $normalized;
+    }
+
+    private function isRepairScanInteger(mixed $value): bool
+    {
+        return (is_int($value) || is_float($value))
+            && is_finite((float) $value)
+            && $value >= 0
+            && $value <= ApiFootballQuotaStore::REPAIR_SCAN_STATE_MAX_INTEGER
+            && floor((float) $value) === (float) $value;
     }
 
     private function thresholdState(int $count): string
