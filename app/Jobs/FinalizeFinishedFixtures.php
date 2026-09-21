@@ -30,9 +30,13 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
 
     private const MAX_SCAN_PER_LANE = 200;
 
-    private const BACKLOG_CURSOR = 'finalizer-backlog-id';
+    private const BACKLOG_SCAN = 'finalizer-backlog-id';
+
+    private const BACKLOG_STATE_SCHEMA = 3;
 
     private const BACKLOG_ID_WINDOW = 10000;
+
+    private const BACKLOG_STATE_CAS_ATTEMPTS = 3;
 
     public function uniqueId(): string
     {
@@ -41,18 +45,27 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
 
     public function handle(ApiFootballService $api, ApiFootballQuotaStore $quota): void
     {
-        $limit = max(1, (int) config('api_football.repair.finalizer_per_run', 5));
+        $limit = min(5, max(1, (int) config('api_football.repair.finalizer_per_run', 5)));
         $scanLimit = min(self::MAX_SCAN_PER_LANE, max(self::MIN_SCAN_PER_LANE, $limit * 20));
         $now = now();
-        $storedBacklogCursor = $quota->repairScanCursor(self::BACKLOG_CURSOR);
-        $backlogCursor = $storedBacklogCursor ?? 0;
+        $backlogState = $this->currentBacklogState($quota);
         $states = [
             'recent' => $this->newScanState(),
-            'old' => $this->newScanState($backlogCursor),
+            'old' => $this->newScanState($backlogState['cursor'], $backlogState['ceiling']),
         ];
         $seen = [];
         $checked = $updated = 0;
         $stopReason = null;
+        $providerAttemptsRemaining = 5;
+        $claimProviderAttempt = static function () use (&$providerAttemptsRemaining): bool {
+            if ($providerAttemptsRemaining <= 0) {
+                return false;
+            }
+
+            $providerAttemptsRemaining--;
+
+            return true;
+        };
 
         // Alternate the first lane each scheduler window, then alternate within the
         // run. This reserves deterministic progress for both fresh and old backlog.
@@ -73,7 +86,12 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
 
             $checked++;
             try {
-                $data = $api->getFixtureById($fixture->api_fixture_id, 'FinalizeFinishedFixtures');
+                $data = $api->getFixtureById(
+                    $fixture->api_fixture_id,
+                    'FinalizeFinishedFixtures',
+                    'fixture_repair',
+                    $claimProviderAttempt,
+                );
             } catch (ApiFootballBlocked) {
                 // A denied reservation made no provider call and must not consume a
                 // fixture attempt/cooldown. Release only this job's short scan lock.
@@ -118,32 +136,88 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
 
         $scannedRecent = $states['recent']['scanned'];
         $scannedOld = $states['old']['scanned'];
-        $cursorAdvanced = null;
+        $scanStateAdvanced = null;
         if ($stopReason === null && $states['old']['last_id'] !== null) {
-            $cursorAdvanced = $quota->advanceRepairScanCursor(
-                self::BACKLOG_CURSOR,
-                $backlogCursor,
-                $states['old']['last_id'],
+            $nextBacklogState = $backlogState;
+            $nextBacklogState['cursor'] = $states['old']['last_id'];
+            $scanStateAdvanced = $quota->compareAndSetRepairScanState(
+                self::BACKLOG_SCAN,
+                $backlogState,
+                $nextBacklogState,
             );
         }
         if ($checked || $updated || $stopReason) {
+            $backlogGeneration = $backlogState['generation'];
+            $backlogCursor = $backlogState['cursor'];
+            $backlogCeiling = $backlogState['ceiling'];
             Log::channel('api_football')->info('repair_finalizer_run', compact(
                 'checked', 'updated', 'limit', 'scannedRecent', 'scannedOld', 'stopReason',
-                'backlogCursor', 'cursorAdvanced'
+                'backlogGeneration', 'backlogCursor', 'backlogCeiling', 'scanStateAdvanced'
             ));
         }
     }
 
     /**
-     * @return array{buffer: array<int, Fixture>, loaded: bool, scanned: int, start_id: int, last_id: ?int, range_end: ?int, range_complete: bool}
+     * @return array{schema: int, generation: int, cursor: int, ceiling: int}
      */
-    private function newScanState(int $startId = 0): array
+    private function currentBacklogState(ApiFootballQuotaStore $quota): array
+    {
+        $lastState = null;
+
+        for ($attempt = 0; $attempt < self::BACKLOG_STATE_CAS_ATTEMPTS; $attempt++) {
+            $state = $quota->repairScanState(self::BACKLOG_SCAN);
+            if ($state === null) {
+                $initial = [
+                    'schema' => self::BACKLOG_STATE_SCHEMA,
+                    'generation' => 1,
+                    'cursor' => 0,
+                    'ceiling' => (int) (Fixture::query()->max('id') ?? 0),
+                ];
+                if ($quota->compareAndSetRepairScanState(self::BACKLOG_SCAN, null, $initial)) {
+                    return $initial;
+                }
+
+                $lastState = $initial;
+
+                continue;
+            }
+
+            if ($state['cursor'] < $state['ceiling']) {
+                return $state;
+            }
+
+            $nextGeneration = [
+                'schema' => self::BACKLOG_STATE_SCHEMA,
+                'generation' => $state['generation'] + 1,
+                'cursor' => 0,
+                'ceiling' => (int) (Fixture::query()->max('id') ?? 0),
+            ];
+            if ($quota->compareAndSetRepairScanState(self::BACKLOG_SCAN, $state, $nextGeneration)) {
+                return $nextGeneration;
+            }
+
+            $lastState = $state;
+        }
+
+        return $quota->repairScanState(self::BACKLOG_SCAN) ?? $lastState ?? [
+            'schema' => self::BACKLOG_STATE_SCHEMA,
+            'generation' => 1,
+            'cursor' => 0,
+            'ceiling' => (int) (Fixture::query()->max('id') ?? 0),
+        ];
+    }
+
+    /**
+     * @return array{buffer: array<int, Fixture>, loaded: bool, scanned: int, start_id: int, ceiling: int, last_id: ?int, range_end: ?int, range_complete: bool}
+     */
+    private function newScanState(int $startId = 0, int $ceiling = 0): array
     {
         return [
             'buffer' => [],
             'loaded' => false,
             'scanned' => 0,
             'start_id' => $startId,
+            'ceiling' => $ceiling,
             'last_id' => null,
             'range_end' => null,
             'range_complete' => false,
@@ -151,7 +225,7 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * @param  array{buffer: array<int, Fixture>, loaded: bool, scanned: int, start_id: int, last_id: ?int, range_end: ?int, range_complete: bool}  $state
+     * @param  array{buffer: array<int, Fixture>, loaded: bool, scanned: int, start_id: int, ceiling: int, last_id: ?int, range_end: ?int, range_complete: bool}  $state
      * @param  array<int, bool>  $seen
      */
     private function nextEligible(
@@ -166,7 +240,12 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
             if ($lane === 'recent') {
                 $state['buffer'] = $this->recentCandidates($now, $scanLimit);
             } else {
-                $backlog = $this->backlogCandidates($now, $state['start_id'], $scanLimit);
+                $backlog = $this->backlogCandidates(
+                    $now,
+                    $state['start_id'],
+                    $state['ceiling'],
+                    $scanLimit,
+                );
                 $state['buffer'] = $backlog['fixtures'];
                 $state['range_end'] = $backlog['range_end'];
                 $state['range_complete'] = $backlog['range_complete'];
@@ -213,17 +292,20 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
     }
 
     /** @return array{fixtures: array<int, Fixture>, range_end: ?int, range_complete: bool} */
-    private function backlogCandidates(CarbonInterface $now, int $cursorId, int $scanLimit): array
-    {
-        $maxId = (int) (Fixture::query()->max('id') ?? 0);
-        if ($maxId === 0) {
-            return ['fixtures' => [], 'range_end' => null, 'range_complete' => true];
+    private function backlogCandidates(
+        CarbonInterface $now,
+        int $cursorId,
+        int $ceiling,
+        int $scanLimit,
+    ): array {
+        if ($cursorId >= $ceiling) {
+            return ['fixtures' => [], 'range_end' => $ceiling, 'range_complete' => true];
         }
 
-        // Cursor loss or expiry restarts at zero. Reaching the snapshotted
-        // immutable-ID ceiling wraps exactly once on the next invocation.
-        $rangeStart = $cursorId >= $maxId ? 0 : $cursorId;
-        $rangeEnd = min($maxId, $rangeStart + self::BACKLOG_ID_WINDOW);
+        // The ceiling is fixed for this generation. Newer IDs are served by
+        // the recent lane and cannot postpone this finite cohort's completion.
+        $rangeStart = $cursorId;
+        $rangeEnd = min($ceiling, $rangeStart + self::BACKLOG_ID_WINDOW);
         $fixtures = $this->candidateQuery($now)
             ->where('id', '>', $rangeStart)
             ->where('id', '<=', $rangeEnd)

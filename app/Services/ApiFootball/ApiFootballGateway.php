@@ -15,14 +15,23 @@ class ApiFootballGateway
 {
     public function __construct(private readonly ApiFootballQuotaStore $quota) {}
 
-    public function get(string $path, array $query, string $endpointClass, string $caller): array
-    {
+    public function get(
+        string $path,
+        array $query,
+        string $endpointClass,
+        string $caller,
+        ?callable $claimAttempt = null,
+    ): array {
         if (! in_array('football', config('api_football.enabled_sports', []), true)) {
             throw new ApiFootballBlocked('Football provider is not allowlisted.');
         }
 
         $maxAttempts = min(2, max(1, (int) config('api_football.max_attempts', 2)));
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            if ($claimAttempt !== null && ! $claimAttempt()) {
+                throw new ApiFootballBlocked('API-Football request blocked: invocation attempt budget exhausted');
+            }
+
             try {
                 $reservation = $this->quota->reserve($endpointClass, $caller);
             } catch (Throwable $e) {

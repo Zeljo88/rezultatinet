@@ -23,9 +23,13 @@ class ApiFootballService
         return $this->getFixturesByDate(now('UTC')->format('Y-m-d'), $caller);
     }
 
-    public function getFixtureById(int $id, string $caller = 'fixture_repair', string $class = 'fixture_repair'): array
-    {
-        return $this->gateway->get('/fixtures', ['id' => $id], $class, $caller)[0] ?? [];
+    public function getFixtureById(
+        int $id,
+        string $caller = 'fixture_repair',
+        string $class = 'fixture_repair',
+        ?callable $claimAttempt = null,
+    ): array {
+        return $this->gateway->get('/fixtures', ['id' => $id], $class, $caller, $claimAttempt)[0] ?? [];
     }
 
     public function getLineups(int $id, string $caller = 'FetchFixtureLineups'): array

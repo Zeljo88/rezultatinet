@@ -18,7 +18,14 @@ interface ApiFootballQuotaStore
 
     public function recordRepair(int $fixtureId, string $outcome, bool $terminal = false): void;
 
-    public function repairScanCursor(string $scan): ?int;
+    /**
+     * @return array{schema: int, generation: int, cursor: int, ceiling: int}|null
+     */
+    public function repairScanState(string $scan): ?array;
 
-    public function advanceRepairScanCursor(string $scan, int $expected, int $next): bool;
+    /**
+     * @param  array{schema: int, generation: int, cursor: int, ceiling: int}|null  $expected
+     * @param  array{schema: int, generation: int, cursor: int, ceiling: int}  $next
+     */
+    public function compareAndSetRepairScanState(string $scan, ?array $expected, array $next): bool;
 }

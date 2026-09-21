@@ -7,6 +7,7 @@ use App\Jobs\FinalizeFinishedFixtures;
 use App\Models\Fixture;
 use App\Models\FixtureScore;
 use App\Services\ApiFootball\ApiFootballGateway;
+use App\Services\ApiFootball\RedisApiFootballQuotaStore;
 use App\Services\ApiFootballService;
 use App\Support\FootballFixtureStatus;
 use Carbon\Carbon;
@@ -14,6 +15,7 @@ use Closure;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -89,6 +91,7 @@ class FixtureRepairFinalizerTest extends TestCase
 
     public function test_five_call_cap_and_both_fairness_lanes_make_progress(): void
     {
+        config()->set('api_football.repair.finalizer_per_run', 99);
         $oldestId = null;
         $newestId = null;
 
@@ -165,6 +168,32 @@ class FixtureRepairFinalizerTest extends TestCase
             'global hard stop' => ['global_hard_stop'],
             'open circuit' => ['circuit'],
         ];
+    }
+
+    public function test_retries_share_an_absolute_five_physical_attempt_budget(): void
+    {
+        config()->set('api_football.retry_base_ms', 0);
+        for ($index = 0; $index < 5; $index++) {
+            $this->insertFixture(6500 + $index, now()->subHour());
+        }
+
+        $terminal = ['response' => [$this->providerFixture('FT')]];
+        Http::fakeSequence()
+            ->push([], 500)
+            ->push($terminal, 200)
+            ->push([], 500)
+            ->push($terminal, 200)
+            ->push([], 500);
+
+        $quota = new InMemoryRepairQuota;
+        $api = new ApiFootballService(new ApiFootballGateway($quota));
+
+        (new FinalizeFinishedFixtures)->handle($api, $quota);
+
+        Http::assertSentCount(5);
+        $this->assertSame(5, $quota->reserveCalls);
+        $this->assertCount(2, $quota->records);
+        $this->assertCount(1, $quota->released);
     }
 
     #[DataProvider('terminalStatuses')]
@@ -342,7 +371,7 @@ class FixtureRepairFinalizerTest extends TestCase
         $this->assertSame(100, $quota->scanCursor);
         $job->handle($api, $quota);
         $this->assertSame(200, $quota->scanCursor);
-        $this->assertSame([[0, 100], [100, 200]], $quota->cursorWrites);
+        $this->assertSame([[0, 0], [0, 100], [100, 200]], $quota->cursorWrites);
     }
 
     public function test_backlog_cursor_wraps_once_and_deterministically(): void
@@ -360,7 +389,8 @@ class FixtureRepairFinalizerTest extends TestCase
         (new FinalizeFinishedFixtures)->handle($api, $quota);
 
         $this->assertSame(50, $quota->scanCursor);
-        $this->assertSame([[50, 50]], $quota->cursorWrites);
+        $this->assertSame([[50, 0], [0, 50]], $quota->cursorWrites);
+        $this->assertSame(2, $quota->scanState['generation']);
         $fixtureSelects = array_filter(
             DB::getQueryLog(),
             static fn (array $query): bool => str_starts_with(strtolower($query['query']), 'select')
@@ -424,7 +454,12 @@ class FixtureRepairFinalizerTest extends TestCase
         ]);
         $job->handle($api, $quota);
 
-        $api->shouldHaveReceived('getFixtureById')->with(20001, 'FinalizeFinishedFixtures')->once();
+        $api->shouldHaveReceived('getFixtureById')->with(
+            20001,
+            'FinalizeFinishedFixtures',
+            'fixture_repair',
+            Mockery::type(Closure::class),
+        )->once();
     }
 
     public function test_old_backlog_progresses_under_continuous_recent_arrivals(): void
@@ -482,8 +517,229 @@ class FixtureRepairFinalizerTest extends TestCase
         $this->assertSame(100, $quota->scanCursor);
 
         $quota->scanCursor = 0;
+        $quota->scanState = null;
         $job->handle($api, $quota);
         $this->assertSame(100, $quota->scanCursor);
+    }
+
+    public function test_fixed_generation_defeats_the_exact_moving_max_adversary(): void
+    {
+        $target = null;
+        for ($id = 1; $id <= 250; $id++) {
+            $fixture = $this->insertFixture(25000 + $id, now()->subHours(8));
+            if ($id === 125) {
+                $target = $fixture;
+            }
+        }
+
+        $quota = new InMemoryRepairQuota(
+            static fn (int $fixtureId): bool => $fixtureId === $target->id,
+        );
+        $quota->scanState = ['schema' => 3, 'generation' => 7, 'cursor' => 250, 'ceiling' => 250];
+        $quota->scanCursor = 250;
+        $called = [];
+        $api = $this->apiMock(function (int $apiId) use (&$called): array {
+            $called[] = $apiId;
+
+            return $this->providerFixture('2H');
+        });
+        $job = new FinalizeFinishedFixtures;
+
+        for ($run = 1; $run <= 2; $run++) {
+            for ($arrival = 0; $arrival < 101; $arrival++) {
+                $this->insertFixture(
+                    26000 + (($run - 1) * 101) + $arrival,
+                    now()->subMinutes(16)->addSeconds($arrival),
+                );
+            }
+
+            $job->handle($api, $quota);
+            $this->assertSame(8, $quota->scanState['generation']);
+            $this->assertSame(351, $quota->scanState['ceiling']);
+        }
+
+        $this->assertContains(25125, $called);
+        $this->assertLessThanOrEqual(2, count($called));
+
+        for ($run = 3; $run <= 6 && $quota->scanState['generation'] === 8; $run++) {
+            for ($arrival = 0; $arrival < 101; $arrival++) {
+                $this->insertFixture(
+                    26000 + (($run - 1) * 101) + $arrival,
+                    now()->subMinutes(16)->addSeconds($arrival),
+                );
+            }
+            $job->handle($api, $quota);
+        }
+
+        $this->assertSame(9, $quota->scanState['generation']);
+        $this->assertGreaterThan(351, $quota->scanState['ceiling']);
+    }
+
+    public function test_generation_cas_rejects_stale_workers_without_regression(): void
+    {
+        $quota = new InMemoryRepairQuota;
+        $quota->scanState = ['schema' => 3, 'generation' => 4, 'cursor' => 0, 'ceiling' => 250];
+
+        $firstWorker = $quota->repairScanState('finalizer-backlog-id');
+        $staleWorker = $quota->repairScanState('finalizer-backlog-id');
+        $advanced = $firstWorker;
+        $advanced['cursor'] = 100;
+
+        $this->assertTrue($quota->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $firstWorker,
+            $advanced,
+        ));
+
+        $staleNext = $staleWorker;
+        $staleNext['cursor'] = 50;
+        $this->assertFalse($quota->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $staleWorker,
+            $staleNext,
+        ));
+        $this->assertSame($advanced, $quota->scanState);
+
+        $completed = $advanced;
+        $completed['cursor'] = 250;
+        $this->assertTrue($quota->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $advanced,
+            $completed,
+        ));
+        $nextGeneration = ['schema' => 3, 'generation' => 5, 'cursor' => 0, 'ceiling' => 400];
+        $this->assertTrue($quota->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $completed,
+            $nextGeneration,
+        ));
+        $this->assertFalse($quota->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $completed,
+            ['schema' => 3, 'generation' => 5, 'cursor' => 0, 'ceiling' => 500],
+        ));
+        $this->assertSame($nextGeneration, $quota->scanState);
+    }
+
+    public function test_v3_state_key_is_stable_per_environment_distinct_between_environments_and_has_ttl(): void
+    {
+        $redis = new CapturingRepairScanRedis;
+        Redis::shouldReceive('connection')->with('cache')->andReturn($redis);
+        config()->set('app.name', 'Rezultati Net');
+
+        config()->set('app.env', 'production');
+        $productionStore = new RedisApiFootballQuotaStore;
+        $initial = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 250];
+        $this->assertTrue($productionStore->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            null,
+            $initial,
+        ));
+        $productionKey = $redis->keys[0];
+
+        $sameEnvironmentStore = new RedisApiFootballQuotaStore;
+        $this->assertSame($initial, $sameEnvironmentStore->repairScanState('finalizer-backlog-id'));
+        $this->assertSame($productionKey, $redis->keys[1]);
+
+        config()->set('app.env', 'staging');
+        $stagingStore = new RedisApiFootballQuotaStore;
+        $this->assertTrue($stagingStore->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            null,
+            $initial,
+        ));
+        $stagingKey = $redis->keys[2];
+
+        $this->assertNotSame($productionKey, $stagingKey);
+        $this->assertStringContainsString('repair-scan:v3:env:', $productionKey);
+        $this->assertSame([604800, 604800], $redis->ttls);
+
+        $fresh = $initial;
+        $fresh['cursor'] = 100;
+        config()->set('app.env', 'production');
+        $this->assertTrue($productionStore->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $initial,
+            $fresh,
+        ));
+        $stale = $initial;
+        $stale['cursor'] = 50;
+        $this->assertFalse($productionStore->compareAndSetRepairScanState(
+            'finalizer-backlog-id',
+            $initial,
+            $stale,
+        ));
+        $this->assertSame($fresh, $productionStore->repairScanState('finalizer-backlog-id'));
+    }
+
+    public function test_empty_generation_and_expired_state_reset_are_deterministic(): void
+    {
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+        $job = new FinalizeFinishedFixtures;
+
+        $job->handle($api, $quota);
+        $this->assertSame(
+            ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 0],
+            $quota->scanState,
+        );
+
+        $job->handle($api, $quota);
+        $this->assertSame(2, $quota->scanState['generation']);
+
+        $this->insertFixture(27001, now()->subHour());
+        $quota->scanState = null;
+        $quota->scanCursor = 0;
+        $job->handle($api, $quota);
+
+        $this->assertSame(1, $quota->scanState['generation']);
+        $this->assertSame(1, $quota->scanState['ceiling']);
+        $this->assertSame(1, $quota->scanState['cursor']);
+    }
+
+    public function test_sparse_and_deleted_ids_advance_by_bounded_numeric_windows(): void
+    {
+        $this->insertFixtureAtId(1, 28001);
+        $this->insertFixtureAtId(10001, 28002);
+        $this->insertFixtureAtId(25000, 28003);
+        DB::table('fixtures')->where('id', 10001)->delete();
+
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $quota->scanState = ['schema' => 3, 'generation' => 1, 'cursor' => 0, 'ceiling' => 25000];
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+        $job = new FinalizeFinishedFixtures;
+
+        foreach ([10000, 20000, 25000] as $expectedCursor) {
+            $before = count($quota->acquireAttempts);
+            $job->handle($api, $quota);
+            $quota->attemptsPerInvocation[] = count($quota->acquireAttempts) - $before;
+            $this->assertSame($expectedCursor, $quota->scanCursor);
+        }
+
+        $this->assertLessThanOrEqual(200, max($quota->attemptsPerInvocation));
+    }
+
+    public function test_more_than_ten_thousand_candidate_ids_complete_with_bounded_pages(): void
+    {
+        $this->insertFixtureRows(10001, 29000);
+
+        $quota = new InMemoryRepairQuota(static fn (): bool => false);
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldNotReceive('getFixtureById');
+        $job = new FinalizeFinishedFixtures;
+
+        for ($run = 0; $run < 101; $run++) {
+            $before = count($quota->acquireAttempts);
+            $job->handle($api, $quota);
+            $quota->attemptsPerInvocation[] = count($quota->acquireAttempts) - $before;
+        }
+
+        $this->assertSame(10001, $quota->scanState['ceiling']);
+        $this->assertSame(10001, $quota->scanState['cursor']);
+        $this->assertLessThanOrEqual(200, max($quota->attemptsPerInvocation));
+        $this->assertSame([], $quota->records);
     }
 
     public function test_tied_recent_ordering_is_deterministic_and_provider_cap_is_preserved(): void
@@ -541,6 +797,55 @@ class FixtureRepairFinalizerTest extends TestCase
         ]);
 
         return Fixture::findOrFail($id);
+    }
+
+    private function insertFixtureAtId(int $id, int $apiId): void
+    {
+        DB::table('fixtures')->insert([
+            'id' => $id,
+            'api_fixture_id' => $apiId,
+            'league_id' => $this->leagueId,
+            'home_team_id' => $this->homeTeamId,
+            'away_team_id' => $this->awayTeamId,
+            'season' => 2026,
+            'round' => 'Round 1',
+            'kick_off' => now()->subHours(3),
+            'status_long' => '2H',
+            'status_short' => '2H',
+            'elapsed_minute' => 90,
+            'venue_name' => null,
+            'referee' => null,
+            'created_at' => now()->subHour(),
+            'updated_at' => now()->subHour(),
+        ]);
+    }
+
+    private function insertFixtureRows(int $count, int $apiBase): void
+    {
+        for ($start = 1; $start <= $count; $start += 500) {
+            $rows = [];
+            $end = min($count, $start + 499);
+            for ($id = $start; $id <= $end; $id++) {
+                $rows[] = [
+                    'id' => $id,
+                    'api_fixture_id' => $apiBase + $id,
+                    'league_id' => $this->leagueId,
+                    'home_team_id' => $this->homeTeamId,
+                    'away_team_id' => $this->awayTeamId,
+                    'season' => 2026,
+                    'round' => 'Round 1',
+                    'kick_off' => now()->subHours(3),
+                    'status_long' => '2H',
+                    'status_short' => '2H',
+                    'elapsed_minute' => 90,
+                    'venue_name' => null,
+                    'referee' => null,
+                    'created_at' => now()->subHour(),
+                    'updated_at' => now()->subHour(),
+                ];
+            }
+            DB::table('fixtures')->insert($rows);
+        }
     }
 
     private function insertTeam(int $apiId, string $name): int
@@ -668,6 +973,9 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
     /** @var list<int> */
     public array $released = [];
 
+    /** @var list<int> */
+    public array $attemptsPerInvocation = [];
+
     /** @var list<array{fixture_id: int, outcome: string, terminal: bool}> */
     public array $records = [];
 
@@ -679,6 +987,9 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
     public int $reserveCalls = 0;
 
     public int $scanCursor = 0;
+
+    /** @var array{schema: int, generation: int, cursor: int, ceiling: int}|null */
+    public ?array $scanState = null;
 
     public bool $cursorReadable = true;
 
@@ -738,24 +1049,112 @@ final class InMemoryRepairQuota implements ApiFootballQuotaStore
         }
     }
 
-    public function repairScanCursor(string $scan): ?int
+    public function repairScanState(string $scan): ?array
     {
         if (! $this->cursorReadable) {
             return null;
         }
 
-        return $this->scanCursor;
+        if ($this->scanState === null && $this->scanCursor > 0) {
+            $this->scanState = [
+                'schema' => 3,
+                'generation' => 1,
+                'cursor' => $this->scanCursor,
+                'ceiling' => $this->scanCursor,
+            ];
+        }
+
+        return $this->scanState;
     }
 
-    public function advanceRepairScanCursor(string $scan, int $expected, int $next): bool
+    public function compareAndSetRepairScanState(string $scan, ?array $expected, array $next): bool
     {
-        if (! $this->cursorWritable || $this->scanCursor !== $expected) {
+        if (! $this->cursorWritable || $this->scanState !== $expected) {
             return false;
         }
 
-        $this->cursorWrites[] = [$expected, $next];
-        $this->scanCursor = $next;
+        if ($expected === null) {
+            if ($next['generation'] !== 1 || $next['cursor'] !== 0) {
+                return false;
+            }
+        } elseif ($next['generation'] === $expected['generation']) {
+            if ($next['ceiling'] !== $expected['ceiling'] || $next['cursor'] < $expected['cursor']) {
+                return false;
+            }
+        } elseif (
+            $next['generation'] !== $expected['generation'] + 1
+            || $expected['cursor'] < $expected['ceiling']
+            || $next['cursor'] !== 0
+        ) {
+            return false;
+        }
+
+        $this->cursorWrites[] = [$expected['cursor'] ?? 0, $next['cursor']];
+        $this->scanState = $next;
+        $this->scanCursor = $next['cursor'];
 
         return true;
+    }
+}
+
+final class CapturingRepairScanRedis
+{
+    /** @var array<string, string> */
+    public array $values = [];
+
+    /** @var list<string> */
+    public array $keys = [];
+
+    /** @var list<int> */
+    public array $ttls = [];
+
+    public function get(string $key): ?string
+    {
+        $this->keys[] = $key;
+
+        return $this->values[$key] ?? null;
+    }
+
+    public function eval(
+        string $script,
+        int $numberOfKeys,
+        string $key,
+        string $expected,
+        string $next,
+        int $ttl,
+    ): int {
+        $this->keys[] = $key;
+        $current = $this->values[$key] ?? null;
+        if (($current ?? '') !== $expected) {
+            return 0;
+        }
+
+        $nextState = json_decode($next, true, flags: JSON_THROW_ON_ERROR);
+        if ($current === null) {
+            if ($nextState['generation'] !== 1 || $nextState['cursor'] !== 0) {
+                return 0;
+            }
+        } else {
+            $previous = json_decode($current, true, flags: JSON_THROW_ON_ERROR);
+            if ($nextState['generation'] === $previous['generation']) {
+                if (
+                    $nextState['ceiling'] !== $previous['ceiling']
+                    || $nextState['cursor'] < $previous['cursor']
+                ) {
+                    return 0;
+                }
+            } elseif (
+                $nextState['generation'] !== $previous['generation'] + 1
+                || $previous['cursor'] < $previous['ceiling']
+                || $nextState['cursor'] !== 0
+            ) {
+                return 0;
+            }
+        }
+
+        $this->values[$key] = $next;
+        $this->ttls[] = $ttl;
+
+        return 1;
     }
 }

@@ -10,7 +10,9 @@ class RedisApiFootballQuotaStore implements ApiFootballQuotaStore
 {
     private const PREFIX = 'api-football:quota:';
 
-    private const REPAIR_SCAN_CURSOR_TTL = 604800;
+    private const REPAIR_SCAN_STATE_SCHEMA = 3;
+
+    private const REPAIR_SCAN_STATE_TTL = 604800;
 
     public function reserve(string $endpointClass, string $caller): array
     {
@@ -174,28 +176,58 @@ LUA;
         }
     }
 
-    public function repairScanCursor(string $scan): ?int
+    public function repairScanState(string $scan): ?array
     {
         $this->assertSafeToken($scan);
 
         try {
-            $value = Redis::connection('cache')->get(self::PREFIX."repair-scan:v2:{$scan}");
+            $value = Redis::connection('cache')->get($this->repairScanStateKey($scan));
+            if ($value === null) {
+                return null;
+            }
 
-            return $value === null ? 0 : max(0, (int) $value);
+            $state = json_decode((string) $value, true, flags: JSON_THROW_ON_ERROR);
+            if (! is_array($state)) {
+                return null;
+            }
+
+            return $this->normalizeRepairScanState($state);
         } catch (Throwable) {
-            // A missing/unavailable cursor safely restarts the bounded ID rotation.
+            // Missing, expired, malformed, or unavailable state restarts bounded initialization.
             return null;
         }
     }
 
-    public function advanceRepairScanCursor(string $scan, int $expected, int $next): bool
+    public function compareAndSetRepairScanState(string $scan, ?array $expected, array $next): bool
     {
         $this->assertSafeToken($scan);
-        $expected = max(0, $expected);
-        $next = max(0, $next);
+        $expectedJson = $expected === null
+            ? ''
+            : json_encode($this->normalizeRepairScanState($expected), JSON_THROW_ON_ERROR);
+        $nextJson = json_encode($this->normalizeRepairScanState($next), JSON_THROW_ON_ERROR);
         $script = <<<'LUA'
-local current = tonumber(redis.call('GET', KEYS[1]) or '0')
-if current ~= tonumber(ARGV[1]) then return 0 end
+local current = redis.call('GET', KEYS[1])
+if (current or '') ~= ARGV[1] then return 0 end
+
+local next = cjson.decode(ARGV[2])
+if next.schema ~= 3 or next.generation < 1 or next.cursor < 0 or next.ceiling < 0 or next.cursor > next.ceiling then
+ return 0
+end
+
+if current then
+ local previous = cjson.decode(current)
+ if previous.schema ~= 3 then return 0 end
+ if next.generation == previous.generation then
+  if next.ceiling ~= previous.ceiling or next.cursor < previous.cursor then return 0 end
+ elseif next.generation == previous.generation + 1 then
+  if previous.cursor < previous.ceiling or next.cursor ~= 0 then return 0 end
+ else
+  return 0
+ end
+else
+ if next.generation ~= 1 or next.cursor ~= 0 then return 0 end
+end
+
 redis.call('SETEX', KEYS[1], ARGV[3], ARGV[2])
 return 1
 LUA;
@@ -204,15 +236,56 @@ LUA;
             return (int) Redis::connection('cache')->eval(
                 $script,
                 1,
-                self::PREFIX."repair-scan:v2:{$scan}",
-                $expected,
-                $next,
-                self::REPAIR_SCAN_CURSOR_TTL,
+                $this->repairScanStateKey($scan),
+                $expectedJson,
+                $nextJson,
+                self::REPAIR_SCAN_STATE_TTL,
             ) === 1;
         } catch (Throwable) {
             // Repair eligibility already fails closed when Redis is unavailable.
             return false;
         }
+    }
+
+    /**
+     * The application name and environment are non-secret, stable deployment
+     * identity inputs. Their full SHA-256 digest keeps the Redis token safe and
+     * makes environments distinct unless both normalized inputs are identical
+     * (or a cryptographically negligible SHA-256 collision occurs).
+     */
+    private function repairScanStateKey(string $scan): string
+    {
+        $application = strtolower(trim((string) config('app.name', 'laravel')));
+        $environment = strtolower(trim((string) config('app.env', 'production')));
+        $namespace = hash('sha256', $application."\0".$environment);
+
+        return self::PREFIX."repair-scan:v3:env:{$namespace}:{$scan}";
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array{schema: int, generation: int, cursor: int, ceiling: int}
+     */
+    private function normalizeRepairScanState(array $state): array
+    {
+        $normalized = [
+            'schema' => (int) ($state['schema'] ?? 0),
+            'generation' => (int) ($state['generation'] ?? 0),
+            'cursor' => (int) ($state['cursor'] ?? -1),
+            'ceiling' => (int) ($state['ceiling'] ?? -1),
+        ];
+
+        if (
+            $normalized['schema'] !== self::REPAIR_SCAN_STATE_SCHEMA
+            || $normalized['generation'] < 1
+            || $normalized['cursor'] < 0
+            || $normalized['ceiling'] < 0
+            || $normalized['cursor'] > $normalized['ceiling']
+        ) {
+            throw new \UnexpectedValueException('Invalid fixture repair scan state.');
+        }
+
+        return $normalized;
     }
 
     private function thresholdState(int $count): string
