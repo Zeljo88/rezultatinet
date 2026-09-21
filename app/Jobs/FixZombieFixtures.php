@@ -7,6 +7,7 @@ use App\Exceptions\ApiFootballBlocked;
 use App\Models\Fixture;
 use App\Models\FixtureScore;
 use App\Services\ApiFootballService;
+use App\Support\FootballFixtureStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,8 +23,6 @@ class FixZombieFixtures implements ShouldBeUnique, ShouldQueue
     public int $tries = 1;
 
     public int $uniqueFor = 1800;
-
-    private const FINAL = ['FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD', 'PST', 'INT', 'SUSP', 'TBD', 'NS'];
 
     public function uniqueId(): string
     {
@@ -43,7 +42,7 @@ class FixZombieFixtures implements ShouldBeUnique, ShouldQueue
 
         $limit = max(1, (int) config('api_football.repair.zombie_per_run', 5));
         $fixtures = Fixture::where('kick_off', '<', now()->subHours(3))->where('kick_off', '>=', now()->subDays(2))
-            ->whereNotIn('status_short', self::FINAL)->orderByDesc('kick_off')->limit($limit * 6)->get();
+            ->whereNotIn('status_short', FootballFixtureStatus::REPAIR_EXCLUDED)->orderByDesc('kick_off')->limit($limit * 6)->get();
         $checked = $repaired = 0;
         foreach ($fixtures as $fixture) {
             if ($checked >= $limit || ! $fixture->api_fixture_id || ! $quota->acquireRepair($fixture->id, 'FixZombieFixtures')) {
@@ -53,7 +52,7 @@ class FixZombieFixtures implements ShouldBeUnique, ShouldQueue
             try {
                 $data = $api->getFixtureById($fixture->api_fixture_id, 'FixZombieFixtures');
             } catch (ApiFootballBlocked) {
-                $quota->recordRepair($fixture->id, 'quota_blocked');
+                $quota->releaseRepair($fixture->id);
                 break;
             }
             if (empty($data)) {
@@ -62,12 +61,18 @@ class FixZombieFixtures implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            $new = $data['fixture']['status']['short'] ?? null;
+            $new = FootballFixtureStatus::normalize($data['fixture']['status']['short'] ?? null);
             if (! $new || $new === $fixture->status_short) {
                 $quota->recordRepair($fixture->id, 'unchanged_'.$new);
 
                 continue;
             }
+            if (! FootballFixtureStatus::canPersist($fixture->status_short, $new)) {
+                $quota->recordRepair($fixture->id, 'ignored_regression_'.$new);
+
+                continue;
+            }
+
             $fixture->update(['status_short' => $new, 'status_long' => $data['fixture']['status']['long'] ?? null,
                 'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null]);
             FixtureScore::updateOrCreate(['fixture_id' => $fixture->id], [
@@ -77,7 +82,7 @@ class FixZombieFixtures implements ShouldBeUnique, ShouldQueue
                 'home_extratime' => $data['score']['extratime']['home'] ?? null, 'away_extratime' => $data['score']['extratime']['away'] ?? null,
                 'home_penalties' => $data['score']['penalty']['home'] ?? null, 'away_penalties' => $data['score']['penalty']['away'] ?? null,
             ]);
-            $terminal = in_array($new, self::FINAL, true);
+            $terminal = FootballFixtureStatus::isTerminal($new);
             $quota->recordRepair($fixture->id, 'updated_'.$new, $terminal);
             $repaired++;
         }

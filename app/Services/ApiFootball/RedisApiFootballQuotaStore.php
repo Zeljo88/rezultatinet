@@ -163,6 +163,15 @@ LUA;
         }
     }
 
+    public function releaseRepair(int $fixtureId): void
+    {
+        try {
+            Redis::connection('cache')->del(self::PREFIX."repair-lock:{$fixtureId}");
+        } catch (Throwable) {
+            // Fail conservatively: the short repair lock expires after five minutes.
+        }
+    }
+
     private function thresholdState(int $count): string
     {
         if ($count >= (int) config('api_football.thresholds.hard_stop', 7125)) {

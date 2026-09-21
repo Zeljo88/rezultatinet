@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Notifications\GoalNotification;
 use App\Notifications\KickoffNotification;
 use App\Services\ApiFootballService;
+use App\Support\FootballFixtureStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -92,39 +93,49 @@ class FetchLiveFixtures implements ShouldBeUnique, ShouldQueue
             $oldStatus = $existingFixture?->status_short;
             $oldScore = $existingFixture?->score;
 
-            $fixture = Fixture::updateOrCreate(
-                ['api_fixture_id' => $data['fixture']['id']],
-                [
+            $incomingStatus = FootballFixtureStatus::normalize($data['fixture']['status']['short'] ?? null);
+            $acceptProviderState = FootballFixtureStatus::canPersist($oldStatus, $incomingStatus);
+            $fixtureAttributes = [
+                'season' => $data['league']['season'],
+                'league_id' => $league->id,
+                'home_team_id' => $homeTeam->id,
+                'away_team_id' => $awayTeam->id,
+                'kick_off' => $data['fixture']['date'] ?? null,
+            ];
+            if ($acceptProviderState) {
+                $fixtureAttributes += [
                     'status_long' => $data['fixture']['status']['long'] ?? null,
-                    'status_short' => $data['fixture']['status']['short'] ?? null,
+                    'status_short' => $incomingStatus,
                     'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
                     'elapsed_extra' => $data['fixture']['status']['extra'] ?: null,
-                    'season' => $data['league']['season'],
-                    'league_id' => $league->id,
-                    'home_team_id' => $homeTeam->id,
-                    'away_team_id' => $awayTeam->id,
-                    'kick_off' => $data['fixture']['date'] ?? null,
-                ]
+                ];
+            }
+
+            $fixture = Fixture::updateOrCreate(
+                ['api_fixture_id' => $data['fixture']['id']],
+                $fixtureAttributes,
             );
 
-            FixtureScore::updateOrCreate(
-                ['fixture_id' => $fixture->id],
-                [
-                    'goals_home' => $data['goals']['home'],
-                    'goals_away' => $data['goals']['away'],
-                    'home_halftime' => $data['score']['halftime']['home'] ?? null,
-                    'away_halftime' => $data['score']['halftime']['away'] ?? null,
-                    'home_fulltime' => $data['score']['fulltime']['home'] ?? null,
-                    'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
-                    'home_extratime' => $data['score']['extratime']['home'] ?? null,
-                    'away_extratime' => $data['score']['extratime']['away'] ?? null,
-                    'home_penalties' => $data['score']['penalty']['home'] ?? null,
-                    'away_penalties' => $data['score']['penalty']['away'] ?? null,
-                ]
-            );
+            if ($acceptProviderState) {
+                FixtureScore::updateOrCreate(
+                    ['fixture_id' => $fixture->id],
+                    [
+                        'goals_home' => $data['goals']['home'],
+                        'goals_away' => $data['goals']['away'],
+                        'home_halftime' => $data['score']['halftime']['home'] ?? null,
+                        'away_halftime' => $data['score']['halftime']['away'] ?? null,
+                        'home_fulltime' => $data['score']['fulltime']['home'] ?? null,
+                        'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
+                        'home_extratime' => $data['score']['extratime']['home'] ?? null,
+                        'away_extratime' => $data['score']['extratime']['away'] ?? null,
+                        'home_penalties' => $data['score']['penalty']['home'] ?? null,
+                        'away_penalties' => $data['score']['penalty']['away'] ?? null,
+                    ]
+                );
+            }
 
             // ── OneSignal Push Triggers ─────────────────────────────────────────────
-            $newStatus = $data['fixture']['status']['short'] ?? null;
+            $newStatus = $fixture->status_short;
 
             // Kickoff: NS -> 1H
             if ($oldStatus === 'NS' && $newStatus === '1H') {

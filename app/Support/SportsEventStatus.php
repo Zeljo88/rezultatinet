@@ -7,8 +7,11 @@ use Carbon\CarbonInterface;
 final class SportsEventStatus
 {
     public const SCHEDULED = 'https://schema.org/EventScheduled';
+
     public const COMPLETED = 'https://schema.org/EventCompleted';
+
     public const POSTPONED = 'https://schema.org/EventPostponed';
+
     public const CANCELLED = 'https://schema.org/EventCancelled';
 
     public static function fromFixture(
@@ -18,7 +21,7 @@ final class SportsEventStatus
     ): ?string {
         $status = strtoupper(trim((string) $status));
 
-        if (in_array($status, ['FT', 'AET', 'PEN', 'AWD', 'WO'], true)) {
+        if (FootballFixtureStatus::isCompleted($status)) {
             return self::COMPLETED;
         }
 
@@ -26,7 +29,7 @@ final class SportsEventStatus
             return self::POSTPONED;
         }
 
-        if (in_array($status, ['CANC', 'ABD'], true)) {
+        if (FootballFixtureStatus::isCancelled($status)) {
             return self::CANCELLED;
         }
 
@@ -35,7 +38,7 @@ final class SportsEventStatus
         }
 
         if (in_array($status, ['NS', 'TBD'], true)) {
-            if (!$kickOff) {
+            if (! $kickOff) {
                 return null;
             }
 

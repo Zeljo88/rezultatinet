@@ -14,5 +14,7 @@ interface ApiFootballQuotaStore
 
     public function acquireRepair(int $fixtureId, string $caller): bool;
 
+    public function releaseRepair(int $fixtureId): void;
+
     public function recordRepair(int $fixtureId, string $outcome, bool $terminal = false): void;
 }

@@ -7,6 +7,7 @@ use App\Models\FixtureScore;
 use App\Models\League;
 use App\Models\Team;
 use App\Services\ApiFootballService;
+use App\Support\FootballFixtureStatus;
 use Illuminate\Console\Command;
 
 class SyncFixtures extends Command
@@ -39,42 +40,49 @@ class SyncFixtures extends Command
                 ['name' => $data['teams']['away']['name'], 'logo_url' => $data['teams']['away']['logo'] ?? null]
             );
 
+            $existingFixture = Fixture::where('api_fixture_id', $data['fixture']['id'])->first();
+            $incomingStatus = FootballFixtureStatus::normalize($data['fixture']['status']['short'] ?? null);
+            $acceptProviderState = FootballFixtureStatus::canPersist(
+                $existingFixture?->status_short,
+                $incomingStatus,
+            );
+            $fixtureAttributes = [
+                'league_id' => $league->id,
+                'home_team_id' => $homeTeam->id,
+                'away_team_id' => $awayTeam->id,
+                'season' => $data['league']['season'],
+                'round' => $data['league']['round'] ?? null,
+                'kick_off' => date('Y-m-d H:i:s', $data['fixture']['timestamp']),
+                'venue_name' => $data['fixture']['venue']['name'] ?? null,
+                'referee' => $data['fixture']['referee'] ?? null,
+            ];
+            if ($acceptProviderState) {
+                $fixtureAttributes += [
+                    'status_long' => $data['fixture']['status']['long'] ?? null,
+                    'status_short' => $incomingStatus,
+                    'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
+                ];
+            }
+
             $fixture = Fixture::updateOrCreate(
                 ['api_fixture_id' => $data['fixture']['id']],
-                [
-                    'league_id' => $league->id,
-                    'home_team_id' => $homeTeam->id,
-                    'away_team_id' => $awayTeam->id,
-                    'season' => $data['league']['season'],
-                    'round' => $data['league']['round'] ?? null,
-                    'kick_off' => date('Y-m-d H:i:s', $data['fixture']['timestamp']),
-                    'status_long' => $data['fixture']['status']['long'] ?? null,
-                    'status_short' => $data['fixture']['status']['short'] ?? null,
-                    'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
-                    'venue_name' => $data['fixture']['venue']['name'] ?? null,
-                    'referee' => $data['fixture']['referee'] ?? null,
-                ]
+                $fixtureAttributes,
             );
 
-            // goals = current live score; fulltime = final score (null during match)
-            $goalsHome = $data['goals']['home'];
-            $goalsAway = $data['goals']['away'];
-            $fulltimeHome = $data['score']['fulltime']['home'];
-            $fulltimeAway = $data['score']['fulltime']['away'];
-            $halftimeHome = $data['score']['halftime']['home'] ?? 0;
-            $halftimeAway = $data['score']['halftime']['away'] ?? 0;
-
-            FixtureScore::updateOrCreate(
-                ['fixture_id' => $fixture->id],
-                [
-                    'goals_home' => $goalsHome,
-                    'goals_away' => $goalsAway,
-                    'home_fulltime' => $fulltimeHome,
-                    'away_fulltime' => $fulltimeAway,
-                    'home_halftime' => $halftimeHome,
-                    'away_halftime' => $halftimeAway,
-                ]
-            );
+            if ($acceptProviderState) {
+                // goals = current live score; fulltime = final score (null during match)
+                FixtureScore::updateOrCreate(
+                    ['fixture_id' => $fixture->id],
+                    [
+                        'goals_home' => $data['goals']['home'],
+                        'goals_away' => $data['goals']['away'],
+                        'home_fulltime' => $data['score']['fulltime']['home'],
+                        'away_fulltime' => $data['score']['fulltime']['away'],
+                        'home_halftime' => $data['score']['halftime']['home'] ?? 0,
+                        'away_halftime' => $data['score']['halftime']['away'] ?? 0,
+                    ]
+                );
+            }
 
             $count++;
         }
