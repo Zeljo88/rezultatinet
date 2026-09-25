@@ -2,6 +2,9 @@ name: Future fixture calendar MariaDB concurrency
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - rex/future-fixture-calendar-sync-2026-09-25
 
 permissions:
   contents: read
