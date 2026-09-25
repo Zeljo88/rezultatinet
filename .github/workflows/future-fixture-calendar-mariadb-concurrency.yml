@@ -45,18 +45,24 @@ jobs:
         run: |
           set -Eeuo pipefail
           docker compose -f tools/a1b/compose.yaml up -d db
+          container_id=$(docker compose -f tools/a1b/compose.yaml ps -q db)
+          test -n "$container_id"
           for attempt in $(seq 1 60); do
-            if docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent; then
-              break
-            fi
+            health=$(docker inspect --format '{{.State.Health.Status}}' "$container_id")
+            case "$health" in
+              healthy) break ;;
+              unhealthy) echo 'MariaDB container became unhealthy.' >&2; exit 1 ;;
+            esac
             test "$attempt" -lt 60
             sleep 2
           done
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent
           version=$(docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot -e 'SELECT VERSION()')
           case "$version" in
             10.11.13-MariaDB*) ;;
             *) echo "Unexpected MariaDB version: $version" >&2; exit 1 ;;
           esac
+          echo "MariaDB version: $version"
 
       - name: Import production-shaped data-free schema
         shell: bash
