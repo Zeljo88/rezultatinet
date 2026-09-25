@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\ApiFootballQuotaStore;
 use App\Exceptions\ApiFootballBlocked;
+use App\Exceptions\ApiFootballProviderResponseException;
 use App\Exceptions\FixtureCalendarDisabled;
 use App\Livewire\LiveScores;
 use App\Models\Fixture;
@@ -235,13 +236,14 @@ class FixtureCalendarSyncTest extends TestCase
         $importer = new FixtureCalendarImporter;
         $payload = $this->payload(7001, 'NS', '2026-09-27 14:30:00', season: 2026);
 
-        $this->assertSame(['upserted' => 1, 'protected' => 0, 'skipped' => 0], $importer->import([$payload]));
+        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $importer->import([$payload]));
 
         $payload['league']['season'] = 2027;
         $payload['league']['round'] = 'Round 9';
         $payload['fixture']['timestamp'] = CarbonImmutable::parse('2026-09-27 16:45:00', 'UTC')->timestamp;
         $payload['fixture']['status'] = ['short' => 'TBD', 'long' => 'Time to be defined', 'elapsed' => null];
-        $this->assertSame(['upserted' => 1, 'protected' => 0, 'skipped' => 0], $importer->import([$payload]));
+        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $importer->import([$payload]));
+        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $importer->import([$payload]));
 
         $this->assertSame(1, Fixture::where('api_fixture_id', 7001)->count());
         $fixture = Fixture::where('api_fixture_id', 7001)->firstOrFail();
@@ -292,7 +294,7 @@ class FixtureCalendarSyncTest extends TestCase
         );
         $result = (new FixtureCalendarImporter)->import($payloads);
 
-        $this->assertSame(['upserted' => 0, 'protected' => count($statuses), 'skipped' => 0], $result);
+        $this->assertSame($this->importResult(rows: count($statuses), accepted: count($statuses), protected: count($statuses)), $result);
         foreach ($statuses as $index => $status) {
             $fixture = Fixture::where('api_fixture_id', 8000 + $index)->firstOrFail();
             $this->assertSame($status, $fixture->status_short);
@@ -301,6 +303,160 @@ class FixtureCalendarSyncTest extends TestCase
             $this->assertSame('2026-09-25 12:00:00', $fixture->kick_off->utc()->format('Y-m-d H:i:s'));
             $this->assertSame(3, $fixture->score()->value('goals_home'));
         }
+    }
+
+    public function test_malformed_rows_are_isolated_in_first_middle_and_last_positions(): void
+    {
+        $importer = new FixtureCalendarImporter;
+
+        foreach ([0, 1, 2] as $malformedPosition) {
+            $base = 10000 + ($malformedPosition * 10);
+            $rows = [
+                $this->payload($base, 'NS', '2026-09-28 12:00:00', 2026),
+                $this->payload($base + 1, 'TBD', '2026-09-28 13:00:00', 2026),
+                $this->payload($base + 2, 'PST', '2026-09-28 14:00:00', 2026),
+            ];
+            unset($rows[$malformedPosition]['teams']['home']['name']);
+
+            $result = $importer->import($rows);
+
+            $this->assertSame($this->importResult(
+                rows: 3,
+                accepted: 2,
+                upserted: 2,
+                skipped: 1,
+                skipReasons: ['malformed_row' => 1],
+            ), $result);
+            $this->assertSame(2, Fixture::whereBetween('api_fixture_id', [$base, $base + 2])->count());
+        }
+    }
+
+    public function test_partial_nested_fields_and_wrong_types_skip_without_stopping_later_valid_row(): void
+    {
+        $rows = [];
+        foreach (range(0, 7) as $offset) {
+            $rows[] = $this->payload(10100 + $offset, 'NS', '2026-09-29 12:00:00', 2026);
+        }
+        unset($rows[0]['fixture']['status']);
+        $rows[1]['league'] = 'invalid';
+        unset($rows[2]['teams']['away']['id']);
+        $rows[3]['teams']['home']['name'] = ['invalid'];
+        $rows[4]['score']['fulltime'] = null;
+        unset($rows[5]['goals']['away']);
+        $rows[6]['teams']['home']['name'] = str_repeat('x', 101);
+
+        $result = (new FixtureCalendarImporter)->import($rows);
+
+        $this->assertSame($this->importResult(
+            rows: 8,
+            accepted: 1,
+            upserted: 1,
+            skipped: 7,
+            skipReasons: ['malformed_row' => 7],
+        ), $result);
+        $this->assertTrue(Fixture::where('api_fixture_id', 10107)->exists());
+    }
+
+    public function test_unknown_status_is_rejected_while_all_known_semantics_remain_accepted(): void
+    {
+        $statuses = ['NS', 'TBD', 'PST', 'INT', 'SUSP', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD'];
+        $rows = [$this->payload(10200, 'ZZ', '2026-09-30 12:00:00', 2026)];
+        foreach ($statuses as $offset => $status) {
+            $rows[] = $this->payload(10201 + $offset, $status, '2026-09-30 13:00:00', 2026);
+        }
+
+        $result = (new FixtureCalendarImporter)->import($rows);
+
+        $this->assertSame($this->importResult(
+            rows: 20,
+            accepted: 19,
+            upserted: 19,
+            skipped: 1,
+            skipReasons: ['unknown_status' => 1],
+        ), $result);
+        $this->assertFalse(Fixture::where('api_fixture_id', 10200)->exists());
+        $this->assertSame($statuses, Fixture::where('api_fixture_id', '>=', 10201)->orderBy('api_fixture_id')->pluck('status_short')->all());
+    }
+
+    public function test_database_failure_rolls_back_one_row_and_later_rows_continue(): void
+    {
+        DB::unprepared("CREATE TRIGGER reject_calendar_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10301 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
+        $rows = [
+            $this->payload(10300, 'NS', '2026-10-01 12:00:00', 2026),
+            $this->payload(10301, 'NS', '2026-10-01 13:00:00', 2026),
+            $this->payload(10302, 'NS', '2026-10-01 14:00:00', 2026),
+        ];
+
+        $result = (new FixtureCalendarImporter)->import($rows);
+
+        $this->assertSame($this->importResult(
+            rows: 3,
+            accepted: 3,
+            upserted: 2,
+            failed: 1,
+            failureReasons: ['database_error' => 1],
+        ), $result);
+        $this->assertSame([10300, 10302], Fixture::whereIn('api_fixture_id', [10300, 10301, 10302])->orderBy('api_fixture_id')->pluck('api_fixture_id')->all());
+    }
+
+    public function test_command_returns_failure_after_processing_all_rows_when_a_row_fails(): void
+    {
+        config()->set('api_football.calendar.enabled', true);
+        DB::unprepared("CREATE TRIGGER reject_command_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10400 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldReceive('getCalendarFixturesByDate')->once()->with('2026-09-25')->andReturn([
+            $this->payload(10400, 'NS', '2026-10-01 12:00:00', 2026),
+            $this->payload(10401, 'NS', '2026-10-01 13:00:00', 2026),
+        ]);
+        $api->shouldReceive('getCalendarFixturesByDate')->once()->with('2026-09-26')->andReturn([]);
+        $this->app->instance(ApiFootballService::class, $api);
+
+        $this->assertSame(1, Artisan::call('sync:fixture-calendar', ['--window' => 'near']));
+        $this->assertStringContainsString('failed after isolated processing', Artisan::output());
+        $this->assertFalse(Fixture::where('api_fixture_id', 10400)->exists());
+        $this->assertTrue(Fixture::where('api_fixture_id', 10401)->exists());
+    }
+
+    public function test_2xx_provider_envelopes_are_strictly_classified_without_retry_or_success(): void
+    {
+        config()->set('api_football.calendar.enabled', true);
+        $cases = [
+            'absent response' => [['errors' => []], 'malformed_envelope'],
+            'scalar response' => [['errors' => [], 'response' => 'invalid'], 'malformed_envelope'],
+            'object response' => [['errors' => [], 'response' => ['fixture' => ['id' => 1]]], 'malformed_envelope'],
+            'provider errors with response' => [['errors' => ['rateLimit' => 'invalid request'], 'response' => []], 'provider_error'],
+            'wrong errors type' => [['errors' => 'invalid', 'response' => []], 'malformed_envelope'],
+        ];
+
+        $sequence = Http::fakeSequence();
+        foreach ($cases as [$body]) {
+            $sequence->push($body, 200);
+        }
+        $sequence->push('{not-json', 200, ['Content-Type' => 'application/json']);
+
+        foreach ($cases as $label => [$body, $classification]) {
+            $quota = new CalendarQuotaSpy;
+            $service = new ApiFootballService(new ApiFootballGateway($quota));
+
+            try {
+                $service->getCalendarFixturesByDate('2026-09-26');
+                $this->fail('Expected strict envelope failure for '.$label);
+            } catch (ApiFootballProviderResponseException $e) {
+                $this->assertSame($classification, $e->classification, $label);
+            }
+
+            $this->assertSame(1, $quota->reserveCalls, $label);
+            $this->assertSame([$classification], array_column($quota->records, 'outcome'), $label);
+        }
+
+        $quota = new CalendarQuotaSpy;
+        try {
+            (new ApiFootballService(new ApiFootballGateway($quota)))->getCalendarFixturesByDate('2026-09-26');
+            $this->fail('Expected malformed JSON failure.');
+        } catch (ApiFootballProviderResponseException $e) {
+            $this->assertSame('malformed_envelope', $e->classification);
+        }
+        $this->assertSame(['malformed_envelope'], array_column($quota->records, 'outcome'));
     }
 
     public function test_tomorrow_ui_uses_tomorrow_utc_and_counts_ns_and_tbd_as_upcoming(): void
@@ -328,6 +484,28 @@ class FixtureCalendarSyncTest extends TestCase
             ->assertSet('selectedDate', '2026-09-26')
             ->assertSet('counts.upcoming', 2)
             ->assertSet('counts.all', 2);
+    }
+
+    private function importResult(
+        int $rows,
+        int $accepted = 0,
+        int $upserted = 0,
+        int $protected = 0,
+        int $skipped = 0,
+        int $failed = 0,
+        array $skipReasons = [],
+        array $failureReasons = [],
+    ): array {
+        return [
+            'rows' => $rows,
+            'accepted' => $accepted,
+            'upserted' => $upserted,
+            'protected' => $protected,
+            'skipped' => $skipped,
+            'failed' => $failed,
+            'skip_reasons' => $skipReasons,
+            'failure_reasons' => $failureReasons,
+        ];
     }
 
     private function payload(int $apiId, string $status, string $kickOff, int $season): array

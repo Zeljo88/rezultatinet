@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Exceptions\ApiFootballBlocked;
+use App\Exceptions\ApiFootballProviderResponseException;
 use App\Services\ApiFootballService;
 use App\Services\FixtureCalendarImporter;
 use App\Support\FixtureCalendarWindow;
@@ -50,13 +51,28 @@ class SyncFixtureCalendar extends Command
             return self::FAILURE;
         }
 
-        $summary = ['upserted' => 0, 'protected' => 0, 'skipped' => 0];
+        $summary = [
+            'rows' => 0, 'accepted' => 0, 'upserted' => 0,
+            'protected' => 0, 'skipped' => 0, 'failed' => 0,
+            'skip_reasons' => [], 'failure_reasons' => [],
+        ];
         try {
             foreach ($dates as $date) {
                 $current = $importer->import($api->getCalendarFixturesByDate($date));
-                foreach ($summary as $key => $value) {
+                foreach (['rows', 'accepted', 'upserted', 'protected', 'skipped', 'failed'] as $key) {
                     $summary[$key] += $current[$key];
                 }
+                foreach (['skip_reasons', 'failure_reasons'] as $reasonType) {
+                    foreach ($current[$reasonType] as $reason => $count) {
+                        $summary[$reasonType][$reason] = ($summary[$reasonType][$reason] ?? 0) + $count;
+                    }
+                    ksort($summary[$reasonType]);
+                }
+                Log::channel('api_football')->info('calendar_sync_date_processed', [
+                    'window' => $window,
+                    'date' => $date,
+                    ...$current,
+                ]);
             }
         } catch (ApiFootballBlocked $e) {
             Log::channel('api_football')->warning('calendar_sync_blocked', [
@@ -65,6 +81,15 @@ class SyncFixtureCalendar extends Command
                 ...$summary,
             ]);
             $this->error('Calendar provider path was blocked: '.$e->reason->value);
+
+            return self::FAILURE;
+        } catch (ApiFootballProviderResponseException $e) {
+            Log::channel('api_football')->error('calendar_sync_provider_response_failed', [
+                'window' => $window,
+                'classification' => $e->classification,
+                ...$summary,
+            ]);
+            $this->error('Calendar provider response failed validation: '.$e->classification);
 
             return self::FAILURE;
         } catch (Throwable $e) {
@@ -81,18 +106,35 @@ class SyncFixtureCalendar extends Command
             }
         }
 
+        if ($summary['failed'] > 0) {
+            Log::channel('api_football')->error('calendar_sync_partial_failure', [
+                'window' => $window,
+                'dates' => count($dates),
+                ...$summary,
+            ]);
+            $this->error(sprintf(
+                'Calendar sync failed after isolated processing: %d accepted, %d skipped, %d failed.',
+                $summary['accepted'], $summary['skipped'], $summary['failed'],
+            ));
+
+            return self::FAILURE;
+        }
+
         Log::channel('api_football')->info('calendar_sync_completed', [
             'window' => $window,
             'dates' => count($dates),
             ...$summary,
         ]);
         $this->info(sprintf(
-            'Calendar %s: %d dates, %d upserted, %d protected, %d skipped.',
+            'Calendar %s: %d dates, %d rows, %d accepted, %d upserted, %d protected, %d skipped, %d failed.',
             $window,
             count($dates),
+            $summary['rows'],
+            $summary['accepted'],
             $summary['upserted'],
             $summary['protected'],
             $summary['skipped'],
+            $summary['failed'],
         ));
 
         return self::SUCCESS;

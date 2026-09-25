@@ -5,6 +5,7 @@ namespace App\Services\ApiFootball;
 use App\Contracts\ApiFootballQuotaStore;
 use App\Exceptions\ApiFootballBlocked;
 use App\Exceptions\ApiFootballLocalAttemptLimitReached;
+use App\Exceptions\ApiFootballProviderResponseException;
 use App\Exceptions\ApiFootballRetryableFailure;
 use App\Support\ApiFootballBlockReason;
 use Illuminate\Http\Client\ConnectionException;
@@ -111,9 +112,26 @@ class ApiFootballGateway
             }
 
             if ($response->successful()) {
+                try {
+                    $envelope = $response->json();
+                } catch (Throwable) {
+                    $envelope = null;
+                }
+
+                $classification = $this->invalidEnvelopeClassification($envelope);
+                if ($classification !== null) {
+                    $this->recordAttempt($endpointClass, $caller, $status, $classification, $attempt, $started);
+
+                    if ($claimAttempt !== null) {
+                        throw new ApiFootballProviderResponseException($classification);
+                    }
+
+                    return [];
+                }
+
                 $this->recordAttempt($endpointClass, $caller, $status, 'success', $attempt, $started);
 
-                return $response->json('response', []);
+                return $envelope['response'];
             }
 
             if ($status >= 500 && $attempt < $maxAttempts) {
@@ -133,6 +151,30 @@ class ApiFootballGateway
         }
 
         return [];
+    }
+
+    private function invalidEnvelopeClassification(mixed $envelope): ?string
+    {
+        if (! is_array($envelope) || array_is_list($envelope)) {
+            return 'malformed_envelope';
+        }
+
+        if (array_key_exists('errors', $envelope)) {
+            if (! is_array($envelope['errors'])) {
+                return 'malformed_envelope';
+            }
+            if ($envelope['errors'] !== []) {
+                return 'provider_error';
+            }
+        }
+
+        if (! array_key_exists('response', $envelope)
+            || ! is_array($envelope['response'])
+            || ! array_is_list($envelope['response'])) {
+            return 'malformed_envelope';
+        }
+
+        return null;
     }
 
     private function blockReason(string $reason, string $endpointClass): ApiFootballBlockReason
