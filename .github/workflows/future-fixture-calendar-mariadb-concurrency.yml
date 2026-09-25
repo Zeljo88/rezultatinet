@@ -100,7 +100,7 @@ jobs:
               cp -a /workspace /tmp/calendar-concurrency
               cp -a /build/vendor /tmp/calendar-concurrency/vendor
               cd /tmp/calendar-concurrency
-              php artisan test tests/Feature/FixtureCalendarMariaDbConcurrencyTest.php
+              php artisan test --display-warnings tests/Feature/FixtureCalendarMariaDbConcurrencyTest.php
             '
 
       - name: Diagnose isolated database failure
