@@ -64,8 +64,18 @@ jobs:
           set -Eeuo pipefail
           docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot -e \
             'CREATE DATABASE calendar_concurrency CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
-          docker compose -f tools/a1b/compose.yaml exec -T db \
-            mariadb -uroot calendar_concurrency < database/schema/mariadb-schema.sql
+          {
+            printf '%s\n' 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;'
+            for table in leagues teams fixtures fixture_scores; do
+              awk -v name="$table" '
+                $0 == "CREATE TABLE `" name "` (" { emit = 1 }
+                emit { print }
+                emit && /^\) ENGINE=.*;$/ { exit }
+              ' database/schema/mariadb-schema.sql
+            done
+          } | docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot calendar_concurrency
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot \
+            calendar_concurrency -e 'SHOW TABLES' | diff -u <(printf '%s\n' fixture_scores fixtures leagues teams) -
 
       - name: Run real concurrent importer workers
         shell: bash
