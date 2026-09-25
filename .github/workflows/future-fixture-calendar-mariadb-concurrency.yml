@@ -64,16 +64,18 @@ jobs:
           set -Eeuo pipefail
           docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot -e \
             'CREATE DATABASE calendar_concurrency CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
-          {
-            printf '%s\n' 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;'
-            for table in leagues teams fixtures fixture_scores; do
+          for table in leagues teams fixtures fixture_scores; do
+            echo "Importing isolated table: $table"
+            {
+              printf '%s\n' 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;'
               awk -v name="$table" '
                 $0 == "CREATE TABLE `" name "` (" { emit = 1 }
                 emit { print }
                 emit && /^\) ENGINE=.*;$/ { exit }
               ' database/schema/mariadb-schema.sql
-            done
-          } | docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot calendar_concurrency
+            } | docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot calendar_concurrency
+            docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent
+          done
           docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot \
             calendar_concurrency -e 'SHOW TABLES' | diff -u <(printf '%s\n' fixture_scores fixtures leagues teams) -
 
@@ -94,6 +96,13 @@ jobs:
               cd /tmp/calendar-concurrency
               php artisan test tests/Feature/FixtureCalendarMariaDbConcurrencyTest.php
             '
+
+      - name: Diagnose isolated database failure
+        if: failure()
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml ps
+          docker compose -f tools/a1b/compose.yaml logs --no-color --tail=120 db
 
       - name: Remove isolated containers and volumes
         if: always()
