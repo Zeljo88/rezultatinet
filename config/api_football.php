@@ -17,10 +17,22 @@ return [
         'fixture_repair' => 500,
         'lineups' => 250,
         'standings' => 60,
+        // Hard physical-attempt cap. Each retry reserves another attempt.
+        'calendar' => 80,
         'manual' => (int) env('API_FOOTBALL_BUDGET_MANUAL', 0),
         'backfill' => (int) env('API_FOOTBALL_BUDGET_BACKFILL', 0),
         'events' => (int) env('API_FOOTBALL_BUDGET_EVENTS', 0),
         'scorers' => (int) env('API_FOOTBALL_BUDGET_SCORERS', 0),
+    ],
+    'calendar' => [
+        // Both scheduler registration and the provider service path fail closed
+        // unless this explicit deployment gate is enabled.
+        'enabled' => env('API_FOOTBALL_CALENDAR_ENABLED', false),
+        'lock_store' => env('API_FOOTBALL_CALENDAR_LOCK_STORE', 'redis'),
+        'lock_seconds' => 7200,
+        // Wednesday 03:15 UTC is the documented low-traffic weekly slot.
+        'weekly_day' => 3,
+        'weekly_time' => '03:15',
     ],
     'repair' => [
         'finalizer_per_run' => (int) env('API_FOOTBALL_FINALIZER_PER_RUN', 5),

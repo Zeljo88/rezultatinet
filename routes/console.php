@@ -5,6 +5,34 @@ use App\Jobs\FinalizeFinishedFixtures;
 use App\Jobs\FixZombieFixtures;
 use Illuminate\Support\Facades\Schedule;
 
+// Future calendar schedules are absent by default. Enabling this one gate also
+// unlocks the dedicated provider service path. All windows and dates are UTC.
+if (config('api_football.calendar.enabled', false)) {
+    // D+0 and D+1 at 00:00, 06:00, 12:00 and 18:00 UTC: 8 logical calls/day.
+    Schedule::command('sync:fixture-calendar --window=near')
+        ->cron('0 */6 * * *')
+        ->timezone('UTC')
+        ->name('fixture-calendar-near')
+        ->withoutOverlapping(180);
+
+    // D+2 through D+7 at 06:30 UTC: 6 logical calls/day.
+    Schedule::command('sync:fixture-calendar --window=week')
+        ->dailyAt('06:30')
+        ->timezone('UTC')
+        ->name('fixture-calendar-week')
+        ->withoutOverlapping(180);
+
+    // D+8 through D+30 Wednesdays at 03:15 UTC: 23 logical calls/week.
+    Schedule::command('sync:fixture-calendar --window=month')
+        ->weeklyOn(
+            (int) config('api_football.calendar.weekly_day', 3),
+            (string) config('api_football.calendar.weekly_time', '03:15'),
+        )
+        ->timezone('UTC')
+        ->name('fixture-calendar-month')
+        ->withoutOverlapping(180);
+}
+
 // ✅ ACTIVE — Fetch live football scores every 30 seconds (~2,880/day)
 Schedule::job(new FetchLiveFixtures)
     ->everyThirtySeconds()

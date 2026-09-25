@@ -25,7 +25,12 @@ $currentTab = $initialTab ?? 'live';
 $isHub = isset($hub) && isset($hubConfig[$hub]);
 $pageTitle = $isHub ? $hubConfig[$hub]['title'] : ($tabTitles[$currentTab] ?? 'Rezultati Uživo ⚽ Danas | HNL, Liga Prvaka, Bundesliga — rezultati.net');
 $pageDesc = $isHub ? $hubConfig[$hub]['description'] : ($tabDescs[$currentTab] ?? 'Pratite rezultate uživo, današnji raspored i najvažnije sportske lige na rezultati.net.');
-$dateLabel = now()->locale('bs')->translatedFormat('j. F Y.');
+$pageDate = match ($currentTab) {
+    'tomorrow' => now('UTC')->addDay(),
+    'yesterday' => now('UTC')->subDay(),
+    default => now('UTC'),
+};
+$dateLabel = $pageDate->locale('bs')->translatedFormat('j. F Y.');
 @endphp
 
 @section('title', $pageTitle)

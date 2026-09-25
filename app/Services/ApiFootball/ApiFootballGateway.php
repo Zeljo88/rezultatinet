@@ -55,7 +55,7 @@ class ApiFootballGateway
 
                 throw new ApiFootballBlocked(
                     'API-Football request blocked: '.$reason,
-                    $this->blockReason($reason),
+                    $this->blockReason($reason, $endpointClass),
                 );
             }
 
@@ -135,10 +135,12 @@ class ApiFootballGateway
         return [];
     }
 
-    private function blockReason(string $reason): ApiFootballBlockReason
+    private function blockReason(string $reason, string $endpointClass): ApiFootballBlockReason
     {
         return match ($reason) {
-            'class_hard_stop' => ApiFootballBlockReason::FixtureRepairBudget,
+            'class_hard_stop' => $endpointClass === 'calendar'
+                ? ApiFootballBlockReason::CalendarBudget
+                : ApiFootballBlockReason::FixtureRepairBudget,
             'global_hard_stop' => ApiFootballBlockReason::GlobalQuota,
             'circuit' => ApiFootballBlockReason::Circuit,
             default => ApiFootballBlockReason::OtherQuota,

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\FixtureCalendarDisabled;
 use App\Services\ApiFootball\ApiFootballGateway;
 
 class ApiFootballService
@@ -16,6 +17,21 @@ class ApiFootballService
     public function getFixturesByDate(string $date, string $caller = 'SyncFixtures'): array
     {
         return $this->gateway->get('/fixtures', ['date' => $date], 'backfill', $caller);
+    }
+
+    public function getCalendarFixturesByDate(string $date): array
+    {
+        if (! config('api_football.calendar.enabled', false)) {
+            throw new FixtureCalendarDisabled;
+        }
+
+        return $this->gateway->get(
+            '/fixtures',
+            ['date' => $date],
+            'calendar',
+            'FixtureCalendarSync',
+            static fn (): bool => true,
+        );
     }
 
     public function getTodayFixtures(string $caller = 'ApiFootballService'): array

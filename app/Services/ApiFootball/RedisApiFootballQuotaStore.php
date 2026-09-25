@@ -33,7 +33,7 @@ local class = tonumber(redis.call('HGET', KEYS[2], ARGV[2]) or '0')
 if tonumber(ARGV[3]) <= 0 then return {0, 'class_disabled', class} end
 if global >= tonumber(ARGV[4]) then return {0, 'global_hard_stop', global} end
 if global >= tonumber(ARGV[7]) and ARGV[2] ~= 'live' and ARGV[2] ~= 'fixture_repair' then return {0, 'critical_shed', global} end
-if global >= tonumber(ARGV[8]) and (ARGV[2] == 'manual' or ARGV[2] == 'backfill' or ARGV[2] == 'events' or ARGV[2] == 'scorers') then return {0, 'warning_shed', global} end
+if global >= tonumber(ARGV[8]) and (ARGV[2] == 'manual' or ARGV[2] == 'backfill' or ARGV[2] == 'calendar' or ARGV[2] == 'events' or ARGV[2] == 'scorers') then return {0, 'warning_shed', global} end
 if class >= tonumber(ARGV[3]) then return {0, 'class_hard_stop', class} end
 global = redis.call('INCR', KEYS[1])
 class = redis.call('HINCRBY', KEYS[2], ARGV[2], 1)

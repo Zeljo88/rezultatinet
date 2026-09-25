@@ -36,7 +36,12 @@ class LiveScores extends Component
     {
         $this->tab          = $initialTab;
         $this->sport        = $sport;
-        $this->selectedDate = today()->toDateString();
+        $todayUtc = Carbon::now('UTC')->startOfDay();
+        $this->selectedDate = match ($initialTab) {
+            'tomorrow' => $todayUtc->copy()->addDay()->toDateString(),
+            'yesterday' => $todayUtc->copy()->subDay()->toDateString(),
+            default => $todayUtc->toDateString(),
+        };
         $this->sportAvailable = true;
         $this->loadFixtures();
     }
@@ -56,8 +61,8 @@ class LiveScores extends Component
     public function setDate(string $date): void
     {
         $d = Carbon::parse($date);
-        $min = today()->subDays(3);
-        $max = today()->addDays(7);
+        $min = Carbon::now('UTC')->startOfDay()->subDays(3);
+        $max = Carbon::now('UTC')->startOfDay()->addDays(7);
         if ($d->between($min, $max)) {
             $this->selectedDate = $date;
             $this->loadFixtures();
@@ -98,7 +103,7 @@ class LiveScores extends Component
         return [
             'all'      => (clone $base)->count(),
             'live'     => (clone $base)->whereIn('fixtures.status_short', ['1H','2H','HT','ET','BT','P'])->count(),
-            'upcoming' => (clone $base)->where('fixtures.status_short', 'NS')->count(),
+            'upcoming' => (clone $base)->whereIn('fixtures.status_short', ['NS', 'TBD'])->count(),
             'finished' => (clone $base)->whereIn('fixtures.status_short', ['FT','AET','PEN'])->count(),
         ];
     }
