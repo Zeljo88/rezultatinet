@@ -100,6 +100,7 @@ jobs:
               cp -a /workspace /tmp/calendar-concurrency
               cp -a /build/vendor /tmp/calendar-concurrency/vendor
               cd /tmp/calendar-concurrency
+              cp .env.example .env
               php artisan test --display-warnings tests/Feature/FixtureCalendarMariaDbConcurrencyTest.php
             '
 
