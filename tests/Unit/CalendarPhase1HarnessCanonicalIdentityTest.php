@@ -8,7 +8,9 @@ use Phase1Abort;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-define('PHASE1_LIBRARY_ONLY', true);
+if (! defined('PHASE1_LIBRARY_ONLY')) {
+    define('PHASE1_LIBRARY_ONLY', true);
+}
 
 require_once dirname(__DIR__, 2).'/tools/calendar-phase1/phase1_harness.php';
 

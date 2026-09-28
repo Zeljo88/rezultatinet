@@ -79,6 +79,9 @@ jobs:
       - name: Run real activation recovery and process-fault suite
         shell: bash
         run: |
+          global_timezone_before=$(docker compose -f tools/a1b/compose.yaml exec -T db \
+            mariadb -N -uroot a1b -e 'SELECT @@global.time_zone')
+          test -n "$global_timezone_before"
           docker compose -f tools/a1b/compose.yaml run --rm -T app sh -lc '
             set -eu
             umask 0077
@@ -96,6 +99,9 @@ jobs:
             PHASE1_INTEGRATION_ROOT=/run/calendar-phase1-harness \
               php artisan test --display-warnings tests/Feature/CalendarPhase1HarnessIntegrationTest.php
           '
+          global_timezone_after=$(docker compose -f tools/a1b/compose.yaml exec -T db \
+            mariadb -N -uroot a1b -e 'SELECT @@global.time_zone')
+          test "$global_timezone_after" = "$global_timezone_before"
 
       - name: Diagnose isolated failure
         if: failure()

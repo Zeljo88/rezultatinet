@@ -221,7 +221,13 @@ $GLOBALS['phase1_integration_bootstrap'] = static function ($app) use ($scenario
     config()->set('services.api_football.key', 'integration-only');
     $app->instance(ApiFootballQuotaStore::class, $quota);
     $app->forgetInstance(ApiFootballGateway::class);
-    DB::statement('SET SESSION time_zone = "+00:00"');
+    if ($scenario === 'reconnect-drift') {
+        DB::disconnect();
+        $reconnectedTimezone = (string) (DB::selectOne('SELECT @@session.time_zone AS tz')->tz ?? '');
+        if ($reconnectedTimezone !== '+00:00') {
+            throw new RuntimeException('reconnect_session_utc_missing');
+        }
+    }
     if (! is_file($seeded)) {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         foreach (['fixture_scores', 'fixtures', 'teams', 'leagues'] as $table) {
@@ -236,6 +242,10 @@ $GLOBALS['phase1_integration_bootstrap'] = static function ($app) use ($scenario
     Http::preventStrayRequests();
     Http::fake(static function (Request $request) use ($scenario, &$responses) {
         if (str_contains($request->url(), 'provider.invalid')) {
+            $providerTimezone = (string) (DB::selectOne('SELECT @@session.time_zone AS tz')->tz ?? '');
+            if ($providerTimezone !== '+00:00') {
+                throw new RuntimeException('provider_ran_without_exact_session_utc');
+            }
             $responses++;
             if ($scenario === 'provider-cap' && $responses % 2 === 1) {
                 return Http::response([], 500);
@@ -269,6 +279,24 @@ if ($scenario === 'anchor-tamper') {
     rename($proof, $proof.'.real');
     symlink($proof.'.real', $proof);
 }
+if (in_array($scenario, ['initial-system', 'already-plus00', 'failed-set', 'recovery-session'], true)) {
+    $GLOBALS['phase1_integration_before_utc_set'] = static function ($connection) use ($scenario): void {
+        $GLOBALS['phase1_utc_set_calls'] = ($GLOBALS['phase1_utc_set_calls'] ?? 0) + 1;
+        $pdo = $connection->getPdo();
+        if ($scenario === 'failed-set') {
+            throw new RuntimeException('forced_session_timezone_set_failure');
+        }
+        if ($scenario === 'recovery-session' || ($GLOBALS['phase1_utc_set_calls'] === 1 && $scenario === 'initial-system')) {
+            $pdo->exec("SET SESSION time_zone = 'SYSTEM'");
+        } elseif ($GLOBALS['phase1_utc_set_calls'] === 1 && $scenario === 'already-plus00') {
+            $pdo->exec("SET SESSION time_zone = '+00:00'");
+        }
+        if ($GLOBALS['phase1_utc_set_calls'] === 1) {
+            $GLOBALS['phase1_initial_session_timezone'] = (string) $pdo->query('SELECT @@session.time_zone')->fetchColumn();
+        }
+    };
+}
+
 $contention = null;
 if ($scenario === 'lock-contention') {
     $contention = acquire_flock($anchorValue['locks']['phase'], 'test_contention');
@@ -300,6 +328,12 @@ if (is_resource($contention)) {
     flock($contention, LOCK_UN);
     fclose($contention);
 }
+if ($scenario === 'failed-set') {
+    if ($activationError !== 'database_session_utc_establishment_failed' || $quota->attempts !== 0) {
+        throw new RuntimeException('failed_set_did_not_block_before_provider');
+    }
+    integration_exit(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts]);
+}
 if (in_array($scenario, ['symlink-swap', 'lock-contention', 'provider-cap', 'anchor-tamper',
     'authentication-key-mode', 'package-identity', 'unknown-option', 'lock-symlink', 'evidence-not-fresh'], true)) {
     $expected = [
@@ -316,6 +350,12 @@ if (in_array($scenario, ['symlink-swap', 'lock-contention', 'provider-cap', 'anc
         throw new RuntimeException('identity_or_lock_gate_ran_provider');
     }
     integration_exit(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts]);
+}
+if ($scenario === 'initial-system' && ($GLOBALS['phase1_initial_session_timezone'] ?? null) !== 'SYSTEM') {
+    throw new RuntimeException('initial_system_timezone_not_observed');
+}
+if ($scenario === 'already-plus00' && ($GLOBALS['phase1_initial_session_timezone'] ?? null) !== '+00:00') {
+    throw new RuntimeException('initial_plus00_timezone_not_observed');
 }
 if ($activationError !== null && ! $killed) {
     $isFault = $fault !== false && $fault !== '';

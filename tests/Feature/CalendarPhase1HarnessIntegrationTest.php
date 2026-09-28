@@ -33,9 +33,10 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
     public static function adversarialScenarios(): array
     {
         $scenarios = [
-            'normal', 'idempotency', 'tampered-intent', 'tampered-seal', 'tampered-marker', 'symlink-swap',
-            'lock-contention', 'concurrent-advancement', 'provider-cap', 'anchor-tamper',
-            'authentication-key-mode', 'package-identity', 'unknown-option', 'lock-symlink',
+            'normal', 'initial-system', 'already-plus00', 'failed-set', 'reconnect-drift', 'recovery-session',
+            'idempotency', 'tampered-intent', 'tampered-seal', 'tampered-marker', 'symlink-swap',
+            'lock-contention', 'concurrent-advancement', 'provider-cap', 'anchor-tamper', 'authentication-key-mode',
+            'package-identity', 'unknown-option', 'lock-symlink',
             'evidence-not-fresh',
         ];
 

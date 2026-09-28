@@ -9,6 +9,8 @@ use App\Services\FixtureCalendarImporter;
 use App\Support\FixtureCalendarWindow;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -32,6 +34,44 @@ const PHASE1_PROTECTED = [
 ];
 
 final class Phase1Abort extends RuntimeException {}
+
+function establish_database_session_utc(Connection $connection): void
+{
+    try {
+        if (defined('PHASE1_INTEGRATION_MODE') && PHASE1_INTEGRATION_MODE === true
+            && isset($GLOBALS['phase1_integration_before_utc_set'])
+            && is_callable($GLOBALS['phase1_integration_before_utc_set'])) {
+            ($GLOBALS['phase1_integration_before_utc_set'])($connection);
+        }
+        $connection->statement("SET SESSION time_zone = '+00:00'");
+        $timezone = (string) ($connection->selectOne('SELECT @@session.time_zone AS tz')->tz ?? '');
+    } catch (Throwable $failure) {
+        throw new Phase1Abort('database_session_utc_establishment_failed', 0, $failure);
+    }
+    if ($timezone !== '+00:00') {
+        throw new Phase1Abort('database_session_utc_establishment_failed');
+    }
+}
+
+function initialize_database_session_utc(object $app): Connection
+{
+    $connection = DB::connection();
+    establish_database_session_utc($connection);
+    $app['events']->listen(ConnectionEstablished::class, static function (ConnectionEstablished $event): void {
+        establish_database_session_utc($event->connection);
+    });
+
+    return $connection;
+}
+
+function phase1_utc_date_scope(?DateTimeImmutable $instant = null): array
+{
+    $utc = ($instant ?? new DateTimeImmutable('now', new DateTimeZone('UTC')))
+        ->setTimezone(new DateTimeZone('UTC'));
+
+    return [$utc->format('Y-m-d'), $utc->modify('+1 day')->format('Y-m-d')];
+}
+
 function fault_boundary(string $name): void
 {
     if (! defined('PHASE1_INTEGRATION_FAULT')) {
@@ -856,7 +896,7 @@ function assert_invariants(array $state): void
         || $state['orphans'] !== ['fixture_scores' => 0, 'fixture_relationships' => 0]) {
         throw new Phase1Abort('relationship_or_duplicate_invariant_failed');
     }
-    if (! in_array($state['session_timezone'], ['+00:00', 'UTC'], true)) {
+    if ($state['session_timezone'] !== '+00:00') {
         throw new Phase1Abort('database_session_not_utc');
     }
 }
@@ -1022,19 +1062,19 @@ function run_activation(array $options): int
     require $root.'/vendor/autoload.php';
     $app = require $root.'/bootstrap/app.php';
     $app->make(Kernel::class)->bootstrap();
+    $connection = initialize_database_session_utc($app);
     if (defined('PHASE1_INTEGRATION_MODE') && PHASE1_INTEGRATION_MODE === true
         && isset($GLOBALS['phase1_integration_bootstrap']) && is_callable($GLOBALS['phase1_integration_bootstrap'])) {
         ($GLOBALS['phase1_integration_bootstrap'])($app);
     }
+    establish_database_session_utc($connection);
     assert_calendar_lock_contract($contract);
 
     if (config('api_football.calendar.enabled', false) !== false) {
         throw new Phase1Abort('persistent_gate_not_false');
     }
-    if ((new FixtureCalendarWindow)->dates('near') !== [
-        now('UTC')->startOfDay()->toDateString(),
-        now('UTC')->startOfDay()->addDay()->toDateString(),
-    ]) {
+    $dates = phase1_utc_date_scope();
+    if ((new FixtureCalendarWindow)->dates('near') !== $dates) {
         throw new Phase1Abort('near_window_invalid');
     }
     foreach (app(Schedule::class)->events() as $event) {
@@ -1047,7 +1087,6 @@ function run_activation(array $options): int
     $phaseLock = acquire_flock($contract['anchor']['locks']['phase'], 'phase_lock');
     $calendarLock = null;
     $maintenanceLock = null;
-    $connection = DB::connection();
     $transactionOpen = false;
     $committed = false;
     try {
@@ -1065,8 +1104,7 @@ function run_activation(array $options): int
 
         $quota = app(ApiFootballQuotaStore::class);
         $quotaBaseline = $quota->status();
-        $dates = FixtureCalendarWindow::dates('near');
-        if (count($dates) !== 2 || $dates[0] !== gmdate('Y-m-d') || $dates[1] !== gmdate('Y-m-d', time() + 86400)) {
+        if (FixtureCalendarWindow::dates('near') !== $dates) {
             throw new Phase1Abort('utc_date_scope_failed');
         }
         $logPath = $root.'/storage/logs/laravel.log';
@@ -1077,6 +1115,7 @@ function run_activation(array $options): int
         $gateway = app(ApiFootballGateway::class);
         $importer = app(FixtureCalendarImporter::class);
         $budget = new Phase1AttemptBudget;
+        establish_database_session_utc($connection);
         $connection->beginTransaction();
         $transactionOpen = true;
 
@@ -1537,10 +1576,12 @@ function run_recovery(array $options): int
     require $root.'/vendor/autoload.php';
     $app = require $root.'/bootstrap/app.php';
     $app->make(Kernel::class)->bootstrap();
+    $connection = initialize_database_session_utc($app);
     if (defined('PHASE1_INTEGRATION_MODE') && PHASE1_INTEGRATION_MODE === true
         && isset($GLOBALS['phase1_integration_bootstrap']) && is_callable($GLOBALS['phase1_integration_bootstrap'])) {
         ($GLOBALS['phase1_integration_bootstrap'])($app);
     }
+    establish_database_session_utc($connection);
     assert_calendar_lock_contract($contract);
     if (config('api_football.calendar.enabled', false) !== false) {
         throw new Phase1Abort('persistent_gate_not_false');
@@ -1564,7 +1605,7 @@ function run_recovery(array $options): int
         $chain = validate_recovery_chain($evidence, $contract);
         $intent = $chain['intent'];
         $proof = assert_writer_exclusion($options['writer-proof'], $options['writer-proof-sha256']);
-        $connection = DB::connection();
+        establish_database_session_utc($connection);
         $connection->statement('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
         $outcome = $connection->transaction(function () use ($intent, $options): string {
             // Locking reads are the first target-state reads in this transaction.

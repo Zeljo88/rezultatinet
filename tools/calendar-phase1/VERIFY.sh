@@ -33,6 +33,11 @@ php -l phase1_harness.php >/dev/null || fail 'PHP lint failed'
 grep -Fq "hash_hmac('sha256'" phase1_harness.php || fail 'authenticated records missing'
 grep -Fq "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED" phase1_harness.php \
     || fail 'recovery isolation missing'
+grep -Fq "SET SESSION time_zone = '+00:00'" phase1_harness.php \
+    || fail 'session UTC initialization missing'
+grep -Fq 'SELECT @@session.time_zone AS tz' phase1_harness.php \
+    || fail 'session UTC verification missing'
+grep -Fq 'ConnectionEstablished::class' phase1_harness.php || fail 'reconnect UTC guard missing'
 grep -Fq 'readAuthenticated' phase1_harness.php || fail 'authenticated recovery missing'
 grep -Fq 'lockForUpdate' phase1_harness.php || fail 'locking reads missing'
 grep -Fq "'authentication-key'" phase1_harness.php || fail 'authentication key contract missing'
