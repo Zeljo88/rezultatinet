@@ -1,9 +1,6 @@
 name: Calendar Phase 1 harness integration
 
 on:
-  push:
-    branches:
-      - rex/future-fixture-calendar-sync-2026-09-25
   workflow_dispatch:
 
 permissions:
