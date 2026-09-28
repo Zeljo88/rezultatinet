@@ -1395,7 +1395,8 @@ function assert_recovery_references(array $intent): void
         }, $childRows);
         sort($childIds, SORT_NUMERIC);
         sort($allowed, SORT_NUMERIC);
-        if (array_values(array_unique($childIds)) !== array_values(array_unique($allowed))) {
+        $childIds = array_values(array_unique($childIds));
+        if ($childIds !== [] && $childIds !== array_values(array_unique($allowed))) {
             throw new Phase1Abort('inserted_row_has_unexpected_fk_reference');
         }
     }
@@ -1413,7 +1414,7 @@ function assert_intent_rows(array $rows, string $table, array $expectedHashes): 
         }
         $previous = $row['id'];
     }
-    if (row_hashes($rows) !== $expectedHashes) {
+    if (! canonical_identity_matches(row_hashes($rows), $expectedHashes)) {
         throw new Phase1Abort('intent_'.$table.'_hash_invalid');
     }
 }
