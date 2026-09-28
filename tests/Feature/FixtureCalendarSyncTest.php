@@ -236,14 +236,14 @@ class FixtureCalendarSyncTest extends TestCase
         $importer = new FixtureCalendarImporter;
         $payload = $this->payload(7001, 'NS', '2026-09-27 14:30:00', season: 2026);
 
-        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $importer->import([$payload]));
+        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $this->importCounts($importer->import([$payload])));
 
         $payload['league']['season'] = 2027;
         $payload['league']['round'] = 'Round 9';
         $payload['fixture']['timestamp'] = CarbonImmutable::parse('2026-09-27 16:45:00', 'UTC')->timestamp;
         $payload['fixture']['status'] = ['short' => 'TBD', 'long' => 'Time to be defined', 'elapsed' => null];
-        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $importer->import([$payload]));
-        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $importer->import([$payload]));
+        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $this->importCounts($importer->import([$payload])));
+        $this->assertSame($this->importResult(rows: 1, accepted: 1, upserted: 1), $this->importCounts($importer->import([$payload])));
 
         $this->assertSame(1, Fixture::where('api_fixture_id', 7001)->count());
         $fixture = Fixture::where('api_fixture_id', 7001)->firstOrFail();
@@ -294,7 +294,11 @@ class FixtureCalendarSyncTest extends TestCase
         );
         $result = (new FixtureCalendarImporter)->import($payloads);
 
-        $this->assertSame($this->importResult(rows: count($statuses), accepted: count($statuses), protected: count($statuses)), $result);
+        $this->assertSame($this->importResult(rows: count($statuses), accepted: count($statuses), protected: count($statuses)), $this->importCounts($result));
+        $this->assertSame(range(8000, 8015), array_column($result['row_telemetry'], 'fixture_id'));
+        $this->assertSame(['NS'], array_values(array_unique(array_column($result['row_telemetry'], 'status'))));
+        $this->assertSame(['protected_existing'], array_values(array_unique(array_column($result['row_telemetry'], 'reason'))));
+        $this->assertSame(16, $result['row_telemetry_total']);
         foreach ($statuses as $index => $status) {
             $fixture = Fixture::where('api_fixture_id', 8000 + $index)->firstOrFail();
             $this->assertSame($status, $fixture->status_short);
@@ -326,7 +330,19 @@ class FixtureCalendarSyncTest extends TestCase
                 upserted: 2,
                 skipped: 1,
                 skipReasons: ['malformed_row' => 1],
-            ), $result);
+            ), $this->importCounts($result));
+            $this->assertSame([
+                [
+                    'fixture_id' => $base + $malformedPosition,
+                    'league_id' => 39,
+                    'status' => ['NS', 'TBD', 'PST'][$malformedPosition],
+                    'date_bucket' => '2026-09-28',
+                    'reason' => 'malformed_row',
+                ],
+            ], $result['row_telemetry']);
+            $this->assertSame(1, $result['row_telemetry_total']);
+            $this->assertSame(0, $result['row_telemetry_truncated']);
+            $this->assertSame(100, $result['row_telemetry_limit']);
             $this->assertSame(2, Fixture::whereBetween('api_fixture_id', [$base, $base + 2])->count());
         }
     }
@@ -353,7 +369,7 @@ class FixtureCalendarSyncTest extends TestCase
             upserted: 1,
             skipped: 7,
             skipReasons: ['malformed_row' => 7],
-        ), $result);
+        ), $this->importCounts($result));
         $this->assertTrue(Fixture::where('api_fixture_id', 10107)->exists());
     }
 
@@ -373,7 +389,18 @@ class FixtureCalendarSyncTest extends TestCase
             upserted: 4,
             skipped: 16,
             skipReasons: ['calendar_status_not_importable' => 15, 'unknown_status' => 1],
-        ), $result);
+        ), $this->importCounts($result));
+        $expectedSkippedStatuses = [
+            'ZZ',
+            ...array_values(array_diff($statuses, ['NS', 'TBD', 'PST', 'CANC'])),
+        ];
+        $this->assertSame($expectedSkippedStatuses, array_column($result['row_telemetry'], 'status'));
+        $this->assertSame(
+            ['unknown_status', ...array_fill(0, 15, 'calendar_status_not_importable')],
+            array_column($result['row_telemetry'], 'reason'),
+        );
+        $this->assertSame(16, $result['row_telemetry_total']);
+        $this->assertSame(0, $result['row_telemetry_truncated']);
         $this->assertFalse(Fixture::where('api_fixture_id', 10200)->exists());
         $this->assertSame(
             ['NS', 'TBD', 'PST', 'CANC'],
@@ -397,7 +424,7 @@ class FixtureCalendarSyncTest extends TestCase
             upserted: 1,
             skipped: 2,
             skipReasons: ['calendar_status_not_importable' => 2],
-        ), $result);
+        ), $this->importCounts($result));
         $this->assertFalse(Fixture::whereIn('api_fixture_id', [1639952, 1639953])->exists());
         $this->assertSame('CANC', Fixture::where('api_fixture_id', 1638592)->value('status_short'));
     }
@@ -427,6 +454,92 @@ class FixtureCalendarSyncTest extends TestCase
         $this->assertSame(0, Fixture::whereBetween('api_fixture_id', [1700001, 1700007])->count());
     }
 
+    public function test_mixed_batch_telemetry_is_sanitized_and_handles_missing_ids(): void
+    {
+        $malformed = $this->payload(11000, 'NS', '2026-10-02 10:00:00', 2026);
+        unset($malformed['fixture']['id']);
+        $malformed['fixture']['status']['short'] = 'unsafe status value containing secret';
+        $malformed['teams']['home']['name'] = 'DO_NOT_LOG_HOME';
+        $malformed['teams']['home']['logo'] = 'https://secret.invalid/home.png';
+
+        $unknownStatus = $this->payload(11001, 'ZZ', '2026-10-02 11:00:00', 2026);
+        $unknownLeague = $this->payload(11002, ' ns ', '2026-10-02 12:00:00', 2026);
+        $unknownLeague['league']['id'] = 999999;
+        $unknownLeague['teams']['away']['name'] = 'DO_NOT_LOG_AWAY';
+        $unknownLeague['teams']['away']['logo'] = 'https://secret.invalid/away.png';
+        $valid = $this->payload(11003, 'PST', '2026-10-02 13:00:00', 2026);
+
+        $result = (new FixtureCalendarImporter)->import([
+            $malformed,
+            $unknownStatus,
+            $unknownLeague,
+            $valid,
+        ]);
+
+        $this->assertSame($this->importResult(
+            rows: 4,
+            accepted: 1,
+            upserted: 1,
+            skipped: 3,
+            skipReasons: ['malformed_row' => 1, 'unknown_league' => 1, 'unknown_status' => 1],
+        ), $this->importCounts($result));
+        $this->assertSame([
+            [
+                'fixture_id' => null,
+                'league_id' => 39,
+                'status' => null,
+                'date_bucket' => '2026-10-02',
+                'reason' => 'malformed_row',
+            ],
+            [
+                'fixture_id' => 11001,
+                'league_id' => 39,
+                'status' => 'ZZ',
+                'date_bucket' => '2026-10-02',
+                'reason' => 'unknown_status',
+            ],
+            [
+                'fixture_id' => 11002,
+                'league_id' => 999999,
+                'status' => 'NS',
+                'date_bucket' => '2026-10-02',
+                'reason' => 'unknown_league',
+            ],
+        ], $result['row_telemetry']);
+        foreach ($result['row_telemetry'] as $entry) {
+            $this->assertSame(
+                ['fixture_id', 'league_id', 'status', 'date_bucket', 'reason'],
+                array_keys($entry),
+            );
+        }
+        $serialized = json_encode($result['row_telemetry'], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('DO_NOT_LOG', $serialized);
+        $this->assertStringNotContainsString('secret.invalid', $serialized);
+        $this->assertSame(3, $result['row_telemetry_total']);
+        $this->assertSame(0, $result['row_telemetry_truncated']);
+        $this->assertTrue(Fixture::where('api_fixture_id', 11003)->exists());
+    }
+
+    public function test_row_telemetry_cap_is_deterministic_and_retains_aggregate_truncation(): void
+    {
+        $rows = [];
+        foreach (range(12000, 12104) as $fixtureId) {
+            $row = $this->payload($fixtureId, 'NS', '2026-10-03 12:00:00', 2026);
+            $row['league']['id'] = 999998;
+            $rows[] = $row;
+        }
+
+        $result = (new FixtureCalendarImporter)->import($rows);
+
+        $this->assertSame(105, $result['skipped']);
+        $this->assertSame(['unknown_league' => 105], $result['skip_reasons']);
+        $this->assertCount(100, $result['row_telemetry']);
+        $this->assertSame(range(12000, 12099), array_column($result['row_telemetry'], 'fixture_id'));
+        $this->assertSame(105, $result['row_telemetry_total']);
+        $this->assertSame(5, $result['row_telemetry_truncated']);
+        $this->assertSame(100, $result['row_telemetry_limit']);
+    }
+
     public function test_database_failure_rolls_back_one_row_and_later_rows_continue(): void
     {
         DB::unprepared("CREATE TRIGGER reject_calendar_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10301 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
@@ -444,7 +557,14 @@ class FixtureCalendarSyncTest extends TestCase
             upserted: 2,
             failed: 1,
             failureReasons: ['database_error' => 1],
-        ), $result);
+        ), $this->importCounts($result));
+        $this->assertSame([[
+            'fixture_id' => 10301,
+            'league_id' => 39,
+            'status' => 'NS',
+            'date_bucket' => '2026-10-01',
+            'reason' => 'failure_database_error',
+        ]], $result['row_telemetry']);
         $this->assertSame([10300, 10302], Fixture::whereIn('api_fixture_id', [10300, 10301, 10302])->orderBy('api_fixture_id')->pluck('api_fixture_id')->all());
     }
 
@@ -555,6 +675,18 @@ class FixtureCalendarSyncTest extends TestCase
             'skip_reasons' => $skipReasons,
             'failure_reasons' => $failureReasons,
         ];
+    }
+
+    private function importCounts(array $result): array
+    {
+        unset(
+            $result['row_telemetry'],
+            $result['row_telemetry_total'],
+            $result['row_telemetry_truncated'],
+            $result['row_telemetry_limit'],
+        );
+
+        return $result;
     }
 
     private function payload(int $apiId, string $status, string $kickOff, int $season): array

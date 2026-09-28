@@ -10,7 +10,6 @@ use App\Support\FootballFixtureStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 final class FixtureCalendarImporter
@@ -30,11 +29,16 @@ final class FixtureCalendarImporter
     /** States the calendar path may create or apply to an unprotected fixture. */
     private const IMPORTABLE_CALENDAR_STATUSES = ['TBD', 'NS', 'PST', 'CANC'];
 
+    /** Maximum sanitized non-upsert row records returned for one provider date. */
+    private const ROW_TELEMETRY_LIMIT = 100;
+
     /**
      * Every accepted row uses its own transaction with three bounded deadlock retries.
      *
      * @return array{rows: int, accepted: int, upserted: int, protected: int, skipped: int, failed: int,
-     *   skip_reasons: array<string, int>, failure_reasons: array<string, int>}
+     *   skip_reasons: array<string, int>, failure_reasons: array<string, int>,
+     *   row_telemetry: list<array{fixture_id: ?int, league_id: ?int, status: ?string, date_bucket: ?string, reason: string}>,
+     *   row_telemetry_total: int, row_telemetry_truncated: int, row_telemetry_limit: int}
      */
     public function import(array $payload): array
     {
@@ -42,9 +46,12 @@ final class FixtureCalendarImporter
             'rows' => count($payload), 'accepted' => 0, 'upserted' => 0,
             'protected' => 0, 'skipped' => 0, 'failed' => 0,
             'skip_reasons' => [], 'failure_reasons' => [],
+            'row_telemetry' => [], 'row_telemetry_total' => 0,
+            'row_telemetry_truncated' => 0, 'row_telemetry_limit' => self::ROW_TELEMETRY_LIMIT,
         ];
 
-        foreach ($payload as $index => $data) {
+        foreach ($payload as $data) {
+            $telemetry = $this->sanitizeTelemetry($data);
             try {
                 $validation = $this->validateRow($data);
             } catch (Throwable) {
@@ -52,6 +59,7 @@ final class FixtureCalendarImporter
             }
             if (isset($validation['reason'])) {
                 $this->incrementReason($result, 'skipped', 'skip_reasons', $validation['reason']);
+                $this->recordTelemetry($result, $telemetry, $validation['reason']);
 
                 continue;
             }
@@ -71,12 +79,13 @@ final class FixtureCalendarImporter
                 $result['accepted']++;
                 $reason = $this->failureReason($e);
                 $this->incrementReason($result, 'failed', 'failure_reasons', $reason);
-                $this->logFailure($index, $fixtureId, $reason);
+                $this->recordTelemetry($result, $telemetry, 'failure_'.$reason);
 
                 continue;
             }
             if (! $league) {
                 $this->incrementReason($result, 'skipped', 'skip_reasons', 'unknown_league');
+                $this->recordTelemetry($result, $telemetry, 'unknown_league');
 
                 continue;
             }
@@ -148,11 +157,18 @@ final class FixtureCalendarImporter
                     $result['accepted']++;
                     $result[$outcome]++;
                 }
+                if ($outcome !== 'upserted') {
+                    $this->recordTelemetry(
+                        $result,
+                        $telemetry,
+                        $outcome === 'protected' ? 'protected_existing' : $outcome,
+                    );
+                }
             } catch (Throwable $e) {
                 $result['accepted']++;
                 $reason = $this->failureReason($e);
                 $this->incrementReason($result, 'failed', 'failure_reasons', $reason);
-                $this->logFailure($index, $fixtureId, $reason);
+                $this->recordTelemetry($result, $telemetry, 'failure_'.$reason);
             }
         }
 
@@ -322,17 +338,60 @@ final class FixtureCalendarImporter
         return 'persistence_error';
     }
 
-    private function logFailure(int|string $index, int $fixtureId, string $reason): void
+    /**
+     * @return array{fixture_id: ?int, league_id: ?int, status: ?string, date_bucket: ?string}
+     */
+    private function sanitizeTelemetry(mixed $data): array
     {
-        try {
-            Log::channel('api_football')->error('calendar_row_failed', [
-                'row_index' => $index,
-                'fixture_id' => $fixtureId,
-                'reason' => $reason,
-            ]);
-        } catch (Throwable) {
-            // Telemetry failure must not break per-row failure isolation.
+        $telemetry = [
+            'fixture_id' => null,
+            'league_id' => null,
+            'status' => null,
+            'date_bucket' => null,
+        ];
+        if (! is_array($data)) {
+            return $telemetry;
         }
+
+        $fixture = is_array($data['fixture'] ?? null) ? $data['fixture'] : [];
+        $league = is_array($data['league'] ?? null) ? $data['league'] : [];
+        $telemetry['fixture_id'] = $this->positiveInt($fixture['id'] ?? null, 4294967295);
+        $telemetry['league_id'] = $this->positiveInt($league['id'] ?? null, 4294967295);
+
+        $statusContainer = is_array($fixture['status'] ?? null) ? $fixture['status'] : [];
+        $rawStatus = $statusContainer['short'] ?? null;
+        if (is_string($rawStatus)) {
+            $normalized = FootballFixtureStatus::normalize($rawStatus);
+            if ($normalized !== null && preg_match('/\A[A-Z0-9_-]{1,16}\z/', $normalized) === 1) {
+                $telemetry['status'] = $normalized;
+            }
+        }
+
+        $timestamp = $this->positiveInt($fixture['timestamp'] ?? null, PHP_INT_MAX);
+        if ($timestamp !== null) {
+            try {
+                $telemetry['date_bucket'] = CarbonImmutable::createFromTimestampUTC($timestamp)->format('Y-m-d');
+            } catch (Throwable) {
+                // A malformed timestamp has no safe date bucket.
+            }
+        }
+
+        return $telemetry;
+    }
+
+    /**
+     * @param  array{fixture_id: ?int, league_id: ?int, status: ?string, date_bucket: ?string}  $telemetry
+     */
+    private function recordTelemetry(array &$result, array $telemetry, string $reason): void
+    {
+        $result['row_telemetry_total']++;
+        if (count($result['row_telemetry']) >= self::ROW_TELEMETRY_LIMIT) {
+            $result['row_telemetry_truncated']++;
+
+            return;
+        }
+
+        $result['row_telemetry'][] = [...$telemetry, 'reason' => $reason];
     }
 
     private function incrementReason(array &$result, string $counter, string $reasons, string $reason): void
