@@ -380,24 +380,6 @@ if ($concurrentPid !== null) {
         throw new RuntimeException('concurrent_writer_failed');
     }
 }
-if ($recoveryError === 'recovery_state_is_mixed_or_advanced') {
-    $intent = json_decode((string) file_get_contents($base.'/evidence/commit-intent.json'), true, flags: JSON_THROW_ON_ERROR);
-    $current = database_snapshot($intent['ids']);
-    $mismatch = [];
-    foreach (['fixtures', 'fixture_scores', 'teams', 'leagues'] as $table) {
-        if ($current['hashes'][$table] === $intent['postimage']['hashes'][$table]) {
-            continue;
-        }
-        $mismatch[$table] = [
-            'current_hashes' => $current['hashes'][$table],
-            'postimage_hashes' => $intent['postimage']['hashes'][$table],
-            'current_rows' => $current[$table],
-            'postimage_rows' => $intent['postimage'][$table],
-        ];
-    }
-    throw new RuntimeException('recovery_snapshot_mismatch:'.canonical_json($mismatch));
-}
-
 $blockedScenario = in_array($scenario, ['tampered-intent', 'tampered-seal', 'tampered-marker', 'concurrent-advancement'], true)
     || ($killed && ! (str_contains((string) $fault, 'after:file-publish:COMMITTED.json')
         || str_contains((string) $fault, 'after:directory-fsync:COMMITTED.json')));

@@ -69,9 +69,14 @@ function sha256_value(mixed $value): string
     return hash('sha256', canonical_json($value)."\n");
 }
 
+function canonical_identity_matches(mixed $actual, mixed $expected): bool
+{
+    return hash_equals(sha256_value($expected), sha256_value($actual));
+}
+
 function assert_canonical_identity(mixed $actual, mixed $expected, string $classification): void
 {
-    if (! hash_equals(sha256_value($expected), sha256_value($actual))) {
+    if (! canonical_identity_matches($actual, $expected)) {
         throw new Phase1Abort($classification);
     }
 }
@@ -1565,8 +1570,8 @@ function run_recovery(array $options): int
             lock_recovery_targets($intent['ids']);
             assert_recovery_references($intent);
             $locked = database_snapshot($intent['ids'], true);
-            $matchesPost = $locked['hashes'] === $intent['postimage']['hashes'];
-            $matchesPre = $locked['hashes'] === $intent['baseline']['hashes'];
+            $matchesPost = canonical_identity_matches($locked['hashes'], $intent['postimage']['hashes']);
+            $matchesPre = canonical_identity_matches($locked['hashes'], $intent['baseline']['hashes']);
             if (! $matchesPost && ! $matchesPre) {
                 throw new Phase1Abort('recovery_state_is_mixed_or_advanced');
             }
@@ -1603,7 +1608,7 @@ function run_recovery(array $options): int
                 }
             }
             $restored = database_snapshot($intent['ids'], true);
-            if ($restored['hashes'] !== $baseline['hashes']) {
+            if (! canonical_identity_matches($restored['hashes'], $baseline['hashes'])) {
                 throw new Phase1Abort('rollback_preimage_verification_failed');
             }
             assert_invariants(invariant_snapshot($intent['ids']));
