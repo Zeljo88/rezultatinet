@@ -156,7 +156,7 @@ integration_write($harnessPackage, (string) file_get_contents($harness));
 integration_write($authenticationKey, random_bytes(32));
 $authenticationKeyBytes = read_regular_file($authenticationKey, 'integration_authentication_key', 32)['bytes'];
 $health = $base.'/control/health.json';
-$healthHash = integration_write($health, "[{\"url\":\"http://127.0.0.1/\",\"host\":\"rezultati.test\"}]\n");
+$healthHash = integration_write($health, [['host' => 'rezultati.test', 'url' => 'http://127.0.0.1/']]);
 $proof = $base.'/control/writer-proof.json';
 $now = time();
 $proofValue = ['schema' => 1, 'captured_at_utc' => gmdate('Y-m-d\TH:i:s\Z', $now),
@@ -276,6 +276,10 @@ if ($killed) {
         throw new RuntimeException('fault_did_not_interrupt_process');
     }
     $activationError = 'process_interrupted';
+    if (str_contains((string) $fault, 'COMMITTED.json')) {
+        fwrite(STDERR, "late-boundary:interrupted\n");
+        fflush(STDERR);
+    }
 } else {
     try {
         run_activation($options);
@@ -353,12 +357,20 @@ unset($recover['health-urls'], $recover['health-urls-sha256']);
 $recover['decision'] = 'rollback';
 $recoveryError = null;
 try {
+    if ($killed && str_contains((string) $fault, 'COMMITTED.json')) {
+        fwrite(STDERR, "late-boundary:recovery-start\n");
+        fflush(STDERR);
+    }
     run_recovery($recover);
     if ($scenario === 'idempotency') {
         run_recovery($recover);
     }
 } catch (Throwable $failure) {
     $recoveryError = $failure instanceof Phase1Abort ? $failure->getMessage() : get_class($failure);
+}
+if ($killed && str_contains((string) $fault, 'COMMITTED.json')) {
+    fwrite(STDERR, 'late-boundary:recovery-'.($recoveryError ?? 'success')."\n");
+    fflush(STDERR);
 }
 if ($concurrentPid !== null) {
     pcntl_waitpid($concurrentPid, $concurrentStatus);

@@ -1213,9 +1213,10 @@ function run_activation(array $options): int
         }
         $httpResults = [];
         foreach ($healthUrls as $entry) {
-            if (! is_array($entry) || array_keys($entry) !== ['url', 'host']) {
+            if (! is_array($entry)) {
                 throw new Phase1Abort('health_url_entry_invalid');
             }
+            exact_keys($entry, ['url', 'host'], 'health_url_entry_invalid');
             $url = $entry['url'];
             $host = $entry['host'];
             if (! is_string($url) || strlen($url) > 300 || ! is_string($host)

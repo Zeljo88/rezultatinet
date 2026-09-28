@@ -32,12 +32,14 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
 
     public static function adversarialScenarios(): array
     {
-        return array_map(static fn (string $scenario): array => [$scenario], [
+        $scenarios = [
             'normal', 'idempotency', 'tampered-intent', 'tampered-seal', 'tampered-marker', 'symlink-swap',
             'lock-contention', 'concurrent-advancement', 'provider-cap', 'anchor-tamper',
             'authentication-key-mode', 'package-identity', 'unknown-option', 'lock-symlink',
             'evidence-not-fresh',
-        ]);
+        ];
+
+        return array_combine($scenarios, array_map(static fn (string $scenario): array => [$scenario], $scenarios));
     }
 
     #[DataProvider('crashBoundaries')]
@@ -63,7 +65,7 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
             'after:directory-fsync:COMMITTED.json',
         ];
 
-        return array_map(static fn (string $boundary): array => [$boundary], $boundaries);
+        return array_combine($boundaries, array_map(static fn (string $boundary): array => [$boundary], $boundaries));
     }
 
     private function runWorker(string $scenario, ?string $fault = null): void
@@ -76,7 +78,9 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
         ], base_path(), $environment, null, 90);
         $process->run();
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput().$process->getOutput());
-        $result = json_decode(trim($process->getOutput()), true, flags: JSON_THROW_ON_ERROR);
+        $output = trim($process->getOutput());
+        $this->assertNotSame('', $output, $process->getErrorOutput());
+        $result = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
         $this->assertTrue($result['passed'] ?? false, $process->getOutput());
     }
 }
