@@ -276,10 +276,6 @@ if ($killed) {
         throw new RuntimeException('fault_did_not_interrupt_process');
     }
     $activationError = 'process_interrupted';
-    if (str_contains((string) $fault, 'COMMITTED.json')) {
-        fwrite(STDERR, "late-boundary:interrupted\n");
-        fflush(STDERR);
-    }
 } else {
     try {
         run_activation($options);
@@ -357,20 +353,12 @@ unset($recover['health-urls'], $recover['health-urls-sha256']);
 $recover['decision'] = 'rollback';
 $recoveryError = null;
 try {
-    if ($killed && str_contains((string) $fault, 'COMMITTED.json')) {
-        fwrite(STDERR, "late-boundary:recovery-start\n");
-        fflush(STDERR);
-    }
     run_recovery($recover);
     if ($scenario === 'idempotency') {
         run_recovery($recover);
     }
 } catch (Throwable $failure) {
     $recoveryError = $failure instanceof Phase1Abort ? $failure->getMessage() : get_class($failure);
-}
-if ($killed && str_contains((string) $fault, 'COMMITTED.json')) {
-    fwrite(STDERR, 'late-boundary:recovery-'.($recoveryError ?? 'success')."\n");
-    fflush(STDERR);
 }
 if ($concurrentPid !== null) {
     pcntl_waitpid($concurrentPid, $concurrentStatus);
@@ -389,5 +377,8 @@ if (! $blockedScenario && DB::table('fixtures')->count() !== 0) {
 }
 $result = canonical_json(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts,
     'recovery' => $recoveryError ?? 'restored'])."\n";
+while (ob_get_level() > 0) {
+    ob_end_clean();
+}
 fwrite(STDOUT, $result);
 fflush(STDOUT);
