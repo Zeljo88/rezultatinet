@@ -27,6 +27,9 @@ final class FixtureCalendarImporter
         'FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO', 'LIVE',
     ];
 
+    /** States the calendar path may create or apply to an unprotected fixture. */
+    private const IMPORTABLE_CALENDAR_STATUSES = ['TBD', 'NS', 'PST', 'CANC'];
+
     /**
      * Every accepted row uses its own transaction with three bounded deadlock retries.
      *
@@ -78,14 +81,15 @@ final class FixtureCalendarImporter
                 continue;
             }
 
-            $result['accepted']++;
-
             try {
                 $outcome = DB::transaction(
                     function () use ($data, $fixtureId, $league, $homeApiId, $awayApiId, $timestamp, $season, $incomingStatus): string {
                         $existing = Fixture::where('api_fixture_id', $fixtureId)->lockForUpdate()->first();
                         if ($existing && in_array(FootballFixtureStatus::normalize($existing->status_short), self::PROTECTED_EXISTING_STATUSES, true)) {
                             return 'protected';
+                        }
+                        if (! in_array($incomingStatus, self::IMPORTABLE_CALENDAR_STATUSES, true)) {
+                            return 'calendar_status_not_importable';
                         }
 
                         $homeTeam = $this->persistTeam($homeApiId, $data['teams']['home']);
@@ -138,8 +142,14 @@ final class FixtureCalendarImporter
                     attempts: 3,
                 );
 
-                $result[$outcome]++;
+                if ($outcome === 'calendar_status_not_importable') {
+                    $this->incrementReason($result, 'skipped', 'skip_reasons', $outcome);
+                } else {
+                    $result['accepted']++;
+                    $result[$outcome]++;
+                }
             } catch (Throwable $e) {
+                $result['accepted']++;
                 $reason = $this->failureReason($e);
                 $this->incrementReason($result, 'failed', 'failure_reasons', $reason);
                 $this->logFailure($index, $fixtureId, $reason);

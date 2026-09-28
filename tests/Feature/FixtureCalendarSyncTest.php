@@ -357,7 +357,7 @@ class FixtureCalendarSyncTest extends TestCase
         $this->assertTrue(Fixture::where('api_fixture_id', 10107)->exists());
     }
 
-    public function test_unknown_status_is_rejected_while_all_known_semantics_remain_accepted(): void
+    public function test_only_explicit_calendar_statuses_are_imported_for_new_rows(): void
     {
         $statuses = ['NS', 'TBD', 'PST', 'INT', 'SUSP', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD'];
         $rows = [$this->payload(10200, 'ZZ', '2026-09-30 12:00:00', 2026)];
@@ -369,13 +369,62 @@ class FixtureCalendarSyncTest extends TestCase
 
         $this->assertSame($this->importResult(
             rows: 20,
-            accepted: 19,
-            upserted: 19,
-            skipped: 1,
-            skipReasons: ['unknown_status' => 1],
+            accepted: 4,
+            upserted: 4,
+            skipped: 16,
+            skipReasons: ['calendar_status_not_importable' => 15, 'unknown_status' => 1],
         ), $result);
         $this->assertFalse(Fixture::where('api_fixture_id', 10200)->exists());
-        $this->assertSame($statuses, Fixture::where('api_fixture_id', '>=', 10201)->orderBy('api_fixture_id')->pluck('status_short')->all());
+        $this->assertSame(
+            ['NS', 'TBD', 'PST', 'CANC'],
+            Fixture::where('api_fixture_id', '>=', 10201)->orderBy('api_fixture_id')->pluck('status_short')->all(),
+        );
+    }
+
+    public function test_phase_one_captured_terminal_rows_are_skipped_but_cancelled_semantics_are_retained(): void
+    {
+        $rows = [
+            $this->payload(1639952, 'FT', '2026-09-28 00:00:00', 2026),
+            $this->payload(1639953, 'FT', '2026-09-28 00:00:00', 2026),
+            $this->payload(1638592, 'CANC', '2026-09-28 09:30:00', 2026),
+        ];
+
+        $result = (new FixtureCalendarImporter)->import($rows);
+
+        $this->assertSame($this->importResult(
+            rows: 3,
+            accepted: 1,
+            upserted: 1,
+            skipped: 2,
+            skipReasons: ['calendar_status_not_importable' => 2],
+        ), $result);
+        $this->assertFalse(Fixture::whereIn('api_fixture_id', [1639952, 1639953])->exists());
+        $this->assertSame('CANC', Fixture::where('api_fixture_id', 1638592)->value('status_short'));
+    }
+
+    public function test_phase_one_unknown_league_pattern_is_an_expected_skip_and_does_not_fail_command(): void
+    {
+        config()->set('api_football.calendar.enabled', true);
+        $d0 = array_map(function (int $id): array {
+            $row = $this->payload($id, 'NS', '2026-09-25 12:00:00', 2026);
+            $row['league']['id'] = 900001;
+
+            return $row;
+        }, [1700001, 1700002]);
+        $d1 = array_map(function (int $id): array {
+            $row = $this->payload($id, 'NS', '2026-09-26 12:00:00', 2026);
+            $row['league']['id'] = 900002;
+
+            return $row;
+        }, [1700003, 1700004, 1700005, 1700006, 1700007]);
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldReceive('getCalendarFixturesByDate')->once()->with('2026-09-25')->andReturn($d0);
+        $api->shouldReceive('getCalendarFixturesByDate')->once()->with('2026-09-26')->andReturn($d1);
+        $this->app->instance(ApiFootballService::class, $api);
+
+        $this->assertSame(0, Artisan::call('sync:fixture-calendar', ['--window' => 'near']));
+        $this->assertStringContainsString('7 skipped, 0 failed', Artisan::output());
+        $this->assertSame(0, Fixture::whereBetween('api_fixture_id', [1700001, 1700007])->count());
     }
 
     public function test_database_failure_rolls_back_one_row_and_later_rows_continue(): void
