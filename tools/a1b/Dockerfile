@@ -4,8 +4,8 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends git unzip mariadb-client; \
     rm -rf /var/lib/apt/lists/*
 RUN set -eux; \
-    docker-php-ext-install -j"$(nproc)" pdo_mysql; \
-    php -r 'foreach (["pdo_mysql", "pdo_sqlite", "mbstring", "dom"] as $ext) { if (!extension_loaded($ext)) { fwrite(STDERR, "Missing PHP extension: $ext\n"); exit(1); } }'
+    docker-php-ext-install -j"$(nproc)" pdo_mysql pcntl; \
+    php -r 'foreach (["pdo_mysql", "pdo_sqlite", "mbstring", "dom", "pcntl", "posix"] as $ext) { if (!extension_loaded($ext)) { fwrite(STDERR, "Missing PHP extension: $ext\n"); exit(1); } }'
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 WORKDIR /build
 COPY composer.json composer.lock ./

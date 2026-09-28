@@ -1,0 +1,110 @@
+name: Calendar Phase 1 harness integration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendar-phase1-harness-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-mariadb:
+    name: Root fixture and MariaDB 10.11.13 fault matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact dispatched commit
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Validate isolated pinned runtime
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -Fxq '    image: mariadb:10.11.13' tools/a1b/compose.yaml
+          ! grep -Eq '^[[:space:]]*ports:' tools/a1b/compose.yaml
+          test -f database/schema/mariadb-schema.sql
+          docker compose -f tools/a1b/compose.yaml config --quiet
+
+      - name: Build isolated PHP test image
+        shell: bash
+        run: docker compose -f tools/a1b/compose.yaml build app
+
+      - name: Start exact MariaDB 10.11.13
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker compose -f tools/a1b/compose.yaml up -d db
+          container_id=$(docker compose -f tools/a1b/compose.yaml ps -q db)
+          test -n "$container_id"
+          for attempt in $(seq 1 60); do
+            health=$(docker inspect --format '{{.State.Health.Status}}' "$container_id")
+            case "$health" in
+              healthy) break ;;
+              unhealthy) echo 'MariaDB container became unhealthy.' >&2; exit 1 ;;
+            esac
+            test "$attempt" -lt 60
+            sleep 2
+          done
+          version=$(docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot -e 'SELECT VERSION()')
+          case "$version" in
+            10.11.13-MariaDB*) ;;
+            *) echo "Unexpected MariaDB version: $version" >&2; exit 1 ;;
+          esac
+
+      - name: Import production-shaped data-free schema
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for table in leagues teams fixtures fixture_scores; do
+            {
+              printf '%s\n' 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;'
+              awk -v name="$table" '
+                $0 == "CREATE TABLE `" name "` (" { emit = 1 }
+                emit { print }
+                emit && /^\) ENGINE=.*;$/ { exit }
+              ' database/schema/mariadb-schema.sql
+            } | docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot a1b
+          done
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot \
+            a1b -e 'SHOW TABLES' | diff -u <(printf '%s\n' fixture_scores fixtures leagues teams) -
+
+      - name: Run real activation recovery and process-fault suite
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml run --rm -T app sh -lc '
+            set -eu
+            umask 0077
+            install -d -o root -g root -m 0755 /opt/calendar-harness
+            cp -a /workspace /opt/calendar-harness/app
+            cp -a /build/vendor /opt/calendar-harness/app/vendor
+            chown -R root:root /opt/calendar-harness/app
+            find /opt/calendar-harness/app -type d -exec chmod go-w {} +
+            chown 10004:1003 /opt/calendar-harness/app/app/Services/FixtureCalendarImporter.php
+            chmod 0644 /opt/calendar-harness/app/app/Services/FixtureCalendarImporter.php
+            chmod 0755 /opt/calendar-harness/app/tools/calendar-phase1/phase1_harness.php
+            cp /opt/calendar-harness/app/.env.example /opt/calendar-harness/app/.env
+            install -d -o root -g root -m 0700 /run/calendar-phase1-harness
+            cd /opt/calendar-harness/app
+            PHASE1_INTEGRATION_ROOT=/run/calendar-phase1-harness \
+              php artisan test --display-warnings tests/Feature/CalendarPhase1HarnessIntegrationTest.php
+          '
+
+      - name: Diagnose isolated failure
+        if: failure()
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml ps
+          docker compose -f tools/a1b/compose.yaml logs --no-color --tail=160 db
+
+      - name: Remove isolated containers and volumes
+        if: always()
+        shell: bash
+        run: docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans
