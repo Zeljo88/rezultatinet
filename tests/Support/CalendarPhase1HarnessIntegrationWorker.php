@@ -59,6 +59,19 @@ final class Phase1FakeQuota implements ApiFootballQuotaStore
     }
 }
 
+function integration_exit(array $result, int $status = 0): never
+{
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    $frame = 'PHASE1_RESULT:'.base64_encode(canonical_json($result))."\n";
+    if (fwrite(STDOUT, $frame) !== strlen($frame)) {
+        exit(2);
+    }
+    fflush(STDOUT);
+    exit($status);
+}
+
 function integration_write(string $path, mixed $value): string
 {
     $bytes = is_string($value) ? $value : canonical_json($value)."\n";
@@ -302,13 +315,14 @@ if (in_array($scenario, ['symlink-swap', 'lock-contention', 'provider-cap', 'anc
     if ($scenario !== 'provider-cap' && $quota->attempts !== 0) {
         throw new RuntimeException('identity_or_lock_gate_ran_provider');
     }
-    echo canonical_json(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts])."\n";
-    exit(0);
+    integration_exit(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts]);
 }
 if ($activationError !== null && ! $killed) {
     $isFault = $fault !== false && $fault !== '';
-    echo canonical_json(['scenario' => $scenario, 'fault' => $fault, 'passed' => $isFault, 'activation' => $activationError])."\n";
-    exit($isFault ? 0 : 1);
+    integration_exit(
+        ['scenario' => $scenario, 'fault' => $fault, 'passed' => $isFault, 'activation' => $activationError],
+        $isFault ? 0 : 1,
+    );
 }
 if ($scenario === 'tampered-intent') {
     file_put_contents($base.'/evidence/commit-intent.json', "{}\n");
@@ -375,10 +389,5 @@ if ($blockedScenario !== ($recoveryError !== null)) {
 if (! $blockedScenario && DB::table('fixtures')->count() !== 0) {
     throw new RuntimeException('recovery_did_not_restore_baseline');
 }
-$result = canonical_json(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts,
-    'recovery' => $recoveryError ?? 'restored'])."\n";
-while (ob_get_level() > 0) {
-    ob_end_clean();
-}
-fwrite(STDOUT, $result);
-fflush(STDOUT);
+integration_exit(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts,
+    'recovery' => $recoveryError ?? 'restored']);

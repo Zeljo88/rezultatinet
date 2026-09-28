@@ -78,9 +78,15 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
         ], base_path(), $environment, null, 90);
         $process->run();
         $this->assertTrue($process->isSuccessful(), $process->getErrorOutput().$process->getOutput());
-        $output = trim($process->getOutput());
-        $this->assertNotSame('', $output, $process->getErrorOutput());
-        $result = json_decode($output, true, flags: JSON_THROW_ON_ERROR);
+        $frameCount = preg_match_all(
+            '/^PHASE1_RESULT:([A-Za-z0-9+\\/]+={0,2})$/m',
+            $process->getOutput(),
+            $frames,
+        );
+        $this->assertSame(1, $frameCount, $process->getErrorOutput().$process->getOutput());
+        $payload = base64_decode($frames[1][0], true);
+        $this->assertNotFalse($payload);
+        $result = json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
         $this->assertTrue($result['passed'] ?? false, $process->getOutput());
     }
 }
