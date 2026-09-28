@@ -14,6 +14,7 @@ $fault = getenv('PHASE1_TEST_FAULT');
 if (is_string($fault) && $fault !== '') {
     define('PHASE1_INTEGRATION_FAULT', $fault);
 }
+require dirname(__DIR__, 2).'/vendor/autoload.php';
 require dirname(__DIR__, 2).'/tools/calendar-phase1/phase1_harness.php';
 
 final class Phase1FakeQuota implements ApiFootballQuotaStore
