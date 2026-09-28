@@ -156,7 +156,7 @@ integration_write($harnessPackage, (string) file_get_contents($harness));
 integration_write($authenticationKey, random_bytes(32));
 $authenticationKeyBytes = read_regular_file($authenticationKey, 'integration_authentication_key', 32)['bytes'];
 $health = $base.'/control/health.json';
-$healthHash = integration_write($health, [['host' => 'rezultati.test', 'url' => 'http://127.0.0.1/']]);
+$healthHash = integration_write($health, "[{\"url\":\"http://127.0.0.1/\",\"host\":\"rezultati.test\"}]\n");
 $proof = $base.'/control/writer-proof.json';
 $now = time();
 $proofValue = ['schema' => 1, 'captured_at_utc' => gmdate('Y-m-d\TH:i:s\Z', $now),
@@ -375,5 +375,7 @@ if ($blockedScenario !== ($recoveryError !== null)) {
 if (! $blockedScenario && DB::table('fixtures')->count() !== 0) {
     throw new RuntimeException('recovery_did_not_restore_baseline');
 }
-echo canonical_json(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts,
+$result = canonical_json(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts,
     'recovery' => $recoveryError ?? 'restored'])."\n";
+fwrite(STDOUT, $result);
+fflush(STDOUT);
