@@ -69,6 +69,13 @@ function sha256_value(mixed $value): string
     return hash('sha256', canonical_json($value)."\n");
 }
 
+function assert_canonical_identity(mixed $actual, mixed $expected, string $classification): void
+{
+    if (! hash_equals(sha256_value($expected), sha256_value($actual))) {
+        throw new Phase1Abort($classification);
+    }
+}
+
 function assert_hex_hash(mixed $value, string $classification): string
 {
     if (! is_string($value) || preg_match('/\A[0-9a-f]{64}\z/', $value) !== 1) {
@@ -636,10 +643,13 @@ function load_trust_contract(array $options, bool $requireFreshReceipt): array
     }
     exact_keys($receipt['preimage'], ['sha256', 'uid', 'gid', 'mode', 'size'], 'deployment_preimage_shape');
     assert_hex_hash($receipt['preimage']['sha256'] ?? null, 'deployment_preimage_hash_invalid');
-    if ($receipt['preimage'] !== ['sha256' => PHASE1_DEPLOYED_PREIMAGE_SHA256,
-        'uid' => 10004, 'gid' => 1003, 'mode' => 0644, 'size' => 13839]) {
-        throw new Phase1Abort('deployment_preimage_identity_failed');
-    }
+    assert_canonical_identity($receipt['preimage'], [
+        'sha256' => PHASE1_DEPLOYED_PREIMAGE_SHA256,
+        'uid' => 10004,
+        'gid' => 1003,
+        'mode' => 0644,
+        'size' => 13839,
+    ], 'deployment_preimage_identity_failed');
     $applied = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i:s\Z', (string) $receipt['applied_at_utc'], new DateTimeZone('UTC'));
     if (! $applied || $applied->getTimestamp() > time()
         || ($requireFreshReceipt && time() - $applied->getTimestamp() > 86400)) {
