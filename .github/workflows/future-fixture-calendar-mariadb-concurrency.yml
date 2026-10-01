@@ -1,0 +1,144 @@
+name: Future fixture calendar source regression
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/future-fixture-calendar-mariadb-concurrency.yml
+      - .env.example
+      - app/Console/Commands/ApiFootballQuotaStatus.php
+      - app/Console/Commands/SyncFixtureCalendar.php
+      - app/Contracts/ApiFootballQuotaStore.php
+      - app/Exceptions/ApiFootball*.php
+      - app/Exceptions/FixtureCalendarDisabled.php
+      - app/Livewire/LiveScores.php
+      - app/Providers/AppServiceProvider.php
+      - app/Services/ApiFootball/**
+      - app/Services/ApiFootballService.php
+      - app/Services/FixtureCalendarImporter.php
+      - app/Support/ApiFootballBlockReason.php
+      - app/Support/FixtureCalendarWindow.php
+      - app/Support/FootballFixtureStatus.php
+      - composer.json
+      - composer.lock
+      - config/api_football.php
+      - config/logging.php
+      - resources/views/home.blade.php
+      - routes/console.php
+      - config/database.php
+      - database/schema/mariadb-schema.sql
+      - tests/Feature/FixtureCalendar*.php
+      - tests/Support/FixtureCalendarImportWorker.php
+      - tests/Unit/FixtureCalendarWindowTest.php
+      - tools/a1b/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: future-fixture-calendar-mariadb-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  concurrency:
+    name: MariaDB 10.11 importer contention harness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact pull request head
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Validate isolated pinned runtime
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          grep -Fxq '    image: mariadb:10.11.13' tools/a1b/compose.yaml
+          ! grep -Eq '^[[:space:]]*ports:' tools/a1b/compose.yaml
+          test -f database/schema/mariadb-schema.sql
+          docker compose -f tools/a1b/compose.yaml config --quiet
+
+      - name: Build isolated PHP test image
+        shell: bash
+        run: docker compose -f tools/a1b/compose.yaml build app
+
+      - name: Start exact MariaDB 10.11.13
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker compose -f tools/a1b/compose.yaml up -d db
+          container_id=$(docker compose -f tools/a1b/compose.yaml ps -q db)
+          test -n "$container_id"
+          for attempt in $(seq 1 60); do
+            health=$(docker inspect --format '{{.State.Health.Status}}' "$container_id")
+            case "$health" in
+              healthy) break ;;
+              unhealthy) echo 'MariaDB container became unhealthy.' >&2; exit 1 ;;
+            esac
+            test "$attempt" -lt 60
+            sleep 2
+          done
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent
+          version=$(docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot -e 'SELECT VERSION()')
+          case "$version" in
+            10.11.13-MariaDB*) ;;
+            *) echo "Unexpected MariaDB version: $version" >&2; exit 1 ;;
+          esac
+          echo "MariaDB version: $version"
+
+      - name: Import sanitized data-free schema
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot -e \
+            'CREATE DATABASE calendar_concurrency CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+          for table in leagues teams fixtures fixture_scores; do
+            echo "Importing isolated table: $table"
+            {
+              printf '%s\n' 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;'
+              awk -v name="$table" '
+                $0 == "CREATE TABLE `" name "` (" { emit = 1 }
+                emit { print }
+                emit && /^\) ENGINE=.*;$/ { exit }
+              ' database/schema/mariadb-schema.sql
+            } | docker compose -f tools/a1b/compose.yaml exec -T db mariadb -uroot calendar_concurrency
+            docker compose -f tools/a1b/compose.yaml exec -T db mariadb-admin ping -uroot --silent
+          done
+          docker compose -f tools/a1b/compose.yaml exec -T db mariadb -N -uroot \
+            calendar_concurrency -e 'SHOW TABLES' | diff -u <(printf '%s\n' fixture_scores fixtures leagues teams) -
+
+      - name: Run real concurrent importer workers
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml run --rm -T \
+            -e DB_CONNECTION=mariadb \
+            -e DB_HOST=db \
+            -e DB_PORT=3306 \
+            -e DB_DATABASE=calendar_concurrency \
+            -e DB_USERNAME=root \
+            -e DB_PASSWORD= \
+            app sh -lc '
+              set -eu
+              cp -a /workspace /tmp/calendar-concurrency
+              cp -a /build/vendor /tmp/calendar-concurrency/vendor
+              cd /tmp/calendar-concurrency
+              cp .env.example .env
+              php artisan test --display-warnings tests/Feature/FixtureCalendarMariaDbConcurrencyTest.php
+            '
+
+      - name: Diagnose isolated database failure
+        if: failure()
+        shell: bash
+        run: |
+          docker compose -f tools/a1b/compose.yaml ps
+          docker compose -f tools/a1b/compose.yaml logs --no-color --tail=120 db
+
+      - name: Remove isolated containers and volumes
+        if: always()
+        shell: bash
+        run: docker compose -f tools/a1b/compose.yaml down --volumes --remove-orphans

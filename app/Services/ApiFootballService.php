@@ -1,7 +1,9 @@
 <?php
 namespace App\Services;
 
+use App\Exceptions\FixtureCalendarDisabled;
 use App\Models\ApiCallLog;
+use App\Services\ApiFootball\ApiFootballGateway;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,7 +11,7 @@ class ApiFootballService
 {
     protected $client;
 
-    public function __construct()
+    public function __construct(private readonly ApiFootballGateway $gateway)
     {
         $this->client = Http::baseUrl('https://v3.football.api-sports.io')
             ->withHeaders([
@@ -18,6 +20,21 @@ class ApiFootballService
             ])
             ->timeout(15)
             ->retry(2, 500);
+    }
+
+    public function getCalendarFixturesByDate(string $date): array
+    {
+        if (! config('api_football.calendar.enabled', false)) {
+            throw new FixtureCalendarDisabled;
+        }
+
+        return $this->gateway->get(
+            '/fixtures',
+            ['date' => $date],
+            'calendar',
+            'FixtureCalendarSync',
+            static fn (): bool => true,
+        );
     }
 
 
