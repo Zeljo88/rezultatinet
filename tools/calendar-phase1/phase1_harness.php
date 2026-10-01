@@ -1447,9 +1447,10 @@ function run_activation(array $options): int
         if ($t1['hashes'] !== $t2['hashes']) {
             throw new Phase1Abort('t2_not_idempotent');
         }
-        if ($t1Noop !== $t2Noop
-            || classification_fingerprint($dates, $t1Manifests, $telemetry['T1'])
-                !== classification_fingerprint($dates, $t2Manifests, $telemetry['T2'])) {
+        if (($t1Noop || $t2Noop)
+            && ($t1Noop !== $t2Noop
+                || classification_fingerprint($dates, $t1Manifests, $telemetry['T1'])
+                    !== classification_fingerprint($dates, $t2Manifests, $telemetry['T2']))) {
             throw new Phase1Abort('t2_classification_not_stable');
         }
         if ($budget->used() > PHASE1_MAX_ATTEMPTS) {

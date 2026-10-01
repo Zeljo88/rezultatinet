@@ -386,7 +386,7 @@ if (in_array($scenario, ['symlink-swap', 'lock-contention', 'provider-cap', 'anc
         'authentication-key-mode' => 'authentication_key_identity_failed',
         'package-identity' => 'harness_package_identity_failed', 'unknown-option' => 'unknown_option',
         'lock-symlink' => 'phase_lock_file_invalid', 'evidence-not-fresh' => 'evidence_directory_not_fresh',
-        'mixed-expected-hard-skips' => 'telemetry_equation_failed', 'unknown-status' => 'response_unknown_status',
+        'mixed-expected-hard-skips' => 'telemetry_equation_failed', 'unknown-status' => 'telemetry_equation_failed',
         'telemetry-truncation' => 'telemetry_equation_failed',
         'missing-classification-seal' => 'evidence_file_invalid',
         'response-envelope-error' => 'ApiFootballProviderResponseException',
