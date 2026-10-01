@@ -932,7 +932,7 @@ function assert_phase_record_sealed(
     $seal = $evidence->readAuthenticated($name.'.sha256.json', $contract['authentication_key'], $name.'_seal');
     exact_keys($seal, ['schema', 'phase', 'chain', 'files'], 'phase_telemetry_seal_shape_failed');
     if ($seal['schema'] !== PHASE1_SECURITY_SCHEMA || $seal['phase'] !== $name
-        || $seal['chain'] !== phase_evidence_chain($contract, $phase, $kind)
+        || canonical_json($seal['chain']) !== canonical_json(phase_evidence_chain($contract, $phase, $kind))
         || $seal['files'] !== [$file => $recordHash]) {
         throw new Phase1Abort('phase_telemetry_seal_cross_reference_failed');
     }
