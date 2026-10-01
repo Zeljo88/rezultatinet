@@ -37,7 +37,9 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
             'idempotency', 'tampered-intent', 'tampered-seal', 'tampered-marker', 'symlink-swap',
             'lock-contention', 'concurrent-advancement', 'provider-cap', 'anchor-tamper', 'authentication-key-mode',
             'package-identity', 'unknown-option', 'lock-symlink',
-            'evidence-not-fresh',
+            'evidence-not-fresh', 'empty-responses', 'unknown-leagues-only', 'terminal-live-only',
+            'allowed-calendar-statuses', 'mixed-expected-hard-skips', 'unknown-status',
+            'telemetry-truncation', 'missing-classification-seal', 'response-envelope-error',
         ];
 
         return array_combine($scenarios, array_map(static fn (string $scenario): array => [$scenario], $scenarios));
@@ -57,6 +59,15 @@ class CalendarPhase1HarnessIntegrationTest extends TestCase
             'after:provider-attempt-2', 'after:provider-response-2',
             'after:provider-attempt-3', 'after:provider-response-3',
             'after:provider-attempt-4', 'after:provider-response-4',
+            ...array_merge(...array_map(
+                static fn (string $name): array => [
+                    'after:file-fsync:'.$name,
+                    'after:file-publish:'.$name,
+                    'after:directory-fsync:'.$name,
+                ],
+                ['T1-response.json', 'T1-response.sha256.json', 'T1-classification.json', 'T1-classification.sha256.json',
+                    'T2-response.json', 'T2-response.sha256.json', 'T2-classification.json', 'T2-classification.sha256.json'],
+            )),
             'after:file-fsync:commit-intent.json', 'after:file-publish:commit-intent.json',
             'after:directory-fsync:commit-intent.json',
             'after:file-fsync:precommit.sha256.json', 'after:file-publish:precommit.sha256.json',

@@ -21,6 +21,10 @@ there is no disconnected state-machine rehearsal.
 | before outer transaction | SIGKILL leaves no DB writes and no recoverable commit chain |
 | after transaction begin | Connection death rolls the real outer transaction back |
 | after provider attempts/responses 1-4 | Real gateway accounting never exceeds four; uncommitted DB work rolls back |
+| response telemetry file/seal fsync/publish/directory fsync | Partial or missing evidence fails closed before response/importability validation |
+| classification telemetry file/seal fsync/publish/directory fsync | Partial, missing, truncated, or unauthenticated skip evidence fails closed before no-op acceptance |
+| zero importable rows | Allowed only after two successful D0/D1 responses, exact expected-skip accounting, healthy quota/circuit, unchanged DB, and stable fresh T2 classification |
+| mixed expected and hard skip | Malformed/unknown/failure reason aborts even when another row has an expected skip |
 | intent file fsync/publish/directory fsync | Precommit interruption never creates a valid committed chain |
 | seal file fsync/publish/directory fsync | Partial seal is rejected; DB work rolls back |
 | before outer commit | Exact baseline after process death |

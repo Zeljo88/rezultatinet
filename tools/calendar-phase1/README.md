@@ -53,12 +53,22 @@ The harness calls the quota-controlled gateway directly with the unchanged
 `calendar|FixtureCalendarSync` identity. Every physical request must claim
 from one phase-wide budget before quota reservation. T2 is forbidden unless at
 least two of four claims remain. The quota baseline/after/final counters are
-sealed and must equal the harness claim count.
+sealed and must equal the harness claim count. Each T1/T2 phase must record two
+successful date responses, normal quota state, no active circuit or 429, and
+exact class/caller/outcome accounting.
 
 T1 and fresh T2 both fetch exact UTC D0/D1, at most 2,000 rows/date. The
-sanitized manifests contain only validated IDs, safe status, UTC date bucket,
-and classification. Wrong-date/malformed/unknown rows abort before import.
-Importer telemetry is exact-key, bounded, untruncated, and failure-free.
+sanitized response manifests contain only IDs, safe status, UTC date bucket,
+and classification. They are authenticated and sealed before validation, so a
+wrong-date, malformed, unknown-status, or envelope abort retains bounded
+evidence. Importer aggregate and row-level non-upsert telemetry is then
+authenticated and sealed before importability/relationship evaluation.
+Telemetry must be exact-key, fully accounted, bounded, untruncated, and
+failure-free. Zero upserts are a valid no-op only when every row is empty or is
+explicitly classified as `unknown_league`, `calendar_status_not_importable`,
+or `protected_existing`, and the database remains byte-hash equivalent.
+Fresh T2 must reproduce the exact response/classification fingerprint and DB
+postimage under the same global four-attempt cap.
 
 The outer transaction remains open across all four date imports. Existing
 importer transactions therefore use MariaDB savepoints; any precommit error or

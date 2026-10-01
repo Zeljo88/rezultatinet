@@ -21,21 +21,34 @@ final class Phase1FakeQuota implements ApiFootballQuotaStore
 {
     public int $attempts = 0;
 
+    public array $classes = [];
+
+    public array $callers = [];
+
+    public array $outcomes = [];
+
     public function reserve(string $endpointClass, string $caller): array
     {
         $this->attempts++;
+        $this->classes[$endpointClass] = ($this->classes[$endpointClass] ?? 0) + 1;
+        $field = $endpointClass.'|'.$caller;
+        $this->callers[$field] = ($this->callers[$field] ?? 0) + 1;
 
         return ['allowed' => true, 'global' => $this->attempts, 'class' => $this->attempts, 'state' => 'normal'];
     }
 
-    public function record(string $endpointClass, string $caller, int|string $status, string $outcome): void {}
+    public function record(string $endpointClass, string $caller, int|string $status, string $outcome): void
+    {
+        $field = $endpointClass.'|'.$caller.'|'.$status.'|'.$outcome;
+        $this->outcomes[$field] = ($this->outcomes[$field] ?? 0) + 1;
+    }
 
     public function openCircuit(int $until, string $reason): void {}
 
     public function status(): array
     {
         return ['day' => gmdate('Y-m-d'), 'global' => $this->attempts, 'observed_physical' => $this->attempts,
-            'bootstrap' => 0, 'threshold_state' => 'normal', 'classes' => [], 'callers' => [], 'outcomes' => [],
+            'bootstrap' => 0, 'threshold_state' => 'normal', 'classes' => $this->classes, 'callers' => $this->callers, 'outcomes' => $this->outcomes,
             'circuit_until' => 0, 'circuit_reason' => null, 'reset_at' => gmdate(DATE_ATOM, time() + 86400)];
     }
 
@@ -122,15 +135,15 @@ function integration_ancestry(array $paths): array
     }, $paths);
 }
 
-function integration_payload(string $date, int $fixtureId): array
+function integration_payload(string $date, int $fixtureId, string $status = 'NS', int $leagueId = 39, ?string $homeName = null): array
 {
     return [[
         'fixture' => ['id' => $fixtureId, 'timestamp' => strtotime($date.' 12:00:00 UTC'),
-            'status' => ['short' => 'NS', 'long' => 'Not Started', 'elapsed' => null],
+            'status' => ['short' => $status, 'long' => 'Harness status', 'elapsed' => null],
             'venue' => ['name' => 'Harness'], 'referee' => null],
-        'league' => ['id' => 39, 'season' => (int) gmdate('Y'), 'round' => 'Harness'],
+        'league' => ['id' => $leagueId, 'season' => (int) gmdate('Y'), 'round' => 'Harness'],
         'teams' => [
-            'home' => ['id' => $fixtureId + 100, 'name' => 'Home '.$fixtureId, 'logo' => null],
+            'home' => ['id' => $fixtureId + 100, 'name' => $homeName ?? 'Home '.$fixtureId, 'logo' => null],
             'away' => ['id' => $fixtureId + 200, 'name' => 'Away '.$fixtureId, 'logo' => null],
         ],
         'goals' => ['home' => null, 'away' => null],
@@ -250,11 +263,33 @@ $GLOBALS['phase1_integration_bootstrap'] = static function ($app) use ($scenario
             if ($scenario === 'provider-cap' && $responses % 2 === 1) {
                 return Http::response([], 500);
             }
+            if ($scenario === 'response-envelope-error') {
+                return Http::response(['errors' => 'invalid', 'response' => []], 200);
+            }
             parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
             $date = (string) ($query['date'] ?? gmdate('Y-m-d'));
             $id = $date === gmdate('Y-m-d') ? 910001 : 910002;
+            $payload = match ($scenario) {
+                'empty-responses' => [],
+                'unknown-leagues-only' => integration_payload($date, $id, leagueId: 999),
+                'terminal-live-only' => integration_payload($date, $id, $id === 910001 ? 'FT' : 'LIVE'),
+                'allowed-calendar-statuses' => [
+                    ...integration_payload($date, $id, $id === 910001 ? 'CANC' : 'TBD'),
+                    ...integration_payload($date, $id + 10, $id === 910001 ? 'PST' : 'NS'),
+                ],
+                'mixed-expected-hard-skips' => [
+                    ...integration_payload($date, $id, leagueId: 999),
+                    ...integration_payload($date, $id + 10, homeName: str_repeat('x', 101)),
+                ],
+                'unknown-status' => integration_payload($date, $id, 'UNRECOGNIZED'),
+                'telemetry-truncation' => array_merge(...array_map(
+                    static fn (int $offset): array => integration_payload($date, $id + $offset, leagueId: 999),
+                    range(0, 104),
+                )),
+                default => integration_payload($date, $id),
+            };
 
-            return Http::response(['errors' => [], 'response' => integration_payload($date, $id)], 200);
+            return Http::response(['errors' => [], 'response' => $payload], 200);
         }
 
         return Http::response('ok', 200);
@@ -278,6 +313,13 @@ if ($scenario === 'anchor-tamper') {
 } elseif ($scenario === 'symlink-swap') {
     rename($proof, $proof.'.real');
     symlink($proof.'.real', $proof);
+}
+if ($scenario === 'missing-classification-seal') {
+    $GLOBALS['phase1_integration_after_phase_seal'] = static function (Phase1Evidence $evidence, string $phase, string $kind): void {
+        if ($phase === 'T1' && $kind === 'classification') {
+            unlink($evidence->directory().'/T1-classification.sha256.json');
+        }
+    };
 }
 if (in_array($scenario, ['initial-system', 'already-plus00', 'failed-set', 'recovery-session'], true)) {
     $GLOBALS['phase1_integration_before_utc_set'] = static function ($connection) use ($scenario): void {
@@ -335,18 +377,26 @@ if ($scenario === 'failed-set') {
     integration_exit(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts]);
 }
 if (in_array($scenario, ['symlink-swap', 'lock-contention', 'provider-cap', 'anchor-tamper',
-    'authentication-key-mode', 'package-identity', 'unknown-option', 'lock-symlink', 'evidence-not-fresh'], true)) {
+    'authentication-key-mode', 'package-identity', 'unknown-option', 'lock-symlink', 'evidence-not-fresh',
+    'mixed-expected-hard-skips', 'unknown-status', 'telemetry-truncation', 'missing-classification-seal',
+    'response-envelope-error'], true)) {
     $expected = [
         'symlink-swap' => 'writer_proof', 'lock-contention' => 'phase_lock',
         'provider-cap' => 'insufficient_budget_for_t2', 'anchor-tamper' => 'trust_anchor_identity_failed',
         'authentication-key-mode' => 'authentication_key_identity_failed',
         'package-identity' => 'harness_package_identity_failed', 'unknown-option' => 'unknown_option',
         'lock-symlink' => 'phase_lock_file_invalid', 'evidence-not-fresh' => 'evidence_directory_not_fresh',
+        'mixed-expected-hard-skips' => 'telemetry_equation_failed', 'unknown-status' => 'response_unknown_status',
+        'telemetry-truncation' => 'telemetry_equation_failed',
+        'missing-classification-seal' => 'evidence_file_invalid',
+        'response-envelope-error' => 'ApiFootballProviderResponseException',
     ];
     if ($activationError === null || ! str_contains($activationError, $expected[$scenario])) {
         throw new RuntimeException('expected_activation_block_missing:'.(string) $activationError);
     }
-    if ($scenario !== 'provider-cap' && $quota->attempts !== 0) {
+    $preProviderScenarios = ['symlink-swap', 'lock-contention', 'anchor-tamper', 'authentication-key-mode',
+        'package-identity', 'unknown-option', 'lock-symlink', 'evidence-not-fresh'];
+    if (in_array($scenario, $preProviderScenarios, true) && $quota->attempts !== 0) {
         throw new RuntimeException('identity_or_lock_gate_ran_provider');
     }
     integration_exit(['scenario' => $scenario, 'passed' => true, 'attempts' => $quota->attempts]);

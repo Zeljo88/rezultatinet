@@ -28,6 +28,8 @@ const PHASE1_IMPORTER_SHA256 = '9f53bfffaf6472f0b9c3c7210d2b6c5820161def203b464f
 const PHASE1_MAX_ATTEMPTS = 4;
 const PHASE1_MAX_ROWS_PER_DATE = 2000;
 const PHASE1_IMPORTABLE = ['NS', 'TBD', 'PST', 'CANC'];
+const PHASE1_EXPECTED_SKIP_REASONS = ['unknown_league', 'calendar_status_not_importable'];
+const PHASE1_EXPECTED_NON_UPSERT_REASONS = ['unknown_league', 'calendar_status_not_importable', 'protected_existing'];
 const PHASE1_PROTECTED = [
     '1H', '2H', 'HT', 'ET', 'BT', 'P', 'SUSP', 'INT', 'LIVE',
     'FT', 'AET', 'PEN', 'AWD', 'WO', 'CANC', 'ABD',
@@ -481,14 +483,17 @@ function sanitized_response(array $payload, string $date): array
     if (count($payload) > PHASE1_MAX_ROWS_PER_DATE) {
         throw new Phase1Abort('provider_row_limit_exceeded');
     }
-    $rows = array_map(static fn (mixed $row): array => sanitize_response_row($row, $date), $payload);
+
+    return array_map(static fn (mixed $row): array => sanitize_response_row($row, $date), $payload);
+}
+
+function assert_sanitized_response(array $rows): void
+{
     foreach ($rows as $row) {
         if ($row['classification'] !== 'validated') {
             throw new Phase1Abort('response_'.$row['classification']);
         }
     }
-
-    return $rows;
 }
 
 function ids_from_manifests(array $manifests): array
@@ -901,20 +906,221 @@ function assert_invariants(array $state): void
     }
 }
 
-function assert_import_result(array $result): void
+function phase_evidence_chain(array $contract, string $phase, string $kind): array
+{
+    return [
+        'activation_id' => $contract['anchor']['activation_id'],
+        'trust_anchor_sha256' => $contract['anchor_sha256'],
+        'phase' => $phase,
+        'kind' => $kind,
+    ];
+}
+
+function assert_phase_record_sealed(
+    Phase1Evidence $evidence,
+    array $contract,
+    string $phase,
+    string $kind,
+    string $recordHash,
+): string {
+    $name = $phase.'-'.$kind;
+    $file = $name.'.json';
+    $record = $evidence->readAuthenticated($file, $contract['authentication_key'], $name.'_record');
+    if ($evidence->hash($file) !== $recordHash || ($record['phase'] ?? null) !== $phase) {
+        throw new Phase1Abort('phase_telemetry_record_cross_reference_failed');
+    }
+    $seal = $evidence->readAuthenticated($name.'.sha256.json', $contract['authentication_key'], $name.'_seal');
+    exact_keys($seal, ['schema', 'phase', 'chain', 'files'], 'phase_telemetry_seal_shape_failed');
+    if ($seal['schema'] !== PHASE1_SECURITY_SCHEMA || $seal['phase'] !== $name
+        || $seal['chain'] !== phase_evidence_chain($contract, $phase, $kind)
+        || $seal['files'] !== [$file => $recordHash]) {
+        throw new Phase1Abort('phase_telemetry_seal_cross_reference_failed');
+    }
+
+    return $evidence->hash($name.'.sha256.json');
+}
+
+function seal_phase_record(
+    Phase1Evidence $evidence,
+    array $contract,
+    string $phase,
+    string $kind,
+    array $record,
+): array {
+    $name = $phase.'-'.$kind;
+    $file = $name.'.json';
+    $recordHash = $evidence->writeAuthenticated($file, $record, $contract['authentication_key']);
+    $evidence->seal($name, [$file => $recordHash], phase_evidence_chain($contract, $phase, $kind), $contract['authentication_key']);
+    if (defined('PHASE1_INTEGRATION_MODE') && PHASE1_INTEGRATION_MODE === true
+        && isset($GLOBALS['phase1_integration_after_phase_seal'])
+        && is_callable($GLOBALS['phase1_integration_after_phase_seal'])) {
+        ($GLOBALS['phase1_integration_after_phase_seal'])($evidence, $phase, $kind);
+    }
+    $sealHash = assert_phase_record_sealed($evidence, $contract, $phase, $kind, $recordHash);
+
+    return ['record' => $recordHash, 'seal' => $sealHash];
+}
+
+function response_evidence_record(string $phase, array $dates, array $manifests): array
+{
+    $perDate = [];
+    foreach ($dates as $date) {
+        $rows = $manifests[$date] ?? throw new Phase1Abort('response_date_missing');
+        $perDate[$date] = [
+            'rows' => $rows,
+            'total' => count($rows),
+            'truncated' => 0,
+            'limit' => PHASE1_MAX_ROWS_PER_DATE,
+        ];
+    }
+
+    return ['schema' => PHASE1_SECURITY_SCHEMA, 'phase' => $phase, 'dates_utc' => $dates, 'per_date' => $perDate];
+}
+
+function classification_evidence_record(
+    string $phase,
+    array $dates,
+    array $manifests,
+    array $telemetry,
+    array $responseSeal,
+): array {
+    $perDate = [];
+    foreach ($dates as $date) {
+        $perDate[$date] = [
+            'response_rows' => $manifests[$date],
+            'import' => $telemetry[$date] ?? throw new Phase1Abort('import_telemetry_date_missing'),
+        ];
+    }
+
+    return [
+        'schema' => PHASE1_SECURITY_SCHEMA,
+        'phase' => $phase,
+        'dates_utc' => $dates,
+        'response_seal' => $responseSeal,
+        'per_date' => $perDate,
+    ];
+}
+
+function counter_delta(array $before, array $after, string $key): int
+{
+    return (int) ($after[$key] ?? 0) - (int) ($before[$key] ?? 0);
+}
+
+function assert_phase_quota_health(array $before, array $after, int $physicalAttempts): void
+{
+    foreach (['global', 'observed_physical', 'classes', 'callers', 'outcomes', 'circuit_until', 'threshold_state'] as $key) {
+        if (! array_key_exists($key, $before) || ! array_key_exists($key, $after)) {
+            throw new Phase1Abort('quota_telemetry_missing');
+        }
+    }
+    if (($before['day'] ?? null) !== ($after['day'] ?? null)
+        || $after['threshold_state'] !== 'normal'
+        || (int) $after['circuit_until'] > time()
+        || counter_delta($before, $after, 'global') !== $physicalAttempts
+        || counter_delta($before, $after, 'observed_physical') !== $physicalAttempts
+        || ! is_array($before['classes']) || ! is_array($after['classes'])
+        || ! is_array($before['callers']) || ! is_array($after['callers'])
+        || ! is_array($before['outcomes']) || ! is_array($after['outcomes'])
+        || counter_delta($before['classes'], $after['classes'], 'calendar') !== $physicalAttempts
+        || counter_delta($before['callers'], $after['callers'], 'calendar|FixtureCalendarSync') !== $physicalAttempts
+        || counter_delta($before['outcomes'], $after['outcomes'], 'calendar|FixtureCalendarSync|200|success') !== 2) {
+        throw new Phase1Abort('phase_quota_health_failed');
+    }
+    $outcomeDelta = 0;
+    foreach (array_unique([...array_keys($before['outcomes']), ...array_keys($after['outcomes'])]) as $key) {
+        $delta = counter_delta($before['outcomes'], $after['outcomes'], (string) $key);
+        if ($delta < 0 || ($delta > 0 && (str_contains((string) $key, '|429|') || str_ends_with((string) $key, '|rate_limited')))) {
+            throw new Phase1Abort('phase_quota_health_failed');
+        }
+        $outcomeDelta += $delta;
+    }
+    if ($outcomeDelta !== $physicalAttempts) {
+        throw new Phase1Abort('phase_quota_health_failed');
+    }
+}
+
+function assert_import_result(array $result, int $responseRows): void
 {
     $keys = ['rows', 'accepted', 'upserted', 'protected', 'skipped', 'failed', 'skip_reasons', 'failure_reasons',
         'row_telemetry', 'row_telemetry_total', 'row_telemetry_truncated', 'row_telemetry_limit'];
-    if (array_keys($result) !== $keys || $result['failed'] !== 0 || $result['failure_reasons'] !== []
+    if (array_keys($result) !== $keys
+        || array_filter(['rows', 'accepted', 'upserted', 'protected', 'skipped', 'failed', 'row_telemetry_total',
+            'row_telemetry_truncated', 'row_telemetry_limit'], static fn (string $key): bool => ! is_int($result[$key]) || $result[$key] < 0) !== []
+        || $result['rows'] !== $responseRows
+        || $result['rows'] !== $result['accepted'] + $result['skipped']
+        || $result['accepted'] !== $result['upserted'] + $result['protected'] + $result['failed']
+        || $result['row_telemetry_total'] !== $result['protected'] + $result['skipped'] + $result['failed']
+        || $result['failed'] !== 0 || $result['failure_reasons'] !== []
+        || ! is_array($result['skip_reasons'])
+        || array_diff(array_keys($result['skip_reasons']), PHASE1_EXPECTED_SKIP_REASONS) !== []
+        || array_filter($result['skip_reasons'], static fn (mixed $count): bool => ! is_int($count) || $count < 1) !== []
+        || array_sum($result['skip_reasons']) !== $result['skipped']
         || $result['row_telemetry_limit'] !== 100 || $result['row_telemetry_truncated'] !== 0
         || $result['row_telemetry_total'] !== count($result['row_telemetry'])) {
         throw new Phase1Abort('telemetry_equation_failed');
     }
+    $telemetryReasons = [];
     foreach ($result['row_telemetry'] as $row) {
         if (array_keys($row) !== ['fixture_id', 'league_id', 'status', 'date_bucket', 'reason']) {
             throw new Phase1Abort('telemetry_shape_failed');
         }
+        if (! in_array($row['reason'], PHASE1_EXPECTED_NON_UPSERT_REASONS, true)) {
+            throw new Phase1Abort('unexpected_non_upsert_classification');
+        }
+        $telemetryReasons[$row['reason']] = ($telemetryReasons[$row['reason']] ?? 0) + 1;
     }
+    $expectedTelemetryReasons = $result['skip_reasons'];
+    if ($result['protected'] > 0) {
+        $expectedTelemetryReasons['protected_existing'] = $result['protected'];
+    }
+    ksort($expectedTelemetryReasons);
+    ksort($telemetryReasons);
+    if ($telemetryReasons !== $expectedTelemetryReasons) {
+        throw new Phase1Abort('telemetry_reason_equation_failed');
+    }
+}
+
+function assert_phase_classification(
+    array $dates,
+    array $manifests,
+    array $telemetry,
+    array $quotaBefore,
+    array $quotaAfter,
+    int $attemptsBefore,
+    int $attemptsAfter,
+    array $databaseBefore,
+    array $databaseAfter,
+): bool {
+    if ($attemptsAfter - $attemptsBefore < 2) {
+        throw new Phase1Abort('phase_date_requests_incomplete');
+    }
+    assert_phase_quota_health($quotaBefore, $quotaAfter, $attemptsAfter - $attemptsBefore);
+    $upserted = 0;
+    foreach ($dates as $date) {
+        $rows = $manifests[$date] ?? throw new Phase1Abort('response_date_missing');
+        assert_sanitized_response($rows);
+        $result = $telemetry[$date] ?? throw new Phase1Abort('import_telemetry_date_missing');
+        assert_import_result($result, count($rows));
+        $upserted += $result['upserted'];
+    }
+    if ($upserted === 0 && $databaseBefore['hashes'] !== $databaseAfter['hashes']) {
+        throw new Phase1Abort('classified_noop_changed_database');
+    }
+
+    return $upserted === 0;
+}
+
+function classification_fingerprint(array $dates, array $manifests, array $telemetry): string
+{
+    $classified = [];
+    foreach ($dates as $date) {
+        $classified[$date] = [
+            'response_rows' => $manifests[$date] ?? throw new Phase1Abort('response_date_missing'),
+            'import' => $telemetry[$date] ?? throw new Phase1Abort('import_telemetry_date_missing'),
+        ];
+    }
+
+    return hash('sha256', canonical_json($classified));
 }
 
 function assert_write_policy(array $before, array $after): void
@@ -940,8 +1146,17 @@ function assert_write_policy(array $before, array $after): void
     }
 }
 
-function assert_payload_relationships(array $payloads, array $before, array $after): void
+function assert_payload_relationships(array $payloads, array $telemetry, array $before, array $after): void
 {
+    $unknownLeagueRows = [];
+    foreach ($telemetry as $result) {
+        foreach ($result['row_telemetry'] ?? [] as $row) {
+            if (($row['reason'] ?? null) === 'unknown_league') {
+                $key = canonical_json(array_intersect_key($row, array_flip(['fixture_id', 'league_id', 'status', 'date_bucket'])));
+                $unknownLeagueRows[$key] = ($unknownLeagueRows[$key] ?? 0) + 1;
+            }
+        }
+    }
     $beforeByProvider = [];
     foreach ($before['fixtures'] as $row) {
         $beforeByProvider[(int) $row['api_fixture_id']] = $row;
@@ -979,7 +1194,17 @@ function assert_payload_relationships(array $payloads, array $before, array $aft
 
                 continue;
             }
-            $row = $afterByProvider[$fixtureId] ?? throw new Phase1Abort('importable_fixture_missing');
+            $row = $afterByProvider[$fixtureId] ?? null;
+            if ($row === null) {
+                $key = canonical_json(array_intersect_key($manifest, array_flip(['fixture_id', 'league_id', 'status', 'date_bucket'])));
+                if (! isset($leagueLocal[$manifest['league_id']]) && ($unknownLeagueRows[$key] ?? 0) > 0) {
+                    $unknownLeagueRows[$key]--;
+
+                    continue;
+                }
+
+                throw new Phase1Abort('importable_fixture_missing');
+            }
             $expected = [
                 'league_id' => $leagueLocal[$manifest['league_id']] ?? null,
                 'home_team_id' => $teamLocal[$manifest['home_team_id']] ?? null,
@@ -1120,10 +1345,22 @@ function run_activation(array $options): int
         $transactionOpen = true;
 
         fault_boundary('after:outer-transaction-begin');
+        $phaseEvidence = [];
+        $t1AttemptsBefore = $budget->used();
         $t1Payloads = fetch_phase_payloads($gateway, $dates, $budget);
         $t1Manifests = [];
         foreach ($t1Payloads as $date => $payload) {
             $t1Manifests[$date] = sanitized_response($payload, $date);
+        }
+        $phaseEvidence['T1']['response'] = seal_phase_record(
+            $evidence,
+            $contract,
+            'T1',
+            'response',
+            response_evidence_record('T1', $dates, $t1Manifests),
+        );
+        foreach ($dates as $date) {
+            assert_sanitized_response($t1Manifests[$date]);
         }
         $ids = ids_from_manifests($t1Manifests);
         $baseline = database_snapshot($ids);
@@ -1135,21 +1372,41 @@ function run_activation(array $options): int
         $telemetry = ['T1' => [], 'T2' => []];
         foreach ($dates as $date) {
             $telemetry['T1'][$date] = $importer->import($t1Payloads[$date]);
-            assert_import_result($telemetry['T1'][$date]);
         }
+        $phaseEvidence['T1']['classification'] = seal_phase_record(
+            $evidence,
+            $contract,
+            'T1',
+            'classification',
+            classification_evidence_record('T1', $dates, $t1Manifests, $telemetry['T1'], $phaseEvidence['T1']['response']),
+        );
         $t1 = database_snapshot($ids);
+        $t1QuotaAfter = $quota->status();
+        $t1Noop = assert_phase_classification($dates, $t1Manifests, $telemetry['T1'], $quotaBaseline, $t1QuotaAfter,
+            $t1AttemptsBefore, $budget->used(), $baseline, $t1);
         assert_write_policy($baseline, $t1);
         $t1Invariant = invariant_snapshot($ids);
-        assert_payload_relationships($t1Payloads, $baseline, $t1);
+        assert_payload_relationships($t1Payloads, $telemetry['T1'], $baseline, $t1);
         assert_invariants($t1Invariant);
 
         if ($budget->remaining() < 2) {
             throw new Phase1Abort('insufficient_budget_for_t2');
         }
+        $t2AttemptsBefore = $budget->used();
         $t2Payloads = fetch_phase_payloads($gateway, $dates, $budget);
         $t2Manifests = [];
         foreach ($t2Payloads as $date => $payload) {
             $t2Manifests[$date] = sanitized_response($payload, $date);
+        }
+        $phaseEvidence['T2']['response'] = seal_phase_record(
+            $evidence,
+            $contract,
+            'T2',
+            'response',
+            response_evidence_record('T2', $dates, $t2Manifests),
+        );
+        foreach ($dates as $date) {
+            assert_sanitized_response($t2Manifests[$date]);
         }
         $t1Ids = $ids;
         $t2Ids = ids_from_manifests($t2Manifests);
@@ -1171,21 +1428,34 @@ function run_activation(array $options): int
 
         foreach ($dates as $date) {
             $telemetry['T2'][$date] = $importer->import($t2Payloads[$date]);
-            assert_import_result($telemetry['T2'][$date]);
         }
+        $phaseEvidence['T2']['classification'] = seal_phase_record(
+            $evidence,
+            $contract,
+            'T2',
+            'classification',
+            classification_evidence_record('T2', $dates, $t2Manifests, $telemetry['T2'], $phaseEvidence['T2']['response']),
+        );
         $t2 = database_snapshot($ids);
+        $quotaAfter = $quota->status();
+        $t2Noop = assert_phase_classification($dates, $t2Manifests, $telemetry['T2'], $t1QuotaAfter, $quotaAfter,
+            $t2AttemptsBefore, $budget->used(), $t1, $t2);
         assert_write_policy($baseline, $t2);
         $t2Invariant = invariant_snapshot($ids);
-        assert_payload_relationships($t2Payloads, $baseline, $t2);
+        assert_payload_relationships($t2Payloads, $telemetry['T2'], $baseline, $t2);
         assert_invariants($t2Invariant);
         if ($t1['hashes'] !== $t2['hashes']) {
             throw new Phase1Abort('t2_not_idempotent');
+        }
+        if ($t1Noop !== $t2Noop
+            || classification_fingerprint($dates, $t1Manifests, $telemetry['T1'])
+                !== classification_fingerprint($dates, $t2Manifests, $telemetry['T2'])) {
+            throw new Phase1Abort('t2_classification_not_stable');
         }
         if ($budget->used() > PHASE1_MAX_ATTEMPTS) {
             throw new Phase1Abort('global_attempt_budget_exceeded');
         }
 
-        $quotaAfter = $quota->status();
         $intent = [
             'schema' => PHASE1_SECURITY_SCHEMA,
             'state' => 'PRECOMMIT_INTENT',
@@ -1207,13 +1477,22 @@ function run_activation(array $options): int
             'invariants' => ['baseline' => $baselineInvariant, 't1' => $t1Invariant, 't2' => $t2Invariant],
             'responses' => ['T1' => $t1Manifests, 'T2' => $t2Manifests],
             'telemetry' => $telemetry,
+            'phase_evidence' => $phaseEvidence,
             'runtime' => [
                 'importer' => $contract['anchor']['importer'],
                 'harness' => $contract['anchor']['harness'],
                 'log_offset' => $logOffset,
             ],
         ];
-        $hashes = ['commit-intent.json' => $evidence->writeAuthenticated('commit-intent.json', $intent, $contract['authentication_key'])];
+        $hashes = [];
+        foreach ($phaseEvidence as $phase => $kinds) {
+            foreach ($kinds as $kind => $identities) {
+                $name = $phase.'-'.$kind;
+                $hashes[$name.'.json'] = $identities['record'];
+                $hashes[$name.'.sha256.json'] = $identities['seal'];
+            }
+        }
+        $hashes['commit-intent.json'] = $evidence->writeAuthenticated('commit-intent.json', $intent, $contract['authentication_key']);
         $chain = [
             'activation_id' => $contract['anchor']['activation_id'],
             'trust_anchor_sha256' => $contract['anchor_sha256'],
@@ -1462,7 +1741,7 @@ function validate_recovery_chain(Phase1Evidence $evidence, array $contract): arr
 {
     $intent = $evidence->readAuthenticated('commit-intent.json', $contract['authentication_key'], 'commit_intent');
     exact_keys($intent, ['schema', 'state', 'activation_id', 'trust', 'dates_utc', 'attempts', 'writer_exclusion',
-        'ids', 'foreign_keys', 'baseline', 'postimage', 'invariants', 'responses', 'telemetry', 'runtime'], 'intent_shape_invalid');
+        'ids', 'foreign_keys', 'baseline', 'postimage', 'invariants', 'responses', 'telemetry', 'phase_evidence', 'runtime'], 'intent_shape_invalid');
     if ($intent['schema'] !== PHASE1_SECURITY_SCHEMA || $intent['state'] !== 'PRECOMMIT_INTENT'
         || $intent['activation_id'] !== $contract['anchor']['activation_id']) {
         throw new Phase1Abort('intent_identity_invalid');
@@ -1534,6 +1813,25 @@ function validate_recovery_chain(Phase1Evidence $evidence, array $contract): arr
         throw new Phase1Abort('intent_runtime_identity_invalid');
     }
 
+    exact_keys($intent['phase_evidence'], ['T1', 'T2'], 'intent_phase_evidence_shape_invalid');
+    $phaseFiles = [];
+    foreach (['T1', 'T2'] as $phase) {
+        exact_keys($intent['phase_evidence'][$phase], ['response', 'classification'], 'intent_phase_evidence_shape_invalid');
+        foreach (['response', 'classification'] as $kind) {
+            $identity = $intent['phase_evidence'][$phase][$kind];
+            exact_keys($identity, ['record', 'seal'], 'intent_phase_evidence_identity_invalid');
+            $recordHash = assert_hex_hash($identity['record'] ?? null, 'intent_phase_evidence_record_hash_invalid');
+            $sealHash = assert_hex_hash($identity['seal'] ?? null, 'intent_phase_evidence_seal_hash_invalid');
+            $verifiedSeal = assert_phase_record_sealed($evidence, $contract, $phase, $kind, $recordHash);
+            if ($verifiedSeal !== $sealHash) {
+                throw new Phase1Abort('intent_phase_evidence_cross_reference_failed');
+            }
+            $name = $phase.'-'.$kind;
+            $phaseFiles[$name.'.json'] = $recordHash;
+            $phaseFiles[$name.'.sha256.json'] = $sealHash;
+        }
+    }
+
     $intentHash = $evidence->hash('commit-intent.json');
     $precommit = $evidence->readAuthenticated('precommit.sha256.json', $contract['authentication_key'], 'precommit_seal');
     exact_keys($precommit, ['schema', 'phase', 'chain', 'files'], 'precommit_seal_shape_invalid');
@@ -1544,8 +1842,10 @@ function validate_recovery_chain(Phase1Evidence $evidence, array $contract): arr
         'importer_package_sha256' => $contract['anchor']['importer_package']['sha256'],
         'harness_package_sha256' => $contract['anchor']['harness_package']['sha256'],
     ];
+    $expectedFiles = [...$phaseFiles, 'commit-intent.json' => $intentHash];
+    ksort($expectedFiles, SORT_STRING);
     if ($precommit['schema'] !== PHASE1_SECURITY_SCHEMA || $precommit['phase'] !== 'precommit'
-        || canonical_json($precommit['chain']) !== canonical_json($expectedChain) || $precommit['files'] !== ['commit-intent.json' => $intentHash]) {
+        || canonical_json($precommit['chain']) !== canonical_json($expectedChain) || $precommit['files'] !== $expectedFiles) {
         throw new Phase1Abort('precommit_seal_cross_reference_failed');
     }
     $precommitHash = $evidence->hash('precommit.sha256.json');
