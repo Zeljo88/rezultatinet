@@ -294,8 +294,6 @@ class FixtureCalendarSyncTest extends TestCase
                 'away_halftime' => 1,
                 'home_fulltime' => 3,
                 'away_fulltime' => 2,
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
         }
 
@@ -567,7 +565,7 @@ class FixtureCalendarSyncTest extends TestCase
 
     public function test_database_failure_rolls_back_one_row_and_later_rows_continue(): void
     {
-        DB::unprepared("CREATE TRIGGER reject_calendar_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10301 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
+        $this->createRejectFixtureTrigger('reject_calendar_fixture', 10301);
         $rows = [
             $this->payload(10300, 'NS', '2026-10-01 12:00:00', 2026),
             $this->payload(10301, 'NS', '2026-10-01 13:00:00', 2026),
@@ -596,7 +594,7 @@ class FixtureCalendarSyncTest extends TestCase
     public function test_command_returns_failure_after_processing_all_rows_when_a_row_fails(): void
     {
         config()->set('api_football.calendar.enabled', true);
-        DB::unprepared("CREATE TRIGGER reject_command_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10400 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
+        $this->createRejectFixtureTrigger('reject_command_fixture', 10400);
         $api = Mockery::mock(ApiFootballService::class);
         $api->shouldReceive('getCalendarFixturesByDate')->once()->with('2026-09-25')->andReturn([
             $this->payload(10400, 'NS', '2026-10-01 12:00:00', 2026),
@@ -749,6 +747,17 @@ class FixtureCalendarSyncTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function createRejectFixtureTrigger(string $name, int $fixtureId): void
+    {
+        if (DB::getDriverName() === 'sqlite') {
+            DB::unprepared("CREATE TRIGGER {$name} BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = {$fixtureId} BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
+
+            return;
+        }
+
+        DB::unprepared("CREATE TRIGGER {$name} BEFORE INSERT ON fixtures FOR EACH ROW BEGIN IF NEW.api_fixture_id = {$fixtureId} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'forced row failure'; END IF; END");
     }
 
     private function fixtureSchemaExists(): bool
