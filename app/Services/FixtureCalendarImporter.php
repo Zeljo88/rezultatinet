@@ -26,7 +26,7 @@ final class FixtureCalendarImporter
         'FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO', 'LIVE',
     ];
 
-    /** States the calendar path may create or apply to an unprotected fixture. */
+    /** States the calendar path may create as a new fixture. */
     private const IMPORTABLE_CALENDAR_STATUSES = ['TBD', 'NS', 'PST', 'CANC'];
 
     /** Maximum sanitized non-upsert row records returned for one provider date. */
@@ -97,7 +97,7 @@ final class FixtureCalendarImporter
                         if ($existing && in_array(FootballFixtureStatus::normalize($existing->status_short), self::PROTECTED_EXISTING_STATUSES, true)) {
                             return 'protected';
                         }
-                        if (! in_array($incomingStatus, self::IMPORTABLE_CALENDAR_STATUSES, true)) {
+                        if (! $existing && ! in_array($incomingStatus, self::IMPORTABLE_CALENDAR_STATUSES, true)) {
                             return 'calendar_status_not_importable';
                         }
 
@@ -120,6 +120,9 @@ final class FixtureCalendarImporter
                         $fixture = Fixture::where('api_fixture_id', $fixtureId)->lockForUpdate()->first();
                         if ($fixture && in_array(FootballFixtureStatus::normalize($fixture->status_short), self::PROTECTED_EXISTING_STATUSES, true)) {
                             return 'protected';
+                        }
+                        if (! $fixture && ! in_array($incomingStatus, self::IMPORTABLE_CALENDAR_STATUSES, true)) {
+                            return 'calendar_status_not_importable';
                         }
                         if (! $fixture) {
                             $fixture = Fixture::query()->createOrFirst(['api_fixture_id' => $fixtureId], $attributes);

@@ -35,6 +35,8 @@ class FixtureCalendarSyncTest extends TestCase
 
     private int $awayTeamId;
 
+    private bool $ownsFixtureSchema = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,7 +46,12 @@ class FixtureCalendarSyncTest extends TestCase
         config()->set('api_football.retry_base_ms', 0);
         config()->set('api_football.calendar.lock_store', 'array');
         Http::preventStrayRequests();
-        $this->createSchema();
+        if ($this->fixtureSchemaExists()) {
+            $this->cleanFixtureSchema();
+        } else {
+            $this->createSchema();
+            $this->ownsFixtureSchema = true;
+        }
 
         $this->leagueId = DB::table('leagues')->insertGetId([
             'api_league_id' => 39,
@@ -63,10 +70,14 @@ class FixtureCalendarSyncTest extends TestCase
     {
         Carbon::setTestNow();
 
-        Schema::dropIfExists('fixture_scores');
-        Schema::dropIfExists('fixtures');
-        Schema::dropIfExists('teams');
-        Schema::dropIfExists('leagues');
+        if ($this->ownsFixtureSchema) {
+            Schema::dropIfExists('fixture_scores');
+            Schema::dropIfExists('fixtures');
+            Schema::dropIfExists('teams');
+            Schema::dropIfExists('leagues');
+        } else {
+            $this->cleanFixtureSchema();
+        }
 
         parent::tearDown();
     }
@@ -408,6 +419,20 @@ class FixtureCalendarSyncTest extends TestCase
         );
     }
 
+    public function test_existing_unprotected_fixture_can_advance_to_live_and_is_then_protected(): void
+    {
+        $importer = new FixtureCalendarImporter;
+        $created = $importer->import([$this->payload(10250, 'NS', '2026-09-30 14:00:00', 2026)]);
+        $advanced = $importer->import([$this->payload(10250, 'LIVE', '2026-09-30 14:00:00', 2026)]);
+        $protected = $importer->import([$this->payload(10250, 'NS', '2026-09-30 14:00:00', 2026)]);
+
+        $this->assertSame(1, $created['upserted']);
+        $this->assertSame(1, $advanced['upserted']);
+        $this->assertSame(1, $protected['protected']);
+        $this->assertSame('LIVE', Fixture::where('api_fixture_id', 10250)->value('status_short'));
+        $this->assertSame(1, Fixture::where('api_fixture_id', 10250)->count());
+    }
+
     public function test_phase_one_captured_terminal_rows_are_skipped_but_cancelled_semantics_are_retained(): void
     {
         $rows = [
@@ -724,6 +749,25 @@ class FixtureCalendarSyncTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function fixtureSchemaExists(): bool
+    {
+        foreach (['leagues', 'teams', 'fixtures', 'fixture_scores'] as $table) {
+            if (! Schema::hasTable($table)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function cleanFixtureSchema(): void
+    {
+        DB::table('fixture_scores')->delete();
+        DB::table('fixtures')->delete();
+        DB::table('teams')->delete();
+        DB::table('leagues')->delete();
     }
 
     private function createSchema(): void
