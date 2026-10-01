@@ -23,6 +23,11 @@ $currentSport = $sport ?? 'football';
 $currentTab   = $initialTab ?? 'live';
 $pageTitle = $tabTitles[$currentTab] ?? ($metaTitles[$currentSport] ?? $metaTitles['football']);
 $pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDescs['football']);
+$pageDate = match ($currentTab) {
+    'tomorrow' => now('UTC')->addDay(),
+    'yesterday' => now('UTC')->subDay(),
+    default => now('UTC'),
+};
 @endphp
 
 @section('title', $pageTitle)
@@ -36,9 +41,9 @@ $pageDesc  = $tabDescs[$currentTab]  ?? ($metaDescs[$currentSport]  ?? $metaDesc
             @php
             $days = ['Sunday'=>'Nedjelja','Monday'=>'Ponedjeljak','Tuesday'=>'Utorak','Wednesday'=>'Srijeda','Thursday'=>'Cetvrtak','Friday'=>'Petak','Saturday'=>'Subota'];
             $months = ['January'=>'januar','February'=>'februar','March'=>'mart','April'=>'april','May'=>'maj','June'=>'juni','July'=>'juli','August'=>'august','September'=>'septembar','October'=>'oktobar','November'=>'novembar','December'=>'decembar'];
-            $day = $days[now()->format('l')];
-            $month = $months[now()->format('F')];
-            echo $day . ', ' . now()->format('j') . '. ' . $month . ' ' . now()->format('Y') . '.';
+            $day = $days[$pageDate->format('l')];
+            $month = $months[$pageDate->format('F')];
+            echo $day . ', ' . $pageDate->format('j') . '. ' . $month . ' ' . $pageDate->format('Y') . '.';
             @endphp
         </p>
     </div>
