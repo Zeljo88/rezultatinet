@@ -225,6 +225,7 @@ class FixtureCalendarSyncTest extends TestCase
 
         $this->assertSame([], $calendarEvents());
 
+        config()->set('api_football.calendar.schedule', ['near' => true, 'week' => true, 'month' => true]);
         config()->set('api_football.calendar.enabled', true);
         require base_path('routes/console.php');
 
@@ -240,6 +241,60 @@ class FixtureCalendarSyncTest extends TestCase
         $this->assertSame('0 */6 * * *', $byName['fixture-calendar-near']->expression);
         $this->assertSame('30 6 * * *', $byName['fixture-calendar-week']->expression);
         $this->assertSame('15 3 * * 3', $byName['fixture-calendar-month']->expression);
+    }
+
+    public function test_scheduler_window_matrix_preserves_unrelated_tasks_and_excludes_unselected_windows(): void
+    {
+        $baseline = null;
+        for ($mask = 0; $mask < 16; $mask++) {
+            config()->set('api_football.calendar.enabled', (bool) ($mask & 8));
+            config()->set('api_football.calendar.schedule', [
+                'near' => (bool) ($mask & 1),
+                'week' => (bool) ($mask & 2),
+                'month' => (bool) ($mask & 4),
+            ]);
+            $schedule = new Schedule('UTC');
+            \Illuminate\Support\Facades\Schedule::swap($schedule);
+            require base_path('routes/console.php');
+
+            $calendar = [];
+            $unrelated = [];
+            foreach ($schedule->events() as $event) {
+                if (str_contains((string) $event->command, 'sync:fixture-calendar')) {
+                    $calendar[] = $event->description;
+                    $this->assertSame('UTC', $event->timezone);
+                    $this->assertTrue($event->withoutOverlapping);
+                    $this->assertSame(180, $event->expiresAt);
+                    $this->assertFalse($event->runInBackground);
+                    if ($event->description === 'fixture-calendar-near') {
+                        $this->assertSame('0 */6 * * *', $event->expression);
+                    }
+                } else {
+                    $unrelated[] = [$event->description, $event->expression, $event->command];
+                }
+            }
+            $expected = [];
+            foreach (['near' => 1, 'week' => 2, 'month' => 4] as $window => $bit) {
+                if (($mask & 8) && ($mask & $bit)) {
+                    $expected[] = 'fixture-calendar-'.$window;
+                }
+            }
+            $this->assertSame($expected, $calendar, 'mask '.$mask);
+            $baseline ??= $unrelated;
+            $this->assertSame($baseline, $unrelated, 'unrelated schedules changed');
+        }
+    }
+
+    public function test_missing_window_flags_fail_closed_with_provider_gate_enabled(): void
+    {
+        config()->set('api_football.calendar.enabled', true);
+        config()->set('api_football.calendar.schedule', []);
+        $schedule = new Schedule('UTC');
+        \Illuminate\Support\Facades\Schedule::swap($schedule);
+        require base_path('routes/console.php');
+        foreach ($schedule->events() as $event) {
+            $this->assertStringNotContainsString('sync:fixture-calendar', (string) $event->command);
+        }
     }
 
     public function test_import_is_idempotent_and_updates_calendar_fields_by_provider_id(): void

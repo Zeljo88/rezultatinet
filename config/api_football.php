@@ -25,9 +25,13 @@ return [
         'scorers' => (int) env('API_FOOTBALL_BUDGET_SCORERS', 0),
     ],
     'calendar' => [
-        // Both scheduler registration and the provider service path fail closed
-        // unless this explicit deployment gate is enabled.
+        // Provider master gate. Recurrence also requires an explicit per-window flag.
         'enabled' => env('API_FOOTBALL_CALENDAR_ENABLED', false),
+        'schedule' => [
+            'near' => env('API_FOOTBALL_CALENDAR_SCHEDULE_NEAR', false),
+            'week' => env('API_FOOTBALL_CALENDAR_SCHEDULE_WEEK', false),
+            'month' => env('API_FOOTBALL_CALENDAR_SCHEDULE_MONTH', false),
+        ],
         'lock_store' => env('API_FOOTBALL_CALENDAR_LOCK_STORE', 'redis'),
         'lock_seconds' => 7200,
         // Wednesday 03:15 UTC is the documented low-traffic weekly slot.
