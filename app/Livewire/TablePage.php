@@ -196,7 +196,7 @@ class TablePage extends Component
                 ->get()
                 ->map(fn($f) => [
                     'id'        => $f->id,
-                    'kick_off'  => $f->kick_off?->format('d.m. H:i'),
+                    'kick_off'  => ($f->kick_off ? \App\Support\MatchTime::local($f->kick_off)->format('d.m. H:i') : null),
                     'home'      => $f->homeTeam?->name ?? 'N/A',
                     'away'      => $f->awayTeam?->name ?? 'N/A',
                     'home_slug' => $f->homeTeam?->slug,
@@ -222,7 +222,7 @@ class TablePage extends Component
                 ->get()
                 ->map(fn($f) => [
                     'id'         => $f->id,
-                    'date'       => $f->kick_off?->format('d.m.'),
+                    'date'       => ($f->kick_off ? \App\Support\MatchTime::local($f->kick_off)->format('d.m.') : null),
                     'home'       => $f->homeTeam?->name ?? 'N/A',
                     'away'       => $f->awayTeam?->name ?? 'N/A',
                     'home_slug'  => $f->homeTeam?->slug,

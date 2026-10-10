@@ -14,7 +14,7 @@
                 @foreach($windows[$windowKey] as $event)
                 <li class="px-4 py-3 text-sm">
                     <div class="text-[11px] text-gray-500 mb-1">
-                        {{ $event['date'] ? \Carbon\Carbon::parse($event['date'])->format('d.m.Y H:i') : '' }}
+                        {{ $event['date'] ? \App\Support\MatchTime::local($event['date'])->format('d.m.Y H:i') : '' }}
                         @if(!empty($event['league'])) · {{ $event['league'] }} @endif
                     </div>
                     <div class="font-semibold text-gray-200">

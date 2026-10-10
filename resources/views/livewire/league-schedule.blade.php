@@ -61,8 +61,8 @@
                 <div class="flex items-center gap-3 px-4 py-3 hover:bg-[#222] transition">
                     {{-- Date/time --}}
                     <div class="flex-shrink-0 w-20 text-center">
-                        <div class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($f['kick_off'])->format('d.m.Y') }}</div>
-                        <div class="text-sm font-bold text-[#CCFF00]">{{ \Carbon\Carbon::parse($f['kick_off'])->format('H:i') }}</div>
+                        <div class="text-xs text-gray-500">{{ \App\Support\MatchTime::local($f['kick_off'])->format('d.m.Y') }}</div>
+                        <div class="text-sm font-bold text-[#CCFF00]">{{ \App\Support\MatchTime::local($f['kick_off'])->format('H:i') }}</div>
                         @if($f['round'])
                             <div class="text-[10px] text-gray-600 truncate">{{ $f['round'] }}</div>
                         @endif
@@ -115,7 +115,7 @@
                 <a href="{{ $matchUrl ?? '#' }}" class="flex items-center gap-3 px-4 py-3 hover:bg-[#222] transition {{ $matchUrl ? '' : 'cursor-default' }}">
                     {{-- Date --}}
                     <div class="flex-shrink-0 w-20 text-center">
-                        <div class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($f['kick_off'])->format('d.m.Y') }}</div>
+                        <div class="text-xs text-gray-500">{{ \App\Support\MatchTime::local($f['kick_off'])->format('d.m.Y') }}</div>
                         <div class="text-[10px] text-gray-600">FT</div>
                     </div>
 

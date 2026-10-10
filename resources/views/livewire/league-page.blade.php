@@ -59,7 +59,7 @@
                         @elseif($isFT)
                             <span class="text-gray-500 text-xs font-medium">FT</span>
                         @else
-                            <span class="text-gray-500 text-xs">{{ isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--' }}</span>
+                            <span class="text-gray-500 text-xs">{{ isset($fixture['kick_off']) ? \App\Support\MatchTime::local($fixture['kick_off'])->format('H:i') : '--:--' }}</span>
                         @endif
                     </div>
                     <div class="flex-1 flex items-center px-2">
@@ -175,7 +175,7 @@
             <ul class="divide-y divide-[#2a2a2a]">
                 @foreach($seoRecent as $f)
                 <li class="px-4 py-3 text-sm">
-                    <span class="text-gray-500 text-xs mr-3">{{ \Carbon\Carbon::parse($f['kick_off'])->format('d.m.Y') }}</span>
+                    <span class="text-gray-500 text-xs mr-3">{{ \App\Support\MatchTime::local($f['kick_off'])->format('d.m.Y') }}</span>
                     @if($f['match_url'])<a href="{{ $f['match_url'] }}" class="text-white font-semibold hover:text-[#CCFF00]">@endif
                     {{ $f['home_team_name'] }} {{ $f['score_home'] ?? '–' }}–{{ $f['score_away'] ?? '–' }} {{ $f['away_team_name'] }}
                     @if($f['match_url'])</a>@endif
@@ -213,7 +213,7 @@
                 @foreach($seoUpcoming as $i => $f)
                 <li class="flex items-center gap-4 px-4 py-3 {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
                     <span class="text-gray-500 text-xs w-24 flex-shrink-0">
-                        {{ \Carbon\Carbon::parse($f['kick_off'])->format('d.m.Y H:i') }}
+                        {{ \App\Support\MatchTime::local($f['kick_off'])->format('d.m.Y H:i') }}
                     </span>
                     <span class="text-sm text-white font-semibold">
                         @if($f['home_team_slug'])

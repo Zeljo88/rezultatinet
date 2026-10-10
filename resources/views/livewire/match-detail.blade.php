@@ -383,7 +383,7 @@
                     $awayWon = $match['score_away'] > $match['score_home'];
                 @endphp
                 <a href="/utakmica/{{ $match['id'] }}" class="flex items-center gap-3 py-2.5 border-b border-[#2a2a2a] last:border-0 hover:bg-[#222] rounded px-2 transition cursor-pointer">
-                    <span class="text-xs text-gray-500 w-20 flex-shrink-0">{{ \Carbon\Carbon::parse($match['kick_off'])->format('d.m.Y') }}</span>
+                    <span class="text-xs text-gray-500 w-20 flex-shrink-0">{{ \App\Support\MatchTime::local($match['kick_off'])->format('d.m.Y') }}</span>
                     <div class="flex-1 flex items-center gap-2 justify-end">
                         @if($match['home_team_logo'])
                             <img src="{{ $match['home_team_logo'] }}" class="w-4 h-4 object-contain" alt="" loading="lazy">

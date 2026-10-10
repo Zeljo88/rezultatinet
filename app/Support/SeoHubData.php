@@ -15,7 +15,7 @@ class SeoHubData
             ->with(['homeTeam', 'awayTeam', 'score', 'league'])
             ->when($leagueId, fn ($query) => $query->where('league_id', $leagueId));
 
-        $live = (clone $base)->live()->whereDate('kick_off', today())->orderBy('kick_off')->take(6)->get();
+        $live = (clone $base)->live()->where(fn ($q) => MatchTime::onDay($q, 'kick_off', MatchTime::today()->toDateString()))->orderBy('kick_off')->take(6)->get();
         $upcoming = (clone $base)->whereIn('status_short', ['NS', 'TBD'])
             ->where('kick_off', '>=', now())->orderBy('kick_off')->take(6)->get();
         $recent = (clone $base)->whereIn('status_short', ['FT', 'AET', 'PEN'])
@@ -37,7 +37,7 @@ class SeoHubData
         $liveStatuses = ['Q1', 'Q2', 'Q3', 'Q4', 'HT', 'OT', 'LIVE', 'BP', 'BT'];
 
         return [
-            'live' => self::mapBasketball((clone $base)->whereIn('status_short', $liveStatuses)->whereDate('game_date', today())->orderBy('game_date')->take(6)->get()),
+            'live' => self::mapBasketball((clone $base)->whereIn('status_short', $liveStatuses)->where(fn ($q) => MatchTime::onDay($q, 'game_date', MatchTime::today()->toDateString()))->orderBy('game_date')->take(6)->get()),
             'upcoming' => self::mapBasketball((clone $base)->whereIn('status_short', ['NS', 'TBD'])->where('game_date', '>=', now())->orderBy('game_date')->take(6)->get()),
             'recent' => self::mapBasketball((clone $base)->whereIn('status_short', ['FT', 'AOT'])->where('game_date', '<=', now())->orderByDesc('game_date')->take(6)->get()),
         ];
@@ -50,7 +50,7 @@ class SeoHubData
         $finished = ['Finished', 'Retired', 'Walkover', 'Default', 'FT'];
 
         return [
-            'live' => self::mapTennis((clone $base)->whereIn('status', $liveStatuses)->whereDate('match_date', today())->orderBy('match_date')->take(6)->get()),
+            'live' => self::mapTennis((clone $base)->whereIn('status', $liveStatuses)->where(fn ($q) => MatchTime::onDay($q, 'match_date', MatchTime::today()->toDateString()))->orderBy('match_date')->take(6)->get()),
             'upcoming' => self::mapTennis((clone $base)->whereIn('status', ['Not Started', 'NS'])->where('match_date', '>=', now())->orderBy('match_date')->take(6)->get()),
             'recent' => self::mapTennis((clone $base)->whereIn('status', $finished)->where('match_date', '<=', now())->orderByDesc('match_date')->take(6)->get()),
         ];

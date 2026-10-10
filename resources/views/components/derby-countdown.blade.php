@@ -16,7 +16,7 @@ foreach ($derbies as [$homeId, $awayId, $name]) {
             });
         })
         ->where('status_short', 'NS')
-        ->where('kick_off', '>=', now())
+        ->where('kick_off', '>', now('UTC'))
         ->orderBy('kick_off')
         ->first();
     if ($f) {
@@ -27,16 +27,27 @@ foreach ($derbies as [$homeId, $awayId, $name]) {
 @endphp
 
 @if($nextDerby)
-@php $kickoff = \Carbon\Carbon::parse($nextDerby['fixture']->kick_off); @endphp
+@php $kickoff = \App\Support\MatchTime::local($nextDerby['fixture']->kick_off); @endphp
 <div class="bg-gradient-to-r from-[#1a1a1a] to-[#222] border border-[#CCFF00] border-opacity-30 rounded-xl p-4 mb-4"
      x-data="{
-        diff: {{ $kickoff->diffInSeconds(now()) }},
+        kickoffMs: {{ $kickoff->getTimestamp() * 1000 }},
+        diff: 0,
+        timer: null,
+        tick() { this.diff = Math.max(0, Math.ceil((this.kickoffMs - Date.now()) / 1000)) },
+        init() {
+            this.tick();
+            if (this.diff > 0) this.timer = setInterval(() => {
+                this.tick();
+                if (this.diff === 0) { clearInterval(this.timer); this.timer = null }
+            }, 1000);
+        },
+        destroy() { clearInterval(this.timer) },
         get days() { return Math.floor(this.diff / 86400) },
         get hours() { return Math.floor((this.diff % 86400) / 3600) },
         get mins() { return Math.floor((this.diff % 3600) / 60) },
         get secs() { return this.diff % 60 },
      }"
-     x-init="setInterval(() => { if(diff > 0) diff-- }, 1000)">
+     x-cloak x-show="diff > 0">
     <div class="text-xs font-bold text-[#CCFF00] uppercase tracking-wider mb-2">{{ $nextDerby['name'] }}</div>
     <div class="text-xs text-gray-500 mb-3">{{ $kickoff->format('d.m.Y H:i') }} &bull; {{ $nextDerby['fixture']->league?->name }}</div>
     <div class="flex gap-2">

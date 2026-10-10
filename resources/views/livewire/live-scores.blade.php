@@ -85,7 +85,7 @@
 
         @foreach([$prevDate, $selectedDate, $nextDate] as $d)
             @php
-                $carbon = \Carbon\Carbon::parse($d)->locale('hr');
+                $carbon = \Carbon\Carbon::parse($d, \App\Support\MatchTime::ZONE)->locale('hr');
                 $dayLabel = strtoupper($carbon->isoFormat('D/MM dd'));
             @endphp
             <button wire:click="setDate('{{ $d }}')"
@@ -197,7 +197,7 @@
                             $isFT   => 'FT',
                             $isHT   => 'HT',
                             $isLive => ($fixture['status_label'] ?? $statusShort),
-                            $statusShort === 'NS' => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                            $statusShort === 'NS' => (isset($fixture['kick_off']) ? \App\Support\MatchTime::local($fixture['kick_off'])->format('H:i') : '--:--'),
                             default => $fixture['status_label'] ?? $statusShort,
                         };
                         $dataStatus = ($isLive || $isHT) ? 'uzivo' : ($isFT ? 'zavrseno' : 'zakazano');
@@ -209,7 +209,7 @@
                         $statusDisplay = match(true) {
                             $isFT   => 'FT',
                             $isLive => 'LIVE',
-                            default => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                            default => (isset($fixture['kick_off']) ? \App\Support\MatchTime::local($fixture['kick_off'])->format('H:i') : '--:--'),
                         };
                         $dataStatus = $isLive ? 'uzivo' : ($isFT ? 'zavrseno' : 'zakazano');
                     } else {
@@ -223,7 +223,7 @@
                             $statusShort === 'HT' => 'HT',
                             in_array($statusShort, ['PST','CANC','ABD','SUSP','INT']) => 'OTK',
                             in_array($statusShort, ['1H','2H','ET','BT','P','LIVE']) => ($fixture['elapsed_minute'] ?? '?') . "'",
-                            default => (isset($fixture['kick_off']) ? \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') : '--:--'),
+                            default => (isset($fixture['kick_off']) ? \App\Support\MatchTime::local($fixture['kick_off'])->format('H:i') : '--:--'),
                         };
                         $dataStatus = ($isLive || $isHT) ? 'uzivo' : ($isFT ? 'zavrseno' : 'zakazano');
                     }

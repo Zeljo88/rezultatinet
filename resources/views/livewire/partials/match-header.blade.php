@@ -31,7 +31,7 @@
                     <span class="block text-xs text-gray-500 mt-1">Poluvrijeme: {{ $score->home_halftime }} - {{ $score->away_halftime }}</span>
                 @endif
             @else
-                <span class="block text-3xl font-black text-gray-500">{{ \Carbon\Carbon::parse($fixture->kick_off)->format('H:i') }}</span>
+                <span class="block text-3xl font-black text-gray-500">{{ \App\Support\MatchTime::local($fixture->kick_off)->format('H:i') }}</span>
             @endif
             <span class="block mt-2">
                 @if($isLive)
@@ -43,7 +43,7 @@
                 @elseif($isFT)
                     <span class="text-gray-400 text-sm">Kraj utakmice</span>
                 @else
-                    <span class="text-gray-500 text-xs">{{ \Carbon\Carbon::parse($fixture->kick_off)->format('d.m.Y') }}</span>
+                    <span class="text-gray-500 text-xs">{{ \App\Support\MatchTime::local($fixture->kick_off)->format('d.m.Y') }}</span>
                 @endif
             </span>
         </span>

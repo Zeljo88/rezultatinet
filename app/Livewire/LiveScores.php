@@ -5,6 +5,7 @@ use App\Models\Fixture;
 use App\Models\BasketballGame;
 use App\Models\TennisMatch;
 use Carbon\Carbon;
+use App\Support\MatchTime;
 use Livewire\Component;
 use Livewire\Attributes\On;
 
@@ -36,11 +37,11 @@ class LiveScores extends Component
     {
         $this->tab          = $initialTab;
         $this->sport        = $sport;
-        $todayUtc = Carbon::now('UTC')->startOfDay();
+        $todayLocal = MatchTime::today();
         $this->selectedDate = match ($initialTab) {
-            'tomorrow' => $todayUtc->copy()->addDay()->toDateString(),
-            'yesterday' => $todayUtc->copy()->subDay()->toDateString(),
-            default => $todayUtc->toDateString(),
+            'tomorrow' => $todayLocal->copy()->addDay()->toDateString(),
+            'yesterday' => $todayLocal->copy()->subDay()->toDateString(),
+            default => $todayLocal->toDateString(),
         };
         $this->sportAvailable = true;
         $this->loadFixtures();
@@ -50,19 +51,22 @@ class LiveScores extends Component
 
     public function getPrevDate(): string
     {
-        return Carbon::parse($this->selectedDate)->subDay()->toDateString();
+        return Carbon::parse($this->selectedDate, MatchTime::ZONE)->subDay()->toDateString();
     }
 
     public function getNextDate(): string
     {
-        return Carbon::parse($this->selectedDate)->addDay()->toDateString();
+        return Carbon::parse($this->selectedDate, MatchTime::ZONE)->addDay()->toDateString();
     }
 
     public function setDate(string $date): void
     {
-        $d = Carbon::parse($date);
-        $min = Carbon::now('UTC')->startOfDay()->subDays(3);
-        $max = Carbon::now('UTC')->startOfDay()->addDays(7);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date) || !checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4))) {
+            return;
+        }
+        $d = Carbon::parse($date, MatchTime::ZONE);
+        $min = MatchTime::today()->subDays(3);
+        $max = MatchTime::today()->addDays(7);
         if ($d->between($min, $max)) {
             $this->selectedDate = $date;
             $this->loadFixtures();
@@ -83,7 +87,7 @@ class LiveScores extends Component
         return Fixture::with(['homeTeam', 'awayTeam', 'score', 'league'])
             ->join('leagues', 'fixtures.league_id', '=', 'leagues.id')
             ->select('fixtures.*')
-            ->whereDate('fixtures.kick_off', $this->selectedDate)
+            ->where(fn ($q) => MatchTime::onDay($q, 'fixtures.kick_off', $this->selectedDate))
             ->orderByRaw('CASE leagues.api_league_id ' . collect($this->priorityLeagues)->map(fn ($id, $index) => 'WHEN ' . (int) $id . ' THEN ' . ($index + 1))->implode(' ') . ' ELSE 999 END ASC')
             ->orderBy('fixtures.kick_off');
     }
@@ -111,7 +115,7 @@ class LiveScores extends Component
     protected function getBasketballCounts(): array
     {
         $liveStatuses = ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'];
-        $base = BasketballGame::whereDate('game_date', $this->selectedDate);
+        $base = BasketballGame::query()->where(fn ($q) => MatchTime::onDay($q, 'game_date', $this->selectedDate));
         return [
             'all'      => (clone $base)->count(),
             'live'     => (clone $base)->whereIn('status_short', $liveStatuses)->count(),
@@ -123,7 +127,7 @@ class LiveScores extends Component
     protected function getTennisCounts(): array
     {
         $liveStatuses = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
-        $base = TennisMatch::whereDate('match_date', $this->selectedDate);
+        $base = TennisMatch::query()->where(fn ($q) => MatchTime::onDay($q, 'match_date', $this->selectedDate));
         return [
             'all'      => (clone $base)->count(),
             'live'     => (clone $base)->whereIn('status', $liveStatuses)->count(),
@@ -308,7 +312,7 @@ class LiveScores extends Component
         $liveStatuses = ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'];
         $ftStatuses   = ['FT','AOT'];
 
-        $query = BasketballGame::whereDate('game_date', $this->selectedDate)
+        $query = BasketballGame::query()->where(fn ($q) => MatchTime::onDay($q, 'game_date', $this->selectedDate))
             ->orderBy('game_date');
 
         $grouped = [];
@@ -339,7 +343,7 @@ class LiveScores extends Component
         $liveStatuses     = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
         $finishedStatuses = ['Finished','Retired','Walkover','Default','FT'];
 
-        $query = TennisMatch::whereDate('match_date', $this->selectedDate)
+        $query = TennisMatch::query()->where(fn ($q) => MatchTime::onDay($q, 'match_date', $this->selectedDate))
             ->orderBy('match_date');
 
         $grouped = [];

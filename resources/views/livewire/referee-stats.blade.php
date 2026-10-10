@@ -77,7 +77,7 @@
         @foreach($recentMatches as $i => $match)
         <a href="/utakmica/{{ $match['id'] }}"
            class="flex items-center gap-3 px-4 py-3 hover:bg-[#222] transition border-b border-[#2a2a2a] last:border-0 cursor-pointer {{ $i % 2 === 0 ? 'bg-[#0f0f0f]' : 'bg-[#161616]' }}">
-            <div class="w-20 flex-shrink-0 text-xs text-gray-500">{{ \Carbon\Carbon::parse($match['kick_off'])->format('d.m.Y') }}</div>
+            <div class="w-20 flex-shrink-0 text-xs text-gray-500">{{ \App\Support\MatchTime::local($match['kick_off'])->format('d.m.Y') }}</div>
             <div class="flex-1 flex items-center gap-2 justify-end">
                 <span class="text-sm text-gray-300">{{ $match['home_team_name'] }}</span>
             </div>

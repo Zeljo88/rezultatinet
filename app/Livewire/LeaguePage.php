@@ -116,11 +116,11 @@ class LeaguePage extends Component
             ->orderBy('kick_off', 'desc');
 
         if ($this->tab === 'today') {
-            $query->whereDate('kick_off', today());
+            $query->where(fn ($q) => \App\Support\MatchTime::onDay($q, 'kick_off', \App\Support\MatchTime::today()->toDateString()));
         } elseif ($this->tab === 'yesterday') {
-            $query->whereDate('kick_off', today()->subDay());
+            $query->where(fn ($q) => \App\Support\MatchTime::onDay($q, 'kick_off', \App\Support\MatchTime::today()->subDay()->toDateString()));
         } elseif ($this->tab === 'tomorrow') {
-            $query->whereDate('kick_off', today()->addDay());
+            $query->where(fn ($q) => \App\Support\MatchTime::onDay($q, 'kick_off', \App\Support\MatchTime::today()->addDay()->toDateString()));
         } else {
             $query->whereBetween("kick_off", [now()->subDays(7), now()])->whereIn("status_short", ["FT","AET","PEN","PST","CANC"]);
         }
@@ -303,7 +303,7 @@ class LeaguePage extends Component
         // SportsEvent schema for today's scheduled fixtures
         $todayFixtures = Fixture::with(['homeTeam', 'awayTeam'])
             ->where('league_id', $this->league->id)
-            ->whereDate('kick_off', today())
+            ->where(fn ($q) => \App\Support\MatchTime::onDay($q, 'kick_off', \App\Support\MatchTime::today()->toDateString()))
             ->whereIn('status_short', ['NS', 'TBD', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE'])
             ->orderBy('kick_off')
             ->take(10)

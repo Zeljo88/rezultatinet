@@ -140,7 +140,7 @@ class MatchDetail extends Component
         $homeTeam = $this->fixture->homeTeam?->name ?? '';
         $awayTeam = $this->fixture->awayTeam?->name ?? '';
         $datum    = $this->fixture->kick_off
-            ? \Carbon\Carbon::parse($this->fixture->kick_off)->format('d.m.Y')
+            ? \App\Support\MatchTime::local($this->fixture->kick_off)->format('d.m.Y')
             : '';
 
         if ($this->isFinished()) {

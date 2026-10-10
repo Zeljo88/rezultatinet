@@ -92,7 +92,7 @@
                             $formChars = str_split($row['form'] ?? '');
                             $nextMatch = isset($row["team_id"]) ? ($nextMatches[$row["team_id"]] ?? null) : null;
                             if ($nextMatch) {
-                                $ko = $nextMatch['kick_off'];
+                                $ko = \App\Support\MatchTime::local($nextMatch['kick_off']);
                                 $days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
                                 $dayAbbr = ['Ned','Pon','Uto','Sri','Čet','Pet','Sub'];
                                 $dow = $dayAbbr[(int)$ko->format('w')];

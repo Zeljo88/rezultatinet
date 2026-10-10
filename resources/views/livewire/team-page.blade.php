@@ -53,12 +53,12 @@
                             {{ $fixture['result'] }}
                         </span>
                     @else
-                        <span class="text-gray-500 text-xs">{{ \Carbon\Carbon::parse($fixture['kick_off'])->format('H:i') }}</span>
+                        <span class="text-gray-500 text-xs">{{ \App\Support\MatchTime::local($fixture['kick_off'])->format('H:i') }}</span>
                     @endif
                 </div>
                 <div class="w-28 flex-shrink-0 px-2">
                     <div class="text-[10px] text-gray-500 truncate">{{ $fixture['league_name'] }}</div>
-                    <div class="text-[10px] text-gray-600">{{ \Carbon\Carbon::parse($fixture['kick_off'])->format('d.m.Y') }}</div>
+                    <div class="text-[10px] text-gray-600">{{ \App\Support\MatchTime::local($fixture['kick_off'])->format('d.m.Y') }}</div>
                 </div>
                 <div class="flex-1 flex items-center px-2">
                     <div class="flex-1 flex items-center justify-end gap-2 pr-3">

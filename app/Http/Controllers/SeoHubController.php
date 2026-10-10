@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BasketballGame;
+use App\Support\MatchTime;
 use App\Support\SeoHubData;
 use Carbon\Carbon;
 use Illuminate\View\View;
@@ -30,7 +31,7 @@ class SeoHubController extends Controller
     public function today(): View
     {
         return view('seo.today', [
-            'dateLabel' => $this->dateLabel(today()),
+            'dateLabel' => $this->dateLabel(today(MatchTime::ZONE)),
             'football' => SeoHubData::footballWindows(),
             'basketball' => SeoHubData::basketballWindows(),
             'tennis' => SeoHubData::tennisWindows(),
