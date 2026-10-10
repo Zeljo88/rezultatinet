@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\ApiFootballQuotaStore;
 use App\Jobs\FetchLiveFixtures;
+use App\Jobs\FinalizeFinishedFixtures;
+use App\Jobs\FixZombieFixtures;
 use App\Models\Fixture;
 use App\Models\FixtureScore;
 use App\Services\ApiFootball\ApiFootballGateway;
@@ -57,7 +60,7 @@ class StaleFixturePersistenceTest extends TestCase
         $this->journalPath = sys_get_temp_dir().'/stale-test-audit-'.bin2hex(random_bytes(8));
         $this->journal = new StaleFixtureJournal($this->journalPath, true);
         $this->identity = array_values(array_filter((new StaleFixturePolicy)->cohort(), fn ($i) => $i['api_fixture_id'] === 1640498))[0];
-        $this->seed($this->identity);
+        $this->seedStaleIdentity($this->identity);
         $factory = Mockery::mock(Factory::class);
         $factory->shouldReceive('event')->andReturnUsing(function ($event): PendingBroadcast {
             $this->broadcasts[] = $event;
@@ -179,6 +182,216 @@ class StaleFixturePersistenceTest extends TestCase
         $this->assertNull(FixtureScore::where('fixture_id', $this->identity['id'])->value('goals_home'));
     }
 
+    public function test_earlier_terminal_phase_cannot_erase_penalty_result(): void
+    {
+        DB::table('fixtures')->where('id', $this->identity['id'])->update(['status_short' => 'PEN', 'elapsed_minute' => 120]);
+        DB::table('fixture_scores')->where('fixture_id', $this->identity['id'])->update(['goals_home' => 2, 'goals_away' => 2, 'home_penalties' => 5, 'away_penalties' => 4]);
+        $before = $this->snapshot();
+        $this->live($this->retained());
+        $this->assertSame($before, $this->snapshot());
+        $this->assertSame([], $this->broadcasts);
+    }
+
+    public function test_all_selected_repair_writers_preserve_intervening_score_only_changes(): void
+    {
+        foreach (['finalizer', 'zombie', 'manual'] as $writer) {
+            DB::table('fixtures')->where('id', $this->identity['id'])->update(['status_short' => '2H', 'elapsed_minute' => 90, 'kick_off' => '2026-10-10 05:00:00', 'updated_at' => '2026-10-10 06:00:00']);
+            DB::table('fixture_scores')->where('fixture_id', $this->identity['id'])->update(['goals_home' => 1, 'goals_away' => 1]);
+            $before = $this->snapshot();
+            $quota = Mockery::mock(ApiFootballQuotaStore::class);
+            $quota->shouldReceive('repairScanState')->andReturn(null);
+            $quota->shouldReceive('compareAndSetRepairScanState')->andReturn(true);
+            $quota->shouldReceive('acquireRepair')->andReturn(true);
+            $quota->shouldReceive('releaseRepair')->once()->with($this->identity['id']);
+            $quota->shouldNotReceive('recordRepair');
+            $api = Mockery::mock(ApiFootballService::class);
+            $api->shouldReceive('getFixtureById')->once()->andReturnUsing(function (): array {
+                DB::table('fixture_scores')->where('fixture_id', $this->identity['id'])->update(['goals_home' => 3]);
+
+                return $this->retained();
+            });
+            if ($writer === 'finalizer') {
+                (new FinalizeFinishedFixtures)->handle($api, $quota);
+            } elseif ($writer === 'zombie') {
+                (new FixZombieFixtures)->handle($api, $quota);
+            } else {
+                $this->app->instance(ApiFootballService::class, $api);
+                $this->app->instance(ApiFootballQuotaStore::class, $quota);
+                $this->artisan('sync:fix-stuck')->assertSuccessful();
+            }
+            $after = $this->snapshot();
+            $this->assertSame($before['fixture'], $after['fixture'], $writer);
+            $this->assertSame(3, (int) $after['score']['goals_home'], $writer);
+        }
+    }
+
+    public function test_cursor_reaches_last_identity_despite_one_hundred_cooldowns(): void
+    {
+        $cohort = (new StaleFixturePolicy)->cohort();
+        $last = $cohort[110];
+        $this->seedStaleIdentity($last);
+        foreach (array_slice($cohort, 0, 110) as $identity) {
+            $this->journal->append(['type' => 'outcome', 'id' => $identity['id'], 'retry' => ['next_at' => time() + 7200]]);
+        }
+        $gateway = Mockery::mock(ApiFootballGateway::class);
+        $gateway->shouldReceive('get')->once()->withArgs(function ($path, $query, $class, $caller, $claim) use ($last): bool {
+            return $query === ['id' => $last['api_fixture_id']] && $class === 'fixture_repair' && $claim();
+        })->andReturn([]);
+        $service = new StaleFixtureReconciler(new StaleFixturePolicy, $gateway);
+        $first = $service->run($this->journal);
+        $this->assertSame(100, $first['inspected']);
+        $this->assertSame(0, $first['reserved_attempts']);
+        $this->assertSame(100, $this->journal->state['cursor']);
+        unset($this->journal);
+        $this->journal = new StaleFixtureJournal($this->journalPath);
+        $second = $service->run($this->journal);
+        $this->assertSame(1, $second['reserved_attempts']);
+        $this->assertSame(1, $second['outcomes']['empty']);
+        $this->assertSame(89, $this->journal->state['cursor']);
+    }
+
+    public function test_actual_gateway_retries_share_five_run_twenty_daily_and_do_not_churn_rows(): void
+    {
+        $cohort = (new StaleFixturePolicy)->cohort();
+        foreach ($cohort as $identity) {
+            $this->seedStaleIdentity($identity);
+        }
+        config()->set('api_football.retry_base_ms', 0);
+        $quota = Mockery::mock(ApiFootballQuotaStore::class);
+        $quota->shouldReceive('reserve')->times(20)->with('fixture_repair', StaleFixturePolicy::CALLER)->andReturn(['allowed' => true]);
+        $quota->shouldReceive('record')->times(20);
+        $calls = 0;
+        Http::fake(function ($request) use (&$calls, $cohort) {
+            $calls++;
+            if ($calls === 1) {
+                return Http::response([], 500);
+            }
+            parse_str(parse_url($request->url(), PHP_URL_QUERY), $query);
+            $i = array_values(array_filter($cohort, fn ($v) => $v['api_fixture_id'] === (int) $query['id']))[0];
+            $row = $this->retained();
+            $row['fixture']['id'] = $i['api_fixture_id'];
+            $row['league'] = ['id' => $i['api_league_id'], 'season' => $i['season']];
+            $row['teams'] = ['home' => ['id' => $i['home_api_id']], 'away' => ['id' => $i['away_api_id']]];
+            $row['fixture']['date'] = '2026-10-02T12:00:00+00:00';
+            $row['fixture']['timestamp'] = strtotime($row['fixture']['date']);
+            $row['fixture']['status'] = ['short' => 'NS', 'long' => 'Not Started', 'elapsed' => null, 'extra' => null];
+            $row['goals'] = ['home' => null, 'away' => null];
+            foreach ($row['score'] as &$pair) {
+                $pair = ['home' => null, 'away' => null];
+            }
+
+            return Http::response(['errors' => [], 'results' => 1, 'paging' => ['current' => 1, 'total' => 1], 'response' => [$row]]);
+        });
+        $service = new StaleFixtureReconciler(new StaleFixturePolicy, new ApiFootballGateway($quota));
+        for ($run = 0; $run < 4; $run++) {
+            $result = $service->run($this->journal);
+            $this->assertSame(5, $result['reserved_attempts']);
+            $this->assertNull($result['stop']);
+            $this->assertSame($run === 0 ? 4 : 5, $result['outcomes']['unchanged']);
+            unset($this->journal);
+            $this->journal = new StaleFixtureJournal($this->journalPath);
+        }
+        $this->assertSame('local_or_daily_limit', $service->run($this->journal)['stop']);
+        $this->assertSame(20, $calls);
+        $this->assertSame(20, array_sum($this->journal->state['days']));
+        $this->assertSame(111, DB::table('fixtures')->where('updated_at', '2026-10-01 11:51:53')->count());
+        Http::assertSentCount(20);
+    }
+
+    public function test_reconciliation_score_failure_rolls_back_and_audit_reopen_keeps_reserved_attempt(): void
+    {
+        $before = $this->snapshot();
+        $this->assertTrue($this->journal->claim($this->identity['id']));
+        FixtureScore::updating(function (): void {
+            throw new \RuntimeException('synthetic_score_failure');
+        });
+        try {
+            $this->reconciler()->apply($this->identity, $before, (new StaleFixturePolicy)->response([$this->retained()], $this->identity), hrtime(true) / 1e9, $this->journal);
+            $this->fail('Expected score failure');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('synthetic_score_failure', $e->getMessage());
+        }
+        $this->assertSame($before, $this->snapshot());
+        unset($this->journal);
+        $this->journal = new StaleFixtureJournal($this->journalPath);
+        $this->assertSame(1, array_sum($this->journal->state['days']));
+        $this->assertGreaterThan(time(), $this->journal->state['rows'][$this->identity['id']]['next_at']);
+    }
+
+    public function test_dormant_date_writer_preserves_null_scores_and_rejects_terminal_regression(): void
+    {
+        Schema::table('teams', function (Blueprint $table): void {
+            $table->string('logo_url')->nullable();
+        });
+        Schema::table('fixtures', function (Blueprint $table): void {
+            foreach (['round', 'venue_name', 'referee'] as $name) {
+                $table->string($name)->nullable();
+            }
+        });
+        $row = $this->retained();
+        $row['teams']['home']['name'] = 'Synthetic Home';
+        $row['teams']['away']['name'] = 'Synthetic Away';
+        $row['fixture']['status'] = ['short' => 'NS', 'long' => 'Not Started', 'elapsed' => null, 'extra' => null];
+        $row['goals'] = ['home' => null, 'away' => null];
+        foreach ($row['score'] as &$pair) {
+            $pair = ['home' => null, 'away' => null];
+        }
+        unset($pair);
+        $api = Mockery::mock(ApiFootballService::class);
+        $api->shouldReceive('getFixturesByDate')->twice()->andReturn([$row]);
+        $this->app->instance(ApiFootballService::class, $api);
+        $this->artisan('sync:fixtures')->assertSuccessful();
+        foreach (StaleFixturePolicy::SCORE_FIELDS as $field) {
+            $this->assertNull($this->snapshot()['score'][$field], $field);
+        }
+        DB::table('fixtures')->where('id', $this->identity['id'])->update(['status_short' => 'CANC']);
+        $before = $this->snapshot();
+        $this->artisan('sync:fixtures')->assertSuccessful();
+        $this->assertSame($before, $this->snapshot());
+    }
+
+    public function test_ns_and_pst_review_delays_do_not_invent_terminal_status(): void
+    {
+        foreach (['NS' => [7200, 14400, 28800, 57600], 'PST' => [86400, 259200, 604800]] as $status => $delays) {
+            DB::table('fixtures')->where('id', $this->identity['id'])->update(['status_short' => $status, 'status_long' => $status]);
+            $row = $this->retained();
+            $row['fixture']['date'] = '2026-10-02T12:00:00+00:00';
+            $row['fixture']['timestamp'] = strtotime($row['fixture']['date']);
+            $row['fixture']['status'] = ['short' => $status, 'long' => $status, 'elapsed' => null, 'extra' => null];
+            $row['goals'] = ['home' => null, 'away' => null];
+            foreach ($row['score'] as &$pair) {
+                $pair = ['home' => null, 'away' => null];
+            }
+            unset($pair);
+            $quota = Mockery::mock(ApiFootballQuotaStore::class);
+            $quota->shouldReceive('reserve')->times(count($delays))->andReturn(['allowed' => true]);
+            $quota->shouldReceive('record')->times(count($delays));
+            Http::swap(new \Illuminate\Http\Client\Factory);
+            Http::preventStrayRequests();
+            Http::fake(['*' => Http::response(['errors' => [], 'results' => 1, 'paging' => ['current' => 1, 'total' => 1], 'response' => [$row]])]);
+            $gateway = new ApiFootballGateway($quota);
+            $service = new StaleFixtureReconciler(new StaleFixturePolicy, $gateway);
+            $cursor = array_search($this->identity['id'], array_column((new StaleFixturePolicy)->cohort(), 'id'));
+            foreach ($delays as $observation => $delay) {
+                unset($this->journal);
+                $this->journal = new StaleFixtureJournal($this->journalPath);
+                $this->journal->append(['type' => 'inspect', 'cursor' => $cursor]);
+                $this->journal->append(['type' => 'outcome', 'id' => $this->identity['id'], 'retry' => ['observations' => $observation, 'next_at' => 0]]);
+                $at = time();
+                $this->assertSame(1, $service->run($this->journal)['outcomes']['unchanged']);
+                $retry = $this->journal->state['rows'][$this->identity['id']];
+                $this->assertSame($observation + 1, $retry['observations']);
+                $this->assertGreaterThanOrEqual($at + $delay, $retry['next_at']);
+                $this->assertLessThanOrEqual(time() + $delay, $retry['next_at']);
+                $this->assertSame($observation === count($delays) - 1, $retry['review']);
+            }
+            $this->assertSame($status === 'PST' ? 'postponed_unresolved' : 'needs_review', $retry['disposition']);
+            $this->journal->append(['type' => 'inspect', 'cursor' => $cursor]);
+            $this->assertSame(0, $service->run($this->journal)['outcomes']['unchanged'] ?? 0);
+            $this->assertSame($status, $this->snapshot()['fixture']['status_short']);
+        }
+    }
+
     protected function reconciler(): StaleFixtureReconciler
     {
         $gateway = Mockery::mock(ApiFootballGateway::class);
@@ -214,17 +427,17 @@ class StaleFixturePersistenceTest extends TestCase
         (new FetchLiveFixtures)->handle($api);
     }
 
-    private function seed(array $i): void
+    private function seedStaleIdentity(array $i): void
     {
-        DB::table('leagues')->insert(['id' => $i['league_id'], 'api_league_id' => $i['api_league_id'], 'name' => 'Synthetic', 'sport' => 'football']);
-        DB::table('teams')->insert([
+        DB::table('leagues')->insertOrIgnore(['id' => $i['league_id'], 'api_league_id' => $i['api_league_id'], 'name' => 'Synthetic', 'sport' => 'football']);
+        DB::table('teams')->insertOrIgnore([
             ['id' => $i['home_team_id'], 'api_team_id' => $i['home_api_id'], 'name' => 'Synthetic Home'],
             ['id' => $i['away_team_id'], 'api_team_id' => $i['away_api_id'], 'name' => 'Synthetic Away'],
         ]);
-        DB::table('fixtures')->insert(array_intersect_key($i, array_flip(['id', 'api_fixture_id', 'league_id', 'home_team_id', 'away_team_id', 'season'])) + [
+        DB::table('fixtures')->insertOrIgnore(array_intersect_key($i, array_flip(['id', 'api_fixture_id', 'league_id', 'home_team_id', 'away_team_id', 'season'])) + [
             'kick_off' => '2026-10-02 12:00:00', 'status_short' => 'NS', 'status_long' => 'Not Started', 'created_at' => '2026-10-01 11:51:53', 'updated_at' => '2026-10-01 11:51:53',
         ]);
-        DB::table('fixture_scores')->insert(['id' => $i['score_id'], 'fixture_id' => $i['id'], 'created_at' => '2026-10-01 11:51:53']);
+        DB::table('fixture_scores')->insertOrIgnore(['id' => $i['score_id'], 'fixture_id' => $i['id'], 'created_at' => '2026-10-01 11:51:53']);
     }
 
     private function schema(): void

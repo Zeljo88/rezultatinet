@@ -132,6 +132,10 @@ final class StaleFixtureReconciler
                 return 'unchanged';
             }
             $journal->guard();
+            // Related identity locks can also wait; freshness must hold at the write boundary.
+            if (hrtime(true) / 1e9 - $requestStarted > 120) {
+                return 'response_expired';
+            }
             if ($fixture->isDirty()) {
                 $fixture->save();
             }

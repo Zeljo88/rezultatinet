@@ -21,7 +21,7 @@ final class StaleFixtureTestDatabase
         // secret env, TCP endpoint, or inherited database URL is used.
         config()->set('database.connections.stale_test', [
             'driver' => 'mysql', 'unix_socket' => $socket, 'host' => 'localhost',
-            'database' => $database, 'username' => get_current_user(), 'password' => '',
+            'database' => $database, 'username' => posix_getpwuid(posix_geteuid())['name'], 'password' => '',
             'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'prefix' => '', 'strict' => true,
         ]);
         config()->set('database.default', 'stale_test');

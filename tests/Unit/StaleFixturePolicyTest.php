@@ -110,5 +110,11 @@ class StaleFixturePolicyTest extends TestCase
         $this->assertTrue(FootballFixtureStatus::canPersistLive('2H', '2H', 70, 70));
         $this->assertTrue(FootballFixtureStatus::canPersistLive('2H', 'FT', 89, 90));
         $this->assertTrue(FootballFixtureStatus::canPersistLive('PST', 'NS', null, null));
+        foreach ([['PEN', 'FT'], ['PEN', 'AET'], ['AET', 'FT'], ['ET', 'FT'], ['P', 'FT']] as [$current, $incoming]) {
+            $this->assertFalse(FootballFixtureStatus::canPersistLive($current, $incoming, 120, 120));
+        }
+        $this->assertFalse(FootballFixtureStatus::canPersistLive('NS', 'UNKNOWN', null, null));
+        $this->assertTrue(FootballFixtureStatus::canPersistLive('NS', 'CANC', null, null));
+        $this->assertTrue(FootballFixtureStatus::canPersistLive('FT', 'FT', 90, 90));
     }
 }

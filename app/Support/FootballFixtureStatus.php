@@ -52,10 +52,14 @@ final class FootballFixtureStatus
         $current = self::normalize($current);
         $incoming = self::normalize($incoming);
         $prematch = ['NS', 'TBD', 'PST'];
+        if (! in_array($incoming, [...$prematch, ...self::TERMINAL, '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'], true)) {
+            return false;
+        }
         if ($current !== null && ! in_array($current, $prematch, true) && in_array($incoming, $prematch, true)) {
             return false;
         }
-        $phase = ['1H' => 1, 'HT' => 2, '2H' => 3, 'ET' => 4, 'BT' => 4, 'P' => 5];
+        // Completed phases still have an order: a delayed FT must not erase ET/penalties.
+        $phase = ['1H' => 1, 'HT' => 2, '2H' => 3, 'FT' => 3, 'ET' => 4, 'BT' => 4, 'AET' => 4, 'P' => 5, 'PEN' => 5];
         if (isset($phase[$current], $phase[$incoming]) && $phase[$incoming] < $phase[$current]) {
             return false;
         }

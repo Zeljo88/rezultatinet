@@ -93,6 +93,8 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
 
             $checked++;
             $providerAttemptsBefore = $providerAttemptsRemaining;
+            // Preserve score-only changes made while the provider request is in flight.
+            $selectedScore = FixtureScore::where('fixture_id', $fixture->id)->first()?->getRawOriginal();
             try {
                 $data = $api->getFixtureById(
                     $fixture->api_fixture_id,
@@ -145,13 +147,16 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            $persisted = DB::transaction(function () use ($fixture, $data, $status): bool {
+            $persisted = DB::transaction(function () use ($fixture, $selectedScore, $data, $status): bool {
                 $locked = Fixture::whereKey($fixture->id)->lockForUpdate()->first();
                 if (! $locked || $locked->getRawOriginal() !== $fixture->getRawOriginal()
                     || ! FootballFixtureStatus::canPersistLive($locked->status_short, $data['fixture']['status']['short'] ?? null, $locked->elapsed_minute, $data['fixture']['status']['elapsed'] ?? null)) {
                     return false;
                 }
-                FixtureScore::where('fixture_id', $locked->id)->lockForUpdate()->first();
+                $lockedScore = FixtureScore::where('fixture_id', $locked->id)->lockForUpdate()->first();
+                if ($lockedScore?->getRawOriginal() !== $selectedScore) {
+                    return false;
+                }
                 $fixture = $locked;
                 $fixture->update([
                     'status_short' => $status,

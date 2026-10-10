@@ -31,6 +31,8 @@ class SyncFixStuck extends Command
             if (! $quota->acquireRepair($fixture->id, 'SyncFixStuck')) {
                 continue;
             }
+            // Preserve score-only changes made while the provider request is in flight.
+            $selectedScore = FixtureScore::where('fixture_id', $fixture->id)->first()?->getRawOriginal();
             try {
                 $data = $api->getFixtureById($fixture->api_fixture_id, 'SyncFixStuck', 'manual');
             } catch (ApiFootballBlocked $e) {
@@ -44,13 +46,16 @@ class SyncFixStuck extends Command
 
                 continue;
             }
-            $persisted = DB::transaction(function () use ($fixture, $data): bool {
+            $persisted = DB::transaction(function () use ($fixture, $selectedScore, $data): bool {
                 $locked = Fixture::whereKey($fixture->id)->lockForUpdate()->first();
                 if (! $locked || $locked->getRawOriginal() !== $fixture->getRawOriginal()
                     || ! FootballFixtureStatus::canPersistLive($locked->status_short, $data['fixture']['status']['short'] ?? null, $locked->elapsed_minute, $data['fixture']['status']['elapsed'] ?? null)) {
                     return false;
                 }
-                FixtureScore::where('fixture_id', $locked->id)->lockForUpdate()->first();
+                $lockedScore = FixtureScore::where('fixture_id', $locked->id)->lockForUpdate()->first();
+                if ($lockedScore?->getRawOriginal() !== $selectedScore) {
+                    return false;
+                }
                 $fixture = $locked;
                 $fixture->update(['status_short' => $data['fixture']['status']['short'] ?? null,
                     'status_long' => $data['fixture']['status']['long'] ?? null, 'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null]);

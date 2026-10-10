@@ -90,8 +90,8 @@ class SyncFixtures extends Command
                             'goals_away' => $data['goals']['away'],
                             'home_fulltime' => $data['score']['fulltime']['home'],
                             'away_fulltime' => $data['score']['fulltime']['away'],
-                            'home_halftime' => $data['score']['halftime']['home'] ?? 0,
-                            'away_halftime' => $data['score']['halftime']['away'] ?? 0,
+                            'home_halftime' => $data['score']['halftime']['home'] ?? null,
+                            'away_halftime' => $data['score']['halftime']['away'] ?? null,
                         ]
                     );
                 }
