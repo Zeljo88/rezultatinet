@@ -35,8 +35,6 @@ class FixtureCalendarSyncTest extends TestCase
 
     private int $awayTeamId;
 
-    private bool $ownsFixtureSchema = false;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -46,12 +44,7 @@ class FixtureCalendarSyncTest extends TestCase
         config()->set('api_football.retry_base_ms', 0);
         config()->set('api_football.calendar.lock_store', 'array');
         Http::preventStrayRequests();
-        if ($this->fixtureSchemaExists()) {
-            $this->cleanFixtureSchema();
-        } else {
-            $this->createSchema();
-            $this->ownsFixtureSchema = true;
-        }
+        $this->createSchema();
 
         $this->leagueId = DB::table('leagues')->insertGetId([
             'api_league_id' => 39,
@@ -70,14 +63,10 @@ class FixtureCalendarSyncTest extends TestCase
     {
         Carbon::setTestNow();
 
-        if ($this->ownsFixtureSchema) {
-            Schema::dropIfExists('fixture_scores');
-            Schema::dropIfExists('fixtures');
-            Schema::dropIfExists('teams');
-            Schema::dropIfExists('leagues');
-        } else {
-            $this->cleanFixtureSchema();
-        }
+        Schema::dropIfExists('fixture_scores');
+        Schema::dropIfExists('fixtures');
+        Schema::dropIfExists('teams');
+        Schema::dropIfExists('leagues');
 
         parent::tearDown();
     }
@@ -297,6 +286,23 @@ class FixtureCalendarSyncTest extends TestCase
         }
     }
 
+    public function test_near_importer_does_not_reconcile_stale_prematch_rows_to_live_or_finished(): void
+    {
+        $importer = new FixtureCalendarImporter;
+        foreach (['NS', 'PST'] as $offset => $status) {
+            $id = 9700 + $offset;
+            $payload = $this->payload($id, $status, '2026-09-25 08:00:00', season: 2026);
+            $this->assertSame(1, $importer->import([$payload])['upserted']);
+            foreach (['1H', 'FT'] as $incoming) {
+                $payload['fixture']['status']['short'] = $incoming;
+                $result = $importer->import([$payload]);
+                $this->assertSame(['calendar_status_not_importable' => 1], $result['skip_reasons']);
+                $this->assertSame($status, Fixture::where('api_fixture_id', $id)->value('status_short'));
+            }
+        }
+        Http::assertNothingSent();
+    }
+
     public function test_import_is_idempotent_and_updates_calendar_fields_by_provider_id(): void
     {
         $importer = new FixtureCalendarImporter;
@@ -349,6 +355,8 @@ class FixtureCalendarSyncTest extends TestCase
                 'away_halftime' => 1,
                 'home_fulltime' => 3,
                 'away_fulltime' => 2,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
@@ -470,20 +478,6 @@ class FixtureCalendarSyncTest extends TestCase
             ['NS', 'TBD', 'PST', 'CANC'],
             Fixture::where('api_fixture_id', '>=', 10201)->orderBy('api_fixture_id')->pluck('status_short')->all(),
         );
-    }
-
-    public function test_existing_unprotected_fixture_can_advance_to_live_and_is_then_protected(): void
-    {
-        $importer = new FixtureCalendarImporter;
-        $created = $importer->import([$this->payload(10250, 'NS', '2026-09-30 14:00:00', 2026)]);
-        $advanced = $importer->import([$this->payload(10250, 'LIVE', '2026-09-30 14:00:00', 2026)]);
-        $protected = $importer->import([$this->payload(10250, 'NS', '2026-09-30 14:00:00', 2026)]);
-
-        $this->assertSame(1, $created['upserted']);
-        $this->assertSame(1, $advanced['upserted']);
-        $this->assertSame(1, $protected['protected']);
-        $this->assertSame('LIVE', Fixture::where('api_fixture_id', 10250)->value('status_short'));
-        $this->assertSame(1, Fixture::where('api_fixture_id', 10250)->count());
     }
 
     public function test_phase_one_captured_terminal_rows_are_skipped_but_cancelled_semantics_are_retained(): void
@@ -620,7 +614,7 @@ class FixtureCalendarSyncTest extends TestCase
 
     public function test_database_failure_rolls_back_one_row_and_later_rows_continue(): void
     {
-        $this->createRejectFixtureTrigger('reject_calendar_fixture', 10301);
+        DB::unprepared("CREATE TRIGGER reject_calendar_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10301 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
         $rows = [
             $this->payload(10300, 'NS', '2026-10-01 12:00:00', 2026),
             $this->payload(10301, 'NS', '2026-10-01 13:00:00', 2026),
@@ -649,7 +643,7 @@ class FixtureCalendarSyncTest extends TestCase
     public function test_command_returns_failure_after_processing_all_rows_when_a_row_fails(): void
     {
         config()->set('api_football.calendar.enabled', true);
-        $this->createRejectFixtureTrigger('reject_command_fixture', 10400);
+        DB::unprepared("CREATE TRIGGER reject_command_fixture BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = 10400 BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
         $api = Mockery::mock(ApiFootballService::class);
         $api->shouldReceive('getCalendarFixturesByDate')->once()->with('2026-09-25')->andReturn([
             $this->payload(10400, 'NS', '2026-10-01 12:00:00', 2026),
@@ -802,36 +796,6 @@ class FixtureCalendarSyncTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
-
-    private function createRejectFixtureTrigger(string $name, int $fixtureId): void
-    {
-        if (DB::getDriverName() === 'sqlite') {
-            DB::unprepared("CREATE TRIGGER {$name} BEFORE INSERT ON fixtures WHEN NEW.api_fixture_id = {$fixtureId} BEGIN SELECT RAISE(ABORT, 'forced row failure'); END");
-
-            return;
-        }
-
-        DB::unprepared("CREATE TRIGGER {$name} BEFORE INSERT ON fixtures FOR EACH ROW BEGIN IF NEW.api_fixture_id = {$fixtureId} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'forced row failure'; END IF; END");
-    }
-
-    private function fixtureSchemaExists(): bool
-    {
-        foreach (['leagues', 'teams', 'fixtures', 'fixture_scores'] as $table) {
-            if (! Schema::hasTable($table)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private function cleanFixtureSchema(): void
-    {
-        DB::table('fixture_scores')->delete();
-        DB::table('fixtures')->delete();
-        DB::table('teams')->delete();
-        DB::table('leagues')->delete();
     }
 
     private function createSchema(): void
