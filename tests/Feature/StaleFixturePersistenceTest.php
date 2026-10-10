@@ -206,7 +206,12 @@ class StaleFixturePersistenceTest extends TestCase
             $quota->shouldNotReceive('recordRepair');
             $api = Mockery::mock(ApiFootballService::class);
             $api->shouldReceive('getFixtureById')->once()->andReturnUsing(function (): array {
-                DB::table('fixture_scores')->where('fixture_id', $this->identity['id'])->update(['goals_home' => 3]);
+                if (DB::getDriverName() === 'mysql') {
+                    $other = new \PDO('mysql:unix_socket='.getenv('STALE_TEST_SOCKET').';dbname='.getenv('STALE_TEST_DATABASE'), posix_getpwuid(posix_geteuid())['name']);
+                    $other->exec('UPDATE fixture_scores SET goals_home=3 WHERE fixture_id='.(int) $this->identity['id']);
+                } else {
+                    DB::table('fixture_scores')->where('fixture_id', $this->identity['id'])->update(['goals_home' => 3]);
+                }
 
                 return $this->retained();
             });

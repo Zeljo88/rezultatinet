@@ -1,0 +1,6 @@
+*
+!composer.json
+!composer.lock
+!tools/
+!tools/stale-ci/
+!tools/stale-ci/Dockerfile

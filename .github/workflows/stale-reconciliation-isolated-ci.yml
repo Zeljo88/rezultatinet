@@ -1,0 +1,73 @@
+name: Stale reconciliation isolated CI
+on:
+  workflow_dispatch:
+  push:
+    branches: [rex/stale-reconciliation-20261010]
+    paths:
+      - '.github/workflows/stale-reconciliation-isolated-ci.yml'
+      - 'tools/stale-ci/**'
+      - 'tests/**'
+      - 'app/**'
+permissions:
+  contents: read
+concurrency:
+  group: stale-reconciliation-isolated-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  isolated:
+    if: github.ref == 'refs/heads/rex/stale-reconciliation-20261010'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed runtime identity and exact head
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          git merge-base --is-ancestor 89c3d13c2bbca13a71281a82270bb784621ebfeb HEAD
+          git diff --exit-code 89c3d13c2bbca13a71281a82270bb784621ebfeb HEAD -- app config routes resources database composer.json composer.lock
+          mkdir evidence
+          python3 tools/stale-ci/identities.py > evidence/identities.json
+      - name: Build test-only PHP 8.3 image
+        run: docker build -f tools/stale-ci/Dockerfile -t stale-ci-php .
+      - name: Start socket-only exact MariaDB with isolated schema account
+        run: |
+          set -Eeuo pipefail
+          docker volume create stale-ci-socket
+          docker run -d --name stale-ci-db --network none --mount type=volume,src=stale-ci-socket,dst=/tmp/stale-reconciliation-ci --mount type=bind,src="$PWD/tools/stale-ci/database.sh",dst=/ci-database.sh,readonly --entrypoint bash mariadb:10.11.13 /ci-database.sh
+          for attempt in $(seq 1 60); do
+            if docker exec stale-ci-db mariadb-admin --socket=/tmp/stale-reconciliation-ci/mariadb.sock -uroot ping --silent; then break; fi
+            test "$attempt" -lt 60
+            sleep 1
+          done
+          docker exec stale-ci-db mariadb --socket=/tmp/stale-reconciliation-ci/mariadb.sock -uroot -e "CREATE DATABASE stale_reconciliation_test_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER 'ci'@'localhost' IDENTIFIED VIA unix_socket; GRANT ALL ON stale_reconciliation_test_ci.* TO 'ci'@'localhost'; GRANT PROCESS ON *.* TO 'ci'@'localhost';"
+          docker image inspect mariadb:10.11.13 --format '{{json .RepoDigests}}' > evidence/mariadb-image.json
+          docker inspect stale-ci-db --format '{{json .HostConfig.NetworkMode}}' > evidence/database-network.json
+      - name: Run 20 real MariaDB tests, focused regression and Redis CAS/budgets without network
+        run: |
+          set -Eeuo pipefail
+          mkdir runtime
+          git archive HEAD | tar -x -C runtime
+          sudo chown -R 1000:1000 runtime evidence
+          docker run --name stale-ci-tests --network none --cap-drop ALL --security-opt no-new-privileges --mount type=volume,src=stale-ci-socket,dst=/tmp/stale-reconciliation-ci --mount type=bind,src="$PWD/runtime",dst=/workspace --mount type=bind,src="$PWD/evidence",dst=/evidence stale-ci-php bash tools/stale-ci/run.sh
+      - name: Bounded sanitized evidence and public receipts
+        if: always()
+        run: |
+          docker logs --tail 80 stale-ci-db > evidence/database-tail.txt 2>&1 || true
+          python3 tools/stale-ci/publish-receipts.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: stale-isolated-${{ github.sha }}
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Destroy only disposable test containers and socket volume
+        if: always()
+        run: |
+          docker rm -f -v stale-ci-tests stale-ci-db || true
+          docker volume rm stale-ci-socket || true
