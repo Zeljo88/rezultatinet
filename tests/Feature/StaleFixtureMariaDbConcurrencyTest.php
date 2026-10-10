@@ -63,6 +63,7 @@ class StaleFixtureMariaDbConcurrencyTest extends StaleFixturePersistenceTest
         foreach ($engines as $row) {
             $this->assertSame('InnoDB', $row->ENGINE);
         }
+        $this->assertCount(2, DB::select('SHOW GRANTS'));
         $this->receipt('engine', ['identity' => $identity, 'tables' => $engines, 'grants' => DB::select('SHOW GRANTS')]);
     }
 
@@ -148,7 +149,7 @@ class StaleFixtureMariaDbConcurrencyTest extends StaleFixturePersistenceTest
                 foreach ([1, 3] as $deadlocks) {
                     $before = $this->snapshot();
                     $countBefore = (int) DB::selectOne("SHOW GLOBAL STATUS LIKE 'Innodb_deadlocks'")->Value;
-                    [$worker, $path] = $this->startWorker(['mode' => $mode, 'row' => $mode === 'live' ? $this->liveRow() : $this->retained(), 'deadlock' => true]);
+                    [$worker, $path] = $this->startWorker(['mode' => $mode, 'row' => $mode === 'live' ? $this->liveRow() : $this->retained(), 'deadlock' => true, 'lock_timeout' => 10]);
                     try {
                         for ($attempt = 1; $attempt <= $deadlocks; $attempt++) {
                             $this->barrier($worker, $path.'.attempt'.$attempt);
@@ -276,7 +277,9 @@ class StaleFixtureMariaDbConcurrencyTest extends StaleFixturePersistenceTest
             }
             usleep(20000);
         } while ($worker->isRunning() && microtime(true) < $deadline);
-        $this->fail('Actual MariaDB LOCK WAIT was not observed: '.$worker->getErrorOutput());
+        $diagnostic = ['output' => $worker->getOutput(), 'stderr' => $worker->getErrorOutput(), 'running' => $worker->isRunning(), 'markers' => array_map('basename', glob($path.'.*')), 'transactions' => DB::select('SELECT trx_id, trx_state, trx_mysql_thread_id FROM information_schema.INNODB_TRX')];
+        $this->receipt('lock_wait_failure', $diagnostic);
+        $this->fail('Actual MariaDB LOCK WAIT was not observed: '.json_encode($diagnostic));
     }
 
     private function finish(Process $worker): array

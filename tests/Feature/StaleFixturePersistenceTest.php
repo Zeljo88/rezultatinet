@@ -317,6 +317,9 @@ class StaleFixturePersistenceTest extends TestCase
             $this->assertSame('synthetic_score_failure', $e->getMessage());
         }
         $this->assertSame($before, $this->snapshot());
+        // PHP configurations retaining exception arguments also retain the journal
+        // through the caught exception's trace. Drop that test-only reference.
+        unset($e);
         unset($this->journal);
         $this->journal = new StaleFixtureJournal($this->journalPath);
         $this->assertSame(1, array_sum($this->journal->state['days']));
