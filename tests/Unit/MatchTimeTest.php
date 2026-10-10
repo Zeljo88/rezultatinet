@@ -57,4 +57,20 @@ class MatchTimeTest extends TestCase
             $this->assertNotSame($date, MatchTime::local($end)->toDateString());
         }
     }
+
+    public function test_day_bounds_reject_malformed_or_overflow_dates_instead_of_normalizing(): void
+    {
+        foreach (['2026-02-30', '2026-02-29', '0000-01-01', '2026-13-01', 'not-a-date',
+            '2026-1-01', '2026-01-1', '2026-10-10T00:00:00Z', '2026-10-10 ', "2026-10-10\n", ''] as $date) {
+            $this->assertFalse(MatchTime::isValidDate($date));
+            try {
+                MatchTime::dayBounds($date);
+                $this->fail('Invalid day accepted: '.$date);
+            } catch (\InvalidArgumentException $e) {
+                $this->assertSame('Expected a valid canonical YYYY-MM-DD date.', $e->getMessage());
+            }
+        }
+        $this->assertTrue(MatchTime::isValidDate('2028-02-29'));
+        $this->assertSame('2028-02-28 23:00:00', MatchTime::dayBounds('2028-02-29')[0]->format('Y-m-d H:i:s'));
+    }
 }

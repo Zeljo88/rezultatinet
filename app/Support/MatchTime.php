@@ -22,9 +22,19 @@ final class MatchTime
         return CarbonImmutable::now(self::ZONE)->startOfDay();
     }
 
+    public static function isValidDate(string $date): bool
+    {
+        return preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $date) === 1
+            && checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4));
+    }
+
     /** @return array{CarbonImmutable, CarbonImmutable} Half-open UTC bounds. */
     public static function dayBounds(string $date): array
     {
+        if (! self::isValidDate($date)) {
+            throw new \InvalidArgumentException('Expected a valid canonical YYYY-MM-DD date.');
+        }
+
         $start = CarbonImmutable::createFromFormat('!Y-m-d', $date, self::ZONE);
 
         return [$start->utc(), $start->addDay()->utc()];

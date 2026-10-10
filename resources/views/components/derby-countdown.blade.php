@@ -31,17 +31,65 @@ foreach ($derbies as [$homeId, $awayId, $name]) {
 <div class="bg-gradient-to-r from-[#1a1a1a] to-[#222] border border-[#CCFF00] border-opacity-30 rounded-xl p-4 mb-4"
      x-data="{
         kickoffMs: {{ $kickoff->getTimestamp() * 1000 }},
+        serverMs: {{ now('UTC')->getTimestampMs() }},
+        anchor: 0,
         diff: 0,
         timer: null,
-        tick() { this.diff = Math.max(0, Math.ceil((this.kickoffMs - Date.now()) / 1000)) },
-        init() {
-            this.tick();
-            if (this.diff > 0) this.timer = setInterval(() => {
-                this.tick();
-                if (this.diff === 0) { clearInterval(this.timer); this.timer = null }
-            }, 1000);
+        request: null,
+        disposed: false,
+        resume: null,
+        restored: null,
+        tick() {
+            const remaining = this.kickoffMs - (this.serverMs + Math.max(0, performance.now() - this.anchor));
+            this.diff = Number.isFinite(remaining) ? Math.max(0, Math.ceil(remaining / 1000)) : 0;
         },
-        destroy() { clearInterval(this.timer) },
+        async resync() {
+            this.tick();
+            if (document.hidden || this.request || this.disposed) return;
+            // One existing-page HEAD on resume, never polling or a new endpoint.
+            // Needed on platforms whose monotonic clock pauses during OS sleep.
+            const controller = new AbortController();
+            this.request = controller;
+            const timeout = setTimeout(() => controller.abort(), 10000);
+            try {
+                const response = await fetch(location.href, {
+                    method: 'HEAD', cache: 'no-store', credentials: 'same-origin',
+                    redirect: 'error', signal: controller.signal,
+                });
+                const received = performance.now();
+                const server = Date.parse(response.headers.get('Date'));
+                if (response.ok && Number.isFinite(server) && !controller.signal.aborted && !this.disposed) {
+                    this.serverMs = server;
+                    this.anchor = received;
+                    this.tick();
+                }
+            } catch (_) {
+                // Offline: retain the monotonic anchor; retry on the next resume.
+            } finally {
+                clearTimeout(timeout);
+                this.request = null;
+            }
+        },
+        init() {
+            // Include deferred Alpine initialization / response download time,
+            // without ever using the browser wall clock or its initial skew.
+            const navigation = performance.getEntriesByType('navigation')[0];
+            this.anchor = navigation ? navigation.responseStart : performance.now();
+            this.tick();
+            // Keep ticking at zero: a later server resync may correct the anchor.
+            this.timer = setInterval(() => this.tick(), 1000);
+            this.resume = () => { if (!document.hidden) this.resync() };
+            this.restored = event => { if (event.persisted) this.resync() };
+            document.addEventListener('visibilitychange', this.resume);
+            window.addEventListener('pageshow', this.restored);
+        },
+        destroy() {
+            this.disposed = true;
+            clearInterval(this.timer);
+            this.request?.abort();
+            document.removeEventListener('visibilitychange', this.resume);
+            window.removeEventListener('pageshow', this.restored);
+        },
         get days() { return Math.floor(this.diff / 86400) },
         get hours() { return Math.floor((this.diff % 86400) / 3600) },
         get mins() { return Math.floor((this.diff % 3600) / 60) },

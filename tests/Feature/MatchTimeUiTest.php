@@ -163,6 +163,42 @@ class MatchTimeUiTest extends TestCase
         $this->assertStringNotContainsString('kickoffMs:', view('components.derby-countdown')->render());
     }
 
+    public function test_hydrated_dates_are_canonical_valid_and_bounded_before_all_sport_queries(): void
+    {
+        Carbon::setTestNow('2026-10-09 22:30:00 UTC');
+        foreach (['football', 'basketball', 'tennis'] as $sport) {
+            $component = Livewire::test(LiveScores::class, ['sport' => $sport]);
+            foreach (['not-a-date', '2026-02-30', '2026-10-30', '2026-10-06', '2026-10-18',
+                '2026-1-10', '2026-10-1', '0000-01-01', '2026-13-01', '2026-00-01',
+                '2026-10-00', '2026-10-10T00:00:00Z', ' 2026-10-10', "2026-10-10\n", ''] as $invalid) {
+                $component->set('selectedDate', $invalid)->call('loadFixtures')
+                    ->assertSet('selectedDate', '2026-10-10')->assertHasNoErrors();
+                // Direct reads/actions must be safe even outside Livewire hooks.
+                $direct = new LiveScores;
+                $direct->sport = $sport;
+                $direct->selectedDate = $invalid;
+                $this->assertSame(0, $direct->getCounts()['all']);
+                $this->assertSame('2026-10-10', $direct->selectedDate);
+                $direct->selectedDate = $invalid;
+                $this->assertSame('2026-10-09', $direct->getPrevDate());
+                $direct->selectedDate = $invalid;
+                $this->assertSame('2026-10-11', $direct->getNextDate());
+            }
+            foreach (['2026-10-07', '2026-10-17', '2026-10-09', '2026-10-11'] as $valid) {
+                $component->set('selectedDate', $valid)->call('loadFixtures')->assertSet('selectedDate', $valid);
+            }
+        }
+    }
+
+    public function test_long_open_hydration_reloads_rows_when_selected_day_leaves_the_allowed_window(): void
+    {
+        $this->fixture('2026-10-10 11:30:00');
+        $component = Livewire::test(LiveScores::class)->assertSee('13:30');
+        Carbon::setTestNow('2026-10-14 05:17:00 UTC');
+        $component->call('setFilter', 'sve')->assertSet('selectedDate', '2026-10-14')
+            ->assertSet('counts.all', 0)->assertDontSee('13:30');
+    }
+
     private function createSchema(): void
     {
         Schema::create('leagues', function (Blueprint $table): void {

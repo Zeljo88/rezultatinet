@@ -51,23 +51,49 @@ class LiveScores extends Component
 
     public function getPrevDate(): string
     {
-        return Carbon::parse($this->selectedDate, MatchTime::ZONE)->subDay()->toDateString();
+        return Carbon::parse($this->selectedDay(), MatchTime::ZONE)->subDay()->toDateString();
     }
 
     public function getNextDate(): string
     {
-        return Carbon::parse($this->selectedDate, MatchTime::ZONE)->addDay()->toDateString();
+        return Carbon::parse($this->selectedDay(), MatchTime::ZONE)->addDay()->toDateString();
+    }
+
+    private function selectableDate(string $date): bool
+    {
+        $today = MatchTime::today();
+
+        return MatchTime::isValidDate($date)
+            && $date >= $today->subDays(3)->toDateString()
+            && $date <= $today->addDays(7)->toDateString();
+    }
+
+    // Public Livewire state is untrusted, including hydration outside setDate().
+    private function selectedDay(): string
+    {
+        if (!isset($this->selectedDate) || !$this->selectableDate($this->selectedDate)) {
+            $this->selectedDate = MatchTime::today()->toDateString();
+        }
+
+        return $this->selectedDate;
+    }
+
+    public function hydrate(): void
+    {
+        $previous = $this->selectedDate ?? null;
+        if ($this->selectedDay() !== $previous) {
+            $this->loadFixtures();
+        }
+    }
+
+    public function updatedSelectedDate(): void
+    {
+        $this->loadFixtures();
     }
 
     public function setDate(string $date): void
     {
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date) || !checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4))) {
-            return;
-        }
-        $d = Carbon::parse($date, MatchTime::ZONE);
-        $min = MatchTime::today()->subDays(3);
-        $max = MatchTime::today()->addDays(7);
-        if ($d->between($min, $max)) {
+        if ($this->selectableDate($date)) {
             $this->selectedDate = $date;
             $this->loadFixtures();
         }
@@ -84,10 +110,11 @@ class LiveScores extends Component
 
     protected function baseQuery(): \Illuminate\Database\Eloquent\Builder
     {
+        $day = $this->selectedDay();
         return Fixture::with(['homeTeam', 'awayTeam', 'score', 'league'])
             ->join('leagues', 'fixtures.league_id', '=', 'leagues.id')
             ->select('fixtures.*')
-            ->where(fn ($q) => MatchTime::onDay($q, 'fixtures.kick_off', $this->selectedDate))
+            ->where(fn ($q) => MatchTime::onDay($q, 'fixtures.kick_off', $day))
             ->orderByRaw('CASE leagues.api_league_id ' . collect($this->priorityLeagues)->map(fn ($id, $index) => 'WHEN ' . (int) $id . ' THEN ' . ($index + 1))->implode(' ') . ' ELSE 999 END ASC')
             ->orderBy('fixtures.kick_off');
     }
@@ -114,8 +141,9 @@ class LiveScores extends Component
 
     protected function getBasketballCounts(): array
     {
+        $day = $this->selectedDay();
         $liveStatuses = ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'];
-        $base = BasketballGame::query()->where(fn ($q) => MatchTime::onDay($q, 'game_date', $this->selectedDate));
+        $base = BasketballGame::query()->where(fn ($q) => MatchTime::onDay($q, 'game_date', $day));
         return [
             'all'      => (clone $base)->count(),
             'live'     => (clone $base)->whereIn('status_short', $liveStatuses)->count(),
@@ -126,8 +154,9 @@ class LiveScores extends Component
 
     protected function getTennisCounts(): array
     {
+        $day = $this->selectedDay();
         $liveStatuses = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
-        $base = TennisMatch::query()->where(fn ($q) => MatchTime::onDay($q, 'match_date', $this->selectedDate));
+        $base = TennisMatch::query()->where(fn ($q) => MatchTime::onDay($q, 'match_date', $day));
         return [
             'all'      => (clone $base)->count(),
             'live'     => (clone $base)->whereIn('status', $liveStatuses)->count(),
@@ -140,6 +169,7 @@ class LiveScores extends Component
 
     public function loadFixtures(): void
     {
+        $this->selectedDay();
         if ($this->sport === 'basketball') {
             $this->loadBasketballGames();
             $this->counts = $this->getCounts();
@@ -309,10 +339,11 @@ class LiveScores extends Component
 
     protected function loadBasketballGames(): void
     {
+        $day = $this->selectedDay();
         $liveStatuses = ['Q1','Q2','Q3','Q4','HT','OT','LIVE','BP','BT'];
         $ftStatuses   = ['FT','AOT'];
 
-        $query = BasketballGame::query()->where(fn ($q) => MatchTime::onDay($q, 'game_date', $this->selectedDate))
+        $query = BasketballGame::query()->where(fn ($q) => MatchTime::onDay($q, 'game_date', $day))
             ->orderBy('game_date');
 
         $grouped = [];
@@ -340,10 +371,11 @@ class LiveScores extends Component
 
     protected function loadTennisMatches(): void
     {
+        $day = $this->selectedDay();
         $liveStatuses     = ['In Play','1st Set','2nd Set','3rd Set','4th Set','5th Set','Break Time'];
         $finishedStatuses = ['Finished','Retired','Walkover','Default','FT'];
 
-        $query = TennisMatch::query()->where(fn ($q) => MatchTime::onDay($q, 'match_date', $this->selectedDate))
+        $query = TennisMatch::query()->where(fn ($q) => MatchTime::onDay($q, 'match_date', $day))
             ->orderBy('match_date');
 
         $grouped = [];
