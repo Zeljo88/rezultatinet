@@ -1,13 +1,6 @@
 name: Stale reconciliation isolated CI
 on:
   workflow_dispatch:
-  push:
-    branches: [rex/stale-reconciliation-20261010]
-    paths:
-      - '.github/workflows/stale-reconciliation-isolated-ci.yml'
-      - 'tools/stale-ci/**'
-      - 'tests/**'
-      - 'app/**'
 permissions:
   contents: read
 concurrency:
