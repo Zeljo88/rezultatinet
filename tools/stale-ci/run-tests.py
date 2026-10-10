@@ -16,7 +16,7 @@ for label,args in [
  result={'gate':label,'exit':r.returncode,'tail':r.stdout[-3500:]}
  if (e/(label+'.xml')).exists():
   root=E.parse(e/(label+'.xml')).getroot();suite=root.find('testsuite');result['totals']=suite.attrib; result['problems']=[{'test':c.get('name'),'message':(v.text or '')[:1500]} for c in root.findall('.//testcase') for v in list(c) if v.tag in ['failure','error']][:6]
-  if label=='mariadb' and (int(suite.get('skipped','0')) or int(suite.get('tests','0'))!=20):result['exit']=1
+  if int(suite.get('skipped','0')) or int(suite.get('tests','0'))!={'mariadb':20,'focused':157}[label]:result['exit']=1
  results.append(result);print(json.dumps(result))
 (e/'test-results.json').write_text(json.dumps(results,indent=2))
 if any(r['exit'] for r in results):raise SystemExit(1)

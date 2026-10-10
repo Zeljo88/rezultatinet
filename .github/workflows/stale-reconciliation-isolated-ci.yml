@@ -52,7 +52,8 @@ jobs:
           set -Eeuo pipefail
           mkdir runtime
           git archive HEAD | tar -x -C runtime
-          sudo chown -R 1000:1000 runtime evidence
+          sudo chown -R 1000:1000 runtime
+          chmod 0777 evidence
           docker run --name stale-ci-tests --network none --cap-drop ALL --security-opt no-new-privileges --mount type=volume,src=stale-ci-socket,dst=/tmp/stale-reconciliation-ci --mount type=bind,src="$PWD/runtime",dst=/workspace --mount type=bind,src="$PWD/evidence",dst=/evidence stale-ci-php bash tools/stale-ci/run.sh
       - name: Bounded sanitized evidence and public receipts
         if: always()
