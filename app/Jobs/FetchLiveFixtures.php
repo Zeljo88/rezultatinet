@@ -20,6 +20,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -88,142 +89,167 @@ class FetchLiveFixtures implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            // Capture previous state for push notification diffs
-            $existingFixture = Fixture::where('api_fixture_id', $data['fixture']['id'])->first();
-            $oldStatus = $existingFixture?->status_short;
-            $oldScore = $existingFixture?->score;
+            $accepted = DB::transaction(function () use ($data, $league, $homeTeam, $awayTeam) {
+                // Capture previous state for push notification diffs
+                $existingFixture = Fixture::where('api_fixture_id', $data['fixture']['id'])->lockForUpdate()->first();
+                $oldStatus = $existingFixture?->status_short;
+                $oldScore = $existingFixture ? FixtureScore::where('fixture_id', $existingFixture->id)->lockForUpdate()->first() : null;
 
-            $incomingStatus = FootballFixtureStatus::normalize($data['fixture']['status']['short'] ?? null);
-            $acceptProviderState = FootballFixtureStatus::canPersist($oldStatus, $incomingStatus);
-            $fixtureAttributes = [
-                'season' => $data['league']['season'],
-                'league_id' => $league->id,
-                'home_team_id' => $homeTeam->id,
-                'away_team_id' => $awayTeam->id,
-                'kick_off' => $data['fixture']['date'] ?? null,
-            ];
-            if ($acceptProviderState) {
-                $fixtureAttributes += [
-                    'status_long' => $data['fixture']['status']['long'] ?? null,
-                    'status_short' => $incomingStatus,
-                    'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
-                    'elapsed_extra' => $data['fixture']['status']['extra'] ?: null,
-                ];
-            }
-
-            $fixture = Fixture::updateOrCreate(
-                ['api_fixture_id' => $data['fixture']['id']],
-                $fixtureAttributes,
-            );
-
-            if ($acceptProviderState) {
-                FixtureScore::updateOrCreate(
-                    ['fixture_id' => $fixture->id],
-                    [
-                        'goals_home' => $data['goals']['home'],
-                        'goals_away' => $data['goals']['away'],
-                        'home_halftime' => $data['score']['halftime']['home'] ?? null,
-                        'away_halftime' => $data['score']['halftime']['away'] ?? null,
-                        'home_fulltime' => $data['score']['fulltime']['home'] ?? null,
-                        'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
-                        'home_extratime' => $data['score']['extratime']['home'] ?? null,
-                        'away_extratime' => $data['score']['extratime']['away'] ?? null,
-                        'home_penalties' => $data['score']['penalty']['home'] ?? null,
-                        'away_penalties' => $data['score']['penalty']['away'] ?? null,
-                    ]
+                $incomingStatus = FootballFixtureStatus::normalize($data['fixture']['status']['short'] ?? null);
+                $acceptProviderState = FootballFixtureStatus::canPersistLive(
+                    $oldStatus, $incomingStatus, $existingFixture?->elapsed_minute, $data['fixture']['status']['elapsed'] ?? null,
                 );
-            }
-
-            // ── OneSignal Push Triggers ─────────────────────────────────────────────
-            $newStatus = $fixture->status_short;
-
-            // Kickoff: NS -> 1H
-            if ($oldStatus === 'NS' && $newStatus === '1H') {
-                try {
-                    (new KickoffNotification(
-                        homeTeam: $homeTeam->name,
-                        awayTeam: $awayTeam->name,
-                        league: $league->name,
-                        fixtureId: $fixture->id,
-                    ))->send();
-                } catch (\Throwable $e) {
-                    Log::warning('KickoffNotification failed: '.$e->getMessage());
+                if (! $acceptProviderState) {
+                    return null;
                 }
-            }
+                $fixtureAttributes = [
+                    'season' => $data['league']['season'],
+                    'league_id' => $league->id,
+                    'home_team_id' => $homeTeam->id,
+                    'away_team_id' => $awayTeam->id,
+                    'kick_off' => $data['fixture']['date'] ?? null,
+                ];
+                if ($acceptProviderState) {
+                    $fixtureAttributes += [
+                        'status_long' => $data['fixture']['status']['long'] ?? null,
+                        'status_short' => $incomingStatus,
+                        'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
+                        'elapsed_extra' => $data['fixture']['status']['extra'] ?: null,
+                    ];
+                }
 
-            // Goal: score change while live
-            $liveStatuses = ['1H', 'HT', '2H', 'ET', 'P', 'BT'];
-            if (in_array($newStatus, $liveStatuses)) {
-                $newGoalsHome = $data['goals']['home'] ?? 0;
-                $newGoalsAway = $data['goals']['away'] ?? 0;
-                $oldGoalsHome = $oldScore?->goals_home ?? null;
-                $oldGoalsAway = $oldScore?->goals_away ?? null;
-
-                if ($oldGoalsHome !== null && ($newGoalsHome > $oldGoalsHome || $newGoalsAway > $oldGoalsAway)) {
-                    $scorerName = null;
-                    $scorerMinute = null;
-                    if (! empty($data['events'])) {
-                        foreach (array_reverse($data['events']) as $ev) {
-                            if (in_array($ev['type'] ?? '', ['Goal', 'goal'])) {
-                                $scorerName = $ev['player']['name'] ?? null;
-                                $scorerMinute = $ev['time']['elapsed'] ?? null;
-                                break;
-                            }
+                $fixture = $existingFixture;
+                if (! $fixture) {
+                    $fixture = Fixture::query()->createOrFirst(['api_fixture_id' => $data['fixture']['id']], $fixtureAttributes);
+                    $created = $fixture->wasRecentlyCreated;
+                    $fixture = Fixture::whereKey($fixture->id)->lockForUpdate()->firstOrFail();
+                    if (! $created) {
+                        $oldStatus = $fixture->status_short;
+                        $oldScore = FixtureScore::where('fixture_id', $fixture->id)->lockForUpdate()->first();
+                        if (! FootballFixtureStatus::canPersistLive($oldStatus, $incomingStatus, $fixture->elapsed_minute, $data['fixture']['status']['elapsed'] ?? null)) {
+                            return null;
                         }
                     }
-                    try {
-                        (new GoalNotification(
-                            homeTeam: $homeTeam->name,
-                            awayTeam: $awayTeam->name,
-                            goalsHome: (int) $newGoalsHome,
-                            goalsAway: (int) $newGoalsAway,
-                            league: $league->name,
-                            fixtureId: $fixture->id,
-                            scorerName: $scorerName,
-                            minute: $scorerMinute ? (int) $scorerMinute : null,
-                        ))->send();
-                    } catch (\Throwable $e) {
-                        Log::warning('GoalNotification failed: '.$e->getMessage());
+                }
+                $fixture->fill($fixtureAttributes)->save();
+
+                if ($acceptProviderState) {
+                    FixtureScore::updateOrCreate(
+                        ['fixture_id' => $fixture->id],
+                        [
+                            'goals_home' => $data['goals']['home'],
+                            'goals_away' => $data['goals']['away'],
+                            'home_halftime' => $data['score']['halftime']['home'] ?? null,
+                            'away_halftime' => $data['score']['halftime']['away'] ?? null,
+                            'home_fulltime' => $data['score']['fulltime']['home'] ?? null,
+                            'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
+                            'home_extratime' => $data['score']['extratime']['home'] ?? null,
+                            'away_extratime' => $data['score']['extratime']['away'] ?? null,
+                            'home_penalties' => $data['score']['penalty']['home'] ?? null,
+                            'away_penalties' => $data['score']['penalty']['away'] ?? null,
+                        ]
+                    );
+                }
+
+                if (! empty($data['events'])) {
+                    FixtureEvent::where('fixture_id', $fixture->id)->delete();
+                    foreach ($data['events'] as $event) {
+                        $team = Team::where('api_team_id', $event['team']['id'] ?? 0)->first();
+                        FixtureEvent::create([
+                            'fixture_id' => $fixture->id,
+                            'team_id' => $team?->id,
+                            'player_name' => $event['player']['name'] ?? null,
+                            'assist_name' => $event['assist']['name'] ?? null,
+                            'type' => $event['type'] ?? 'Goal',
+                            'detail' => $event['detail'] ?? null,
+                            'elapsed_minute' => $event['time']['elapsed'] ?? null,
+                            'elapsed_extra' => $event['time']['extra'] ?: null,
+                        ]);
                     }
                 }
-            }
-            // ────────────────────────────────────────────────────────────────────────
 
-            if (! empty($data['events'])) {
-                FixtureEvent::where('fixture_id', $fixture->id)->delete();
-                foreach ($data['events'] as $event) {
-                    $team = Team::where('api_team_id', $event['team']['id'] ?? 0)->first();
-                    FixtureEvent::create([
-                        'fixture_id' => $fixture->id,
-                        'team_id' => $team?->id,
-                        'player_name' => $event['player']['name'] ?? null,
-                        'assist_name' => $event['assist']['name'] ?? null,
-                        'type' => $event['type'] ?? 'Goal',
-                        'detail' => $event['detail'] ?? null,
-                        'elapsed_minute' => $event['time']['elapsed'] ?? null,
-                        'elapsed_extra' => $event['time']['extra'] ?: null,
-                    ]);
+                return [$fixture, $oldStatus, $oldScore];
+            }, attempts: 3);
+            if ($accepted === null) {
+                continue;
+            }
+            [$fixture, $oldStatus, $oldScore] = $accepted;
+
+            DB::afterCommit(function () use ($fixture, $oldStatus, $oldScore, $data, $league, $homeTeam, $awayTeam): void {
+                // ── OneSignal Push Triggers ─────────────────────────────────────────────
+                $newStatus = $fixture->status_short;
+
+                // Kickoff: NS -> 1H
+                if ($oldStatus === 'NS' && $newStatus === '1H') {
+                    try {
+                        (new KickoffNotification(
+                            homeTeam: $homeTeam->name,
+                            awayTeam: $awayTeam->name,
+                            league: $league->name,
+                            fixtureId: $fixture->id,
+                        ))->send();
+                    } catch (\Throwable $e) {
+                        Log::warning('KickoffNotification failed: '.$e->getMessage());
+                    }
                 }
-            }
 
-            // Dispatch lineup fetch only for top leagues + within 60 min of kickoff (or already live)
-            $topLeagueIds = [2, 3, 848, 39, 140, 135, 78, 61, 210, 286, 315];
-            $isTopLeague = in_array($league->api_league_id, $topLeagueIds);
+                // Goal: score change while live
+                $liveStatuses = ['1H', 'HT', '2H', 'ET', 'P', 'BT'];
+                if (in_array($newStatus, $liveStatuses)) {
+                    $newGoalsHome = $data['goals']['home'] ?? 0;
+                    $newGoalsAway = $data['goals']['away'] ?? 0;
+                    $oldGoalsHome = $oldScore?->goals_home ?? null;
+                    $oldGoalsAway = $oldScore?->goals_away ?? null;
 
-            $isLive = in_array($fixture->status_short, ['1H', 'HT', '2H', 'ET', 'P', 'BT']);
-            $kickoffSoon = $fixture->kick_off && now()->diffInMinutes($fixture->kick_off, false) <= 60;
+                    if ($oldGoalsHome !== null && ($newGoalsHome > $oldGoalsHome || $newGoalsAway > $oldGoalsAway)) {
+                        $scorerName = null;
+                        $scorerMinute = null;
+                        if (! empty($data['events'])) {
+                            foreach (array_reverse($data['events']) as $ev) {
+                                if (in_array($ev['type'] ?? '', ['Goal', 'goal'])) {
+                                    $scorerName = $ev['player']['name'] ?? null;
+                                    $scorerMinute = $ev['time']['elapsed'] ?? null;
+                                    break;
+                                }
+                            }
+                        }
+                        try {
+                            (new GoalNotification(
+                                homeTeam: $homeTeam->name,
+                                awayTeam: $awayTeam->name,
+                                goalsHome: (int) $newGoalsHome,
+                                goalsAway: (int) $newGoalsAway,
+                                league: $league->name,
+                                fixtureId: $fixture->id,
+                                scorerName: $scorerName,
+                                minute: $scorerMinute ? (int) $scorerMinute : null,
+                            ))->send();
+                        } catch (\Throwable $e) {
+                            Log::warning('GoalNotification failed: '.$e->getMessage());
+                        }
+                    }
+                }
+                // ────────────────────────────────────────────────────────────────────────
 
-            $needsLineups = ! $fixture->lineups_fetched_at || ! $fixture->lineups_fetched_at->isToday();
+                // Dispatch lineup fetch only for top leagues + within 60 min of kickoff (or already live)
+                $topLeagueIds = [2, 3, 848, 39, 140, 135, 78, 61, 210, 286, 315];
+                $isTopLeague = in_array($league->api_league_id, $topLeagueIds);
 
-            if ($needsLineups && $fixture->api_fixture_id && $isTopLeague && ($isLive || $kickoffSoon)) {
-                FetchFixtureLineups::dispatch($fixture->id, $fixture->api_fixture_id);
-            }
+                $isLive = in_array($fixture->status_short, ['1H', 'HT', '2H', 'ET', 'P', 'BT']);
+                $kickoffSoon = $fixture->kick_off && now()->diffInMinutes($fixture->kick_off, false) <= 60;
 
-            try {
-                broadcast(new LiveScoreUpdated($fixture->fresh(['score', 'homeTeam', 'awayTeam'])));
-            } catch (\Throwable $broadcastError) {
-                Log::warning('Broadcast failed (scores already saved): '.$broadcastError->getMessage());
-            }
+                $needsLineups = ! $fixture->lineups_fetched_at || ! $fixture->lineups_fetched_at->isToday();
+
+                if ($needsLineups && $fixture->api_fixture_id && $isTopLeague && ($isLive || $kickoffSoon)) {
+                    FetchFixtureLineups::dispatch($fixture->id, $fixture->api_fixture_id);
+                }
+
+                try {
+                    broadcast(new LiveScoreUpdated($fixture->fresh(['score', 'homeTeam', 'awayTeam'])));
+                } catch (\Throwable $broadcastError) {
+                    Log::warning('Broadcast failed (scores already saved): '.$broadcastError->getMessage());
+                }
+            });
         }
     }
 

@@ -43,6 +43,27 @@ final class FootballFixtureStatus
         return in_array(self::normalize($status), self::CANCELLED, true);
     }
 
+    /** Reject stale pre-match/earlier-phase live payloads against the locked row. */
+    public static function canPersistLive(?string $current, ?string $incoming, ?int $currentMinute, ?int $incomingMinute): bool
+    {
+        if (! self::canPersist($current, $incoming)) {
+            return false;
+        }
+        $current = self::normalize($current);
+        $incoming = self::normalize($incoming);
+        $prematch = ['NS', 'TBD', 'PST'];
+        if ($current !== null && ! in_array($current, $prematch, true) && in_array($incoming, $prematch, true)) {
+            return false;
+        }
+        $phase = ['1H' => 1, 'HT' => 2, '2H' => 3, 'ET' => 4, 'BT' => 4, 'P' => 5];
+        if (isset($phase[$current], $phase[$incoming]) && $phase[$incoming] < $phase[$current]) {
+            return false;
+        }
+
+        return self::isTerminal($incoming) || $currentMinute === null
+            || ($incomingMinute !== null && $incomingMinute >= $currentMinute);
+    }
+
     public static function canPersist(?string $current, ?string $incoming): bool
     {
         $incoming = self::normalize($incoming);

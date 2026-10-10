@@ -35,6 +35,14 @@ if global >= tonumber(ARGV[4]) then return {0, 'global_hard_stop', global} end
 if global >= tonumber(ARGV[7]) and ARGV[2] ~= 'live' and ARGV[2] ~= 'fixture_repair' then return {0, 'critical_shed', global} end
 if global >= tonumber(ARGV[8]) and (ARGV[2] == 'manual' or ARGV[2] == 'backfill' or ARGV[2] == 'calendar' or ARGV[2] == 'events' or ARGV[2] == 'scorers') then return {0, 'warning_shed', global} end
 if class >= tonumber(ARGV[3]) then return {0, 'class_hard_stop', class} end
+-- Optional sealed stale reconciliation spends the SAME fixture_repair class.
+-- These conservative gates and reservations are one atomic operation.
+if ARGV[5] == 'fixture_repair|StaleFixtureReconciliation' then
+ if global >= tonumber(ARGV[8]) then return {0, 'stale_warning_headroom', global} end
+ if class >= 400 then return {0, 'stale_repair_headroom', class} end
+ local stale = tonumber(redis.call('HGET', KEYS[4], ARGV[5]) or '0')
+ if stale >= 20 then return {0, 'stale_daily_limit', stale} end
+end
 global = redis.call('INCR', KEYS[1])
 class = redis.call('HINCRBY', KEYS[2], ARGV[2], 1)
 redis.call('HINCRBY', KEYS[4], ARGV[5], 1)

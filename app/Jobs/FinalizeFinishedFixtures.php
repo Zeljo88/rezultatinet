@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
@@ -144,18 +145,34 @@ class FinalizeFinishedFixtures implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            $fixture->update([
-                'status_short' => $status,
-                'status_long' => $data['fixture']['status']['long'] ?? null,
-                'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
-            ]);
-            FixtureScore::updateOrCreate(['fixture_id' => $fixture->id], [
-                'goals_home' => $data['goals']['home'] ?? null, 'goals_away' => $data['goals']['away'] ?? null,
-                'home_halftime' => $data['score']['halftime']['home'] ?? null, 'away_halftime' => $data['score']['halftime']['away'] ?? null,
-                'home_fulltime' => $data['score']['fulltime']['home'] ?? null, 'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
-                'home_extratime' => $data['score']['extratime']['home'] ?? null, 'away_extratime' => $data['score']['extratime']['away'] ?? null,
-                'home_penalties' => $data['score']['penalty']['home'] ?? null, 'away_penalties' => $data['score']['penalty']['away'] ?? null,
-            ]);
+            $persisted = DB::transaction(function () use ($fixture, $data, $status): bool {
+                $locked = Fixture::whereKey($fixture->id)->lockForUpdate()->first();
+                if (! $locked || $locked->getRawOriginal() !== $fixture->getRawOriginal()
+                    || ! FootballFixtureStatus::canPersistLive($locked->status_short, $data['fixture']['status']['short'] ?? null, $locked->elapsed_minute, $data['fixture']['status']['elapsed'] ?? null)) {
+                    return false;
+                }
+                FixtureScore::where('fixture_id', $locked->id)->lockForUpdate()->first();
+                $fixture = $locked;
+                $fixture->update([
+                    'status_short' => $status,
+                    'status_long' => $data['fixture']['status']['long'] ?? null,
+                    'elapsed_minute' => $data['fixture']['status']['elapsed'] ?? null,
+                ]);
+                FixtureScore::updateOrCreate(['fixture_id' => $fixture->id], [
+                    'goals_home' => $data['goals']['home'] ?? null, 'goals_away' => $data['goals']['away'] ?? null,
+                    'home_halftime' => $data['score']['halftime']['home'] ?? null, 'away_halftime' => $data['score']['halftime']['away'] ?? null,
+                    'home_fulltime' => $data['score']['fulltime']['home'] ?? null, 'away_fulltime' => $data['score']['fulltime']['away'] ?? null,
+                    'home_extratime' => $data['score']['extratime']['home'] ?? null, 'away_extratime' => $data['score']['extratime']['away'] ?? null,
+                    'home_penalties' => $data['score']['penalty']['home'] ?? null, 'away_penalties' => $data['score']['penalty']['away'] ?? null,
+                ]);
+
+                return true;
+            }, attempts: 3);
+            if (! $persisted) {
+                $quota->releaseRepair($fixture->id);
+
+                continue;
+            }
             $quota->recordRepair($fixture->id, 'finalized_'.$status, true);
             $updated++;
         }
