@@ -146,21 +146,20 @@ class MatchTimeUiTest extends TestCase
         $this->assertSame('2026-10-09 22:15:00', $windows['live'][0]['date']->format('Y-m-d H:i:s'));
     }
 
-    public function test_derby_uses_db_epoch_and_hides_past_zero_or_non_upcoming_fixtures(): void
+    public function test_home_routes_never_render_the_disconnected_derby_banner(): void
     {
         $id = $this->fixture('2026-10-10 13:00:00');
-        $html = view('components.derby-countdown')->render();
-        $this->assertStringContainsString('10.10.2026 15:00', $html);
-        $this->assertStringContainsString('kickoffMs: '.(Carbon::parse('2026-10-10 13:00:00 UTC')->timestamp * 1000), $html);
-        $this->assertStringContainsString('x-show="diff > 0"', $html);
-        $this->assertStringNotContainsString('diff: -', $html);
-        foreach (['2026-10-10 13:00:00 UTC', '2026-10-10 13:00:01 UTC'] as $now) {
-            Carbon::setTestNow($now);
-            $this->assertStringNotContainsString('kickoffMs:', view('components.derby-countdown')->render());
+        foreach (['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'SUSP', 'INT', 'TBD'] as $status) {
+            DB::table('fixtures')->where('id', $id)->update(['status_short' => $status]);
+            foreach (['/', '/jucer', '/sutra', '/nogomet', '/kosarka', '/tenis'] as $path) {
+                $response = $this->get($path)->assertOk();
+                foreach (['kickoffMs:', 'serverMs:', 'Dinamo vs Hajduk', 'Zvezda vs Partizan', 'Sarajevo vs Željezničar', 'String(days)', 'homepage-top', 'googlesyndication', 'adsbygoogle'] as $marker) {
+                    $response->assertDontSee($marker, false);
+                }
+            }
         }
-        Carbon::setTestNow('2026-10-10 05:17:00 UTC');
-        DB::table('fixtures')->where('id', $id)->update(['status_short' => 'FT']);
-        $this->assertStringNotContainsString('kickoffMs:', view('components.derby-countdown')->render());
+        DB::table('fixtures')->where('id', $id)->update(['status_short' => 'NS']);
+        $this->get('/')->assertSee('15:00')->assertSee('Arsenal')->assertSee('Leeds');
     }
 
     public function test_hydrated_dates_are_canonical_valid_and_bounded_before_all_sport_queries(): void

@@ -87,7 +87,7 @@ $dateLabel = $pageDate->locale('bs')->translatedFormat('j. F Y.');
 </section>
 @endif
 
-@include('components.derby-countdown')
+{{-- Derby countdown intentionally disconnected: cached documents cannot prove a fresh clock. --}}
 <x-affiliate-banner ad-slot="homepage-top" extra-class="mb-4" />
 @livewire('live-scores', ['initialTab' => $initialTab ?? 'live', 'sport' => $sport ?? 'football'])
 
