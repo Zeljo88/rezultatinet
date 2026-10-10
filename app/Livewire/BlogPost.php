@@ -2,8 +2,9 @@
 namespace App\Livewire;
 
 use App\Models\Post;
-use Livewire\Component;
+use App\Support\BlogMetaTitle;
 use Livewire\Attributes\Layout;
+use Livewire\Component;
 
 #[Layout("layouts.app")]
 class BlogPost extends Component
@@ -21,11 +22,8 @@ class BlogPost extends Component
     public function render()
     {
         // Build SEO meta title (max 60 chars) per spec
-        $rawTitle   = $this->post->meta_title ?? $this->post->title;
-        $suffix     = " | rezultati.net";
-        $maxLen     = 60 - strlen($suffix);
-        $trimmed    = strlen($rawTitle) > $maxLen ? mb_substr($rawTitle, 0, $maxLen) : $rawTitle;
-        $metaTitle  = $trimmed . $suffix;
+        $rawTitle  = $this->post->meta_title ?? $this->post->title;
+        $metaTitle = BlogMetaTitle::format($rawTitle);
 
         // Build SEO meta description (max 155 chars) per spec
         $rawExcerpt      = $this->post->meta_description ?? mb_substr(strip_tags($this->post->content ?? ""), 0, 130);

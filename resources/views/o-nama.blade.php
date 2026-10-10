@@ -8,7 +8,7 @@
     $metaDescription = 'rezultati.net je vaš izvor live rezultata i statistika fudbala, košarke i tenisa za Balkan i top europske lige.';
 @endphp
 
-<x-slot name="slot">
+@section('content')
 <div class="max-w-3xl mx-auto px-4 py-8 text-gray-300">
 
     <h1 class="text-2xl font-bold text-white mb-2">O rezultati.net</h1>
@@ -66,4 +66,4 @@
     </section>
 
 </div>
-</x-slot>
+@endsection

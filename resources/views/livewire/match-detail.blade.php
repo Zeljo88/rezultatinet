@@ -25,52 +25,30 @@
         &larr; Nazad
     </a>
 
-    {{-- Match header --}}
-    <div class="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-6 mb-4">
-        <div class="text-center text-xs text-gray-500 mb-4">
-            {{ $fixture->league->name }} &bull; {{ $fixture->round }}
-        </div>
-        <div class="flex items-center justify-between gap-4">
-            <div class="flex-1 text-center">
-                @if($fixture->homeTeam->logo_url)
-                    <img src="{{ $fixture->homeTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->homeTeam->name }}" loading="lazy">
-                @endif
-                <a href="/tim/{{ $fixture->homeTeam->slug }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->homeTeam->name }}</a>
-            </div>
-            <div class="text-center min-w-[120px]">
-                @if($hasScore)
-                    <div class="text-5xl font-black {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">
-                        <span id="score-home">{{ $scoreHome }}</span><span class="text-gray-500 text-3xl mx-1">-</span><span id="score-away">{{ $scoreAway }}</span>
-                    </div>
-                    @if($score && $score->home_halftime !== null && !in_array($fixture->status_short, ["1H", "NS"]))
-                        <div class="text-xs text-gray-500 mt-1">Poluvrijeme: {{ $score->home_halftime }} - {{ $score->away_halftime }}</div>
-                    @endif
-                @else
-                    <div class="text-3xl font-black text-gray-500">{{ \Carbon\Carbon::parse($fixture->kick_off)->format('H:i') }}</div>
-                @endif
-                <div class="mt-2">
-                    @if($isLive)
-                        <span class="inline-flex items-center gap-1 bg-[#FF3B30] text-white text-xs font-bold px-2 py-1 rounded">
-                            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>{{ $fixture->elapsed_minute }}{{ $fixture->elapsed_extra ? '+' . $fixture->elapsed_extra : '' }}'
-                        </span>
-                    @elseif($isHT)
-                        <span class="text-yellow-400 text-sm font-bold">Poluvrijeme</span>
-                    @elseif($isFT)
-                        <span class="text-gray-400 text-sm">Kraj utakmice</span>
-                    @else
-                        <span class="text-gray-500 text-xs">{{ \Carbon\Carbon::parse($fixture->kick_off)->format('d.m.Y') }}</span>
-                    @endif
+    @include('livewire.partials.match-header', ['fixture' => $fixture])
+
+
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+    {{-- Meridian affiliate CTA --}}
+    <div class="flex justify-center mt-4 mb-2">
+        <a href="/go/meridian" target="_blank" rel="noopener sponsored"
+           class="block w-full max-w-sm rounded-xl overflow-hidden border border-[#2a2a2a] hover:border-[#CCFF00] transition group">
+            <div class="bg-[#1a1a1a] px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                    <div class="text-[11px] font-bold tracking-widest text-[#888] uppercase mb-1">Kladionica</div>
+                    <div class="text-white font-black text-lg leading-tight">meridianbet</div>
+                    <div class="text-[#CCFF00] text-xs font-semibold mt-0.5">Tri bonusa bez depozita</div>
+                </div>
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center gap-1 bg-[#CCFF00] group-hover:bg-[#b8e600] text-black font-black text-sm px-4 py-2 rounded-lg transition whitespace-nowrap">
+                        Registruj se &rarr;
+                    </span>
                 </div>
             </div>
-            <div class="flex-1 text-center">
-                @if($fixture->awayTeam->logo_url)
-                    <img src="{{ $fixture->awayTeam->logo_url }}" class="w-16 h-16 mx-auto mb-2 object-contain" alt="{{ $fixture->awayTeam->name }}" loading="lazy">
-                @endif
-                <a href="/tim/{{ $fixture->awayTeam->slug }}" class="font-bold text-white text-lg hover:text-[#CCFF00] transition">{{ $fixture->awayTeam->name }}</a>
-            </div>
-        </div>
+        </a>
     </div>
-
+    @endif
     {{-- Share buttons --}}
     <div class="flex items-center justify-center gap-3 mt-4 mb-2">
         @php
@@ -93,6 +71,14 @@
     </div>
 
 
+
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+            {{-- Mobilni affiliate banner 300x250 --}}
+    <div class="lg:hidden my-4 flex justify-center">
+        <a href='https://a.meridianbet.ba/c/562fgm' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-300x250.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+    </div>
+    @endif
     {{-- Poll: Ko će pobijediti? --}}
     @php
         $pollStatuses = ['NS', '1H', 'HT', '2H', 'ET', 'P', 'FT', 'AET', 'PEN'];

@@ -41,6 +41,7 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
     'admin_token' => env('ADMIN_TOKEN', 'changeme'),
+    'meridian_btag' => env('MERIDIAN_BTAG', ''),
 
     /*
     |--------------------------------------------------------------------------

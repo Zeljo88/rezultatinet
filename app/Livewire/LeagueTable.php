@@ -32,6 +32,7 @@ class LeagueTable extends Component
         'bundesliga'          => 78,
         'ligue-1'             => 61,
         'prva-liga-srbija'    => 287,
+        'first-nl-hrvatska'   => 211,
         'hnl-2'               => 946,
         'prva-liga-fbih'      => 316,
         'prva-liga-rs'        => 317,
@@ -114,8 +115,8 @@ class LeagueTable extends Component
     {
         $leagueName  = $this->league->name;
         $season      = $this->seasonLabel();
-        $metaTitle   = "{$leagueName} {$season} Tablica — Bodovna Tablica & Poredak | rezultati.net";
-        $metaDescription = "Pratite {$leagueName} tablicu {$season}. Bodovi, poredak timova, golovi i statistike za sve klubove na rezultati.net.";
+        $metaTitle   = "{$leagueName} Tablica {$season} — Poredak i Rezultati | rezultati.net";
+        $metaDescription = "Pratite aktuelnu tablicu {$leagueName} {$season}. Live rezultati, poredak, strijelci i sve statistike na rezultati.net.";
         $canonicalUrl = url("/liga/{$this->slug}/tablica");
 
         return view('livewire.league-table', [

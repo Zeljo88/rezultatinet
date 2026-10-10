@@ -53,17 +53,38 @@ $readTime = max(1, (int) ceil(str_word_count(strip_tags($post->content ?? '')) /
         @endif
 
         <div class="text-gray-300 leading-relaxed space-y-4
-            [&_h1]:hidden
             [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:border-[#2a2a2a] [&_h2]:pb-1
             [&_h3]:text-[#CCFF00] [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-4 [&_h3]:mb-1
             [&_p]:mb-3 [&_p]:leading-7
             [&_a]:text-[#CCFF00] [&_a]:underline [&_a]:hover:text-white
             [&_strong]:text-white [&_strong]:font-bold">
-            {!! $post->content !!}
+            {!! \App\Support\BlogContent::withBodyHeadings($post->content) !!}
         </div>
     </article>
 
 
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+    {{-- Meridian affiliate CTA --}}
+    <div class="flex justify-center my-6">
+        <a href="/go/meridian" target="_blank" rel="noopener sponsored"
+           class="block w-full max-w-lg rounded-xl overflow-hidden border border-[#2a2a2a] hover:border-[#CCFF00] transition group">
+            <div class="bg-[#1a1a1a] px-5 py-4 flex items-center justify-between gap-4">
+                <div>
+                    <div class="text-[11px] font-bold tracking-widest text-[#888] uppercase mb-1">Kladionica</div>
+                    <div class="text-white font-black text-lg leading-tight">meridianbet</div>
+                    <div class="text-[#CCFF00] text-xs font-semibold mt-0.5">Tri bonusa bez depozita</div>
+                </div>
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center gap-1 bg-[#CCFF00] group-hover:bg-[#b8e600] text-black font-black text-sm px-4 py-2 rounded-lg transition whitespace-nowrap">
+                        Registruj se &rarr;
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    @endif
     {{-- Facebook Follow CTA --}}
     <div class="mt-10 mb-2 rounded-2xl overflow-hidden border border-[#1877F2]/30 bg-gradient-to-br from-[#0d1b2e] to-[#111] relative">
         <div class="absolute inset-0 opacity-5" style="background-image: repeating-linear-gradient(45deg,#1877F2 0,#1877F2 1px,transparent 0,transparent 50%);background-size:16px 16px"></div>

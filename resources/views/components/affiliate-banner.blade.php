@@ -1,5 +1,7 @@
 @props(['adSlot' => 'sidebar-1', 'extraClass' => ''])
 
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
 @if(!empty(trim($slot)))
 <div
     class="affiliate-banner {{ $extraClass }}"
@@ -32,3 +34,4 @@
     {{ $slot }}
 </div>
 @endif
+    @endif

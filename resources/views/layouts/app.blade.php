@@ -3,7 +3,9 @@
 <head>
     @php
         $schemaBlocks   = $schemaBlocks ?? [];
-        $canonicalUrl   = $canonicalUrl ?? null;
+        $canonicalUrl   = $canonicalUrl ?? url()->current();
+        $robots          = $robots ?? 'index, follow';
+        $showCanonical   = $showCanonical ?? true;
         $resolvedTitle  = $metaTitle ?? null;
         $resolvedDesc   = $metaDescription ?? null;
         $resolvedImage  = ($ogImage ?? null) ?: asset('images/og/default.jpg');
@@ -19,16 +21,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $resolvedTitle ?: $__env->yieldContent('title', 'Rezultati uživo | Nogomet, HNL, Liga prvaka — rezultati.net') }}</title>
     <meta name="description" content="{{ $resolvedDesc ?: $__env->yieldContent('meta_description', 'Pratite live rezultate na rezultati.net') }}">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="{{ $canonicalUrl ?? url()->current() }}">
-    <link rel="alternate" hreflang="bs" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="hr" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="sr" href="{{ url()->current() }}">
-    <link rel="alternate" hreflang="x-default" href="{{ url()->current() }}">
+    <meta name="robots" content="{{ $robots }}">
+    @if($showCanonical)
+        <link rel="canonical" href="{{ $canonicalUrl }}">
+    @endif
     <meta property="og:title" content="{{ $resolvedTitle ?? 'Rezultati uživo — rezultati.net' }}">
     <meta property="og:description" content="{{ $resolvedDesc ?? 'Pratite live rezultate na rezultati.net' }}">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
     <meta property="og:image" content="{{ $resolvedImage }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -58,16 +58,14 @@
             function gtag(){window.dataLayer.push(arguments);}
             window.gtag = gtag;
             gtag("js", new Date());
-            gtag("config", "G-854YSPE0YX", {"transport_type": "beacon"});
+            gtag("config", "G-854YSPE0YX", {"transport_type": "beacon", "anonymize_ip": true});
             var s = document.createElement("script");
             s.async = true;
             s.src = "https://www.googletagmanager.com/gtag/js?id=G-854YSPE0YX";
             document.head.appendChild(s);
         }
         window.addEventListener("load", function() {
-            if (localStorage.getItem('rn_cookie_consent') === 'accepted') {
-                loadAnalytics();
-            }
+            loadAnalytics();
         });
     </script>
     <style>
@@ -146,7 +144,7 @@
                     <span class="text-[#CCFF00] font-black text-xl tracking-tight">rezultati</span><span class="text-white font-black text-xl tracking-tight">.net</span>
                 </a>
                 <div class="hidden md:flex items-center gap-1">
-                    <a href="/" class="px-3 py-1.5 rounded-full text-xs font-bold transition {{ request()->is('/') || request()->is('fudbal*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
+                    <a href="/nogomet" class="px-3 py-1.5 rounded-full text-xs font-bold transition {{ request()->is('nogomet') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
                         Fudbal
                     </a>
                     <a href="/kosarka" class="px-3 py-1.5 rounded-full text-xs font-bold transition {{ request()->is('kosarka*') ? 'bg-[#CCFF00] text-black' : 'text-gray-400 hover:text-white' }}">
@@ -191,8 +189,8 @@
              class="md:hidden bg-[#1a1a1a] border-t border-[#2a2a2a] shadow-xl"
              style="display:none">
             <nav class="flex flex-col py-2 max-w-7xl mx-auto px-4">
-                <a href="/" @click="mobileOpen = false"
-                   class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold transition {{ request()->is('/') || request()->is('fudbal*') ? 'text-[#CCFF00] bg-[#2a2a2a]' : 'text-gray-300 hover:text-white hover:bg-[#2a2a2a]' }}">
+                <a href="/nogomet" @click="mobileOpen = false"
+                   class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold transition {{ request()->is('nogomet') ? 'text-[#CCFF00] bg-[#2a2a2a]' : 'text-gray-300 hover:text-white hover:bg-[#2a2a2a]' }}">
                     <span class="text-lg">⚽</span> Fudbal
                 </a>
                 <a href="/kosarka" @click="mobileOpen = false"
@@ -232,20 +230,26 @@
                 <a href="/liga/hnl" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇭🇷 HNL
                 </a>
-                <a href="/liga/superliga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    🇷🇸 Superliga Srbija
-                </a>
-                <a href="/liga/premijer-liga-bih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premijer-liga-bih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    🇧🇦 Premijer Liga BiH
+                <a href="/liga/first-nl-hrvatska" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/first-nl-hrvatska') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇭🇷 Prva NL
                 </a>
                 <a href="/liga/hnl-2" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/hnl-2') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇭🇷 HNL 2
+                </a>
+                <a href="/liga/superliga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/superliga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇷🇸 Superliga
+                </a>
+                <a href="/liga/prva-liga-srbija" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-srbija') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇷🇸 Prva Liga
+                </a>
+                <a href="/liga/premijer-liga-bih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/premijer-liga-bih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
+                    🇧🇦 Premijer Liga
                 </a>
                 <a href="/liga/prva-liga-fbih" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-fbih') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇧🇦 Prva liga FBiH
                 </a>
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/prva-liga-rs') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
-                    🇷🇸 Prva liga RS
+                    🇧🇦 Prva liga RS
                 </a>
                 <a href="/liga/snl" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 {{ request()->is('liga/snl') ? 'bg-[#CCFF00] text-black' : 'bg-[#2a2a2a] text-gray-300 hover:text-white' }} transition">
                     🇸🇮 SNL
@@ -287,6 +291,19 @@
         </div>
     </nav>
 
+
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+                {{-- HEADER AFFILIATE BANNER --}}
+    <div class="max-w-7xl mx-auto md:px-4 pt-3 pb-1 hidden md:flex justify-center">
+        <a href='https://a.meridianbet.ba/c/x2ZG85' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+    </div>
+
+                {{-- MOBILE AFFILIATE BANNER (samo na mobilnom) --}}
+    <div class="md:hidden px-3 pb-2 flex justify-center">
+        <a href='https://a.meridianbet.ba/c/mN7YdW' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-320x50.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+    </div>
+    @endif
     {{-- MAIN LAYOUT --}}
     <div class="max-w-7xl mx-auto md:px-4 py-4 flex gap-4 overflow-x-hidden">
 
@@ -295,38 +312,35 @@
             <div class="mb-4">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">⚽ Fudbal</p>
 
-                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Balkan</p>
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Hrvatska</p>
                 <a href="/liga/hnl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇭🇷 HNL
                 </a>
-                <a href="/liga/superliga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇷🇸 Superliga Srbija
-                </a>
-                <a href="/liga/premijer-liga-bih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/premijer-liga-bih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇧🇦 Premijer Liga BiH
+                <a href="/liga/first-nl-hrvatska" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/first-nl-hrvatska') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇭🇷 Prva NL
                 </a>
                 <a href="/liga/hnl-2" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/hnl-2') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇭🇷 HNL 2
+                </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Srbija</p>
+                <a href="/liga/superliga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇷🇸 Superliga
+                </a>
+                <a href="/liga/prva-liga-srbija" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-srbija') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇷🇸 Prva Liga
+                </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Bosna i Hercegovina</p>
+                <a href="/liga/premijer-liga-bih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/premijer-liga-bih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇧🇦 Premijer Liga
                 </a>
                 <a href="/liga/prva-liga-fbih" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-fbih') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇧🇦 Prva liga FBiH
                 </a>
                 <a href="/liga/prva-liga-rs" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-rs') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇷🇸 Prva liga RS
+                    🇧🇦 Prva liga RS
                 </a>
-                <a href="/liga/snl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/snl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇸🇮 SNL Slovenija
-                </a>
-                <a href="/liga/prva-liga-crne-gore" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-crne-gore') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇲🇪 Prva liga CG
-                </a>
-                <a href="/liga/prva-liga-makedonije" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-makedonije') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇲🇰 Prva liga MKD
-                </a>
-                <a href="/liga/superliga-kosova" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-kosova') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
-                    🇽🇰 Superliga Kosova
-                </a>
-
                 <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Evropa</p>
                 <a href="/liga/champions-liga" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/champions-liga') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     ⭐ Champions Liga
@@ -353,6 +367,20 @@
                 </a>
                 <a href="/liga/ligue-1" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/ligue-1') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
                     🇫🇷 Ligue 1
+                </a>
+
+                <p class="text-[10px] text-[#CCFF00] font-bold uppercase tracking-wider px-2 mt-3 mb-1">Ostale Balkanske</p>
+                <a href="/liga/prva-liga-crne-gore" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-crne-gore') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇲🇪 Prva liga CG
+                </a>
+                <a href="/liga/snl" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/snl') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇸🇮 SNL Slovenija
+                </a>
+                <a href="/liga/prva-liga-makedonije" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/prva-liga-makedonije') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇲🇰 Prva liga MKD
+                </a>
+                <a href="/liga/superliga-kosova" class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1a1a1a] transition text-sm {{ request()->is('liga/superliga-kosova') ? 'text-[#CCFF00] font-bold' : 'text-gray-300' }}">
+                    🇽🇰 Superliga Kosova
                 </a>
             </div>
 
@@ -400,6 +428,14 @@
             <div class="sticky top-[80px]">
                 <!-- affiliate sidebar -->
 
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+                                                {{-- Affiliate banner 300x250 --}}
+                <div class="mb-4">
+                    <a href='https://a.meridianbet.ba/c/562fgm' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-300x250.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a>
+                </div>
+
+    @endif
                 <!-- Facebook Page Widget -->
                 <div class="rounded-lg overflow-hidden mb-4" id="fb-page-wrapper" style="display:none;">
                   <div class="fb-page"
@@ -428,6 +464,14 @@
 
     </div>
 
+
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+            {{-- PRE-FOOTER AFFILIATE BANNER --}}
+    <div class="px-4 pb-4 flex justify-center">
+        <div class="hidden md:block"><a href='https://a.meridianbet.ba/c/x2ZG85' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-728x90.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div><div class="md:hidden"><a href='https://a.meridianbet.ba/c/kZJd7Y' target='_blank' rel='noopener sponsored'><img src='/images/banners/meridian-320x100.jpg' alt='Meridianbet' style='display:block;max-width:100%;' loading='lazy'></a></div>
+    </div>
+    @endif
     <footer class="border-t border-[#2a2a2a] mt-12 py-6 text-center text-gray-500 text-sm">
         <p>&copy; {{ date('Y') }} rezultati.net &mdash; Rezultati uzivo</p>
         <p class="mt-1 text-xs opacity-60">18+ | Kladenje moze biti stetno za zdravlje. Igrajte odgovorno.</p>
@@ -441,7 +485,34 @@
             <a href="/kolacici" class="hover:text-white transition">Kolačići</a>
         </div>
     </footer>
+    {{-- Ads temporarily hidden; remove this false guard to restore the preserved integration. --}}
+    @if(false)
+    {{-- MERIDIAN POPUP BANNER --}}
+    <div id="meridian-popup" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+        <div style="position:relative;max-width:320px;width:90%;">
+            <button onclick="closeMeridianPopup()" style="position:absolute;top:-12px;right:-12px;width:28px;height:28px;background:#1a1a1a;border:2px solid #3a3a3a;border-radius:50%;color:#fff;font-size:16px;line-height:1;cursor:pointer;z-index:1;">&times;</button>
+            <a href='https://a.meridianbet.ba/c/562fgm' target='_blank' rel='noopener sponsored' onclick="closeMeridianPopup()">
+                <img src='/images/banners/meridian-300x250.jpg' alt='Meridianbet' style='display:block;width:100%;border-radius:8px;' loading='eager'>
+            </a>
+        </div>
+    </div>
+    <script>
+        function closeMeridianPopup() {
+            document.getElementById('meridian-popup').style.display = 'none';
+            sessionStorage.setItem('meridian_popup_shown', '1');
+        }
+        window.addEventListener('load', function() {
+            if (!sessionStorage.getItem('meridian_popup_shown')) {
+                setTimeout(function() {
+                    var p = document.getElementById('meridian-popup');
+                    if (p) p.style.display = 'flex';
+                }, 5000);
+            }
+        });
+    </script>
 
+
+    @endif
     {{-- COOKIE CONSENT BANNER --}}
     <div x-data="{
             show: false,

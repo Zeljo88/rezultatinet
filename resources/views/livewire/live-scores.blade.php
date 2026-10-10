@@ -257,7 +257,7 @@
                         @else
                             <div class="w-6 h-6 flex-shrink-0 rounded-full bg-[#2a2a2a]"></div>
                         @endif
-                        @if($fixtureType === 'football')
+                        @if($fixtureType === 'football' && !empty($fixture['home_team_slug']))
                             <a href="/tim/{{ $fixture['home_team_slug'] }}"
                                class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
                                       {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition"
@@ -305,7 +305,7 @@
 
                     {{-- Away team --}}
                     <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end pl-1">
-                        @if($fixtureType === 'football')
+                        @if($fixtureType === 'football' && !empty($fixture['away_team_slug']))
                             <a href="/tim/{{ $fixture['away_team_slug'] }}"
                                class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
                                       {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition"
