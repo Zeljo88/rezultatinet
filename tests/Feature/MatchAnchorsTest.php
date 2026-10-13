@@ -3,16 +3,55 @@
 namespace Tests\Feature;
 
 use App\Livewire\LiveScores;
+use App\Livewire\MatchDetail;
 use App\Models\Fixture;
+use App\Models\Team;
 use App\Support\MatchRoute;
 use Carbon\Carbon;
 use DOMDocument;
 use DOMXPath;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 
 class MatchAnchorsTest extends MatchTimeUiTest
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Schema::create('fixture_polls', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('fixture_id');
+            $table->string('vote');
+            $table->string('voter_ip');
+        });
+        Schema::create('fixture_lineups', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('fixture_id');
+            $table->string('team_side');
+        });
+    }
+
+    private function canonical(string $html): string
+    {
+        $links = $this->xpath($html)->query('//link[@rel="canonical"]');
+        $this->assertCount(1, $links);
+
+        return $links[0]->getAttribute('href');
+    }
+
+    private function assertTargetCanonical(string $href, int $id): void
+    {
+        // Exercise the existing HTTP detail route/layout, not a copy of the slug algorithm.
+        Livewire::flushState();
+        $numeric = $this->get('/utakmica/'.$id)->assertOk()->getContent();
+        $this->assertSame(url($href), $this->canonical($numeric));
+        Livewire::flushState();
+        $target = $this->get($href)->assertOk()->getContent();
+        $this->assertSame(url($href), $this->canonical($target));
+    }
+
     private function inventory(): void
     {
         foreach (['2026-10-09', '2026-10-10', '2026-10-11'] as $day) {
@@ -39,7 +78,10 @@ class MatchAnchorsTest extends MatchTimeUiTest
         $rows = $x->query('//*[@data-status]');
         $this->assertCount($count, $rows);
         $this->assertCount($count, $x->query('//*[@data-status]//a[starts-with(@href,"/utakmica/")]'));
+        $keys = [];
         foreach ($rows as $row) {
+            $keys[] = $row->getAttribute('wire:key');
+            $this->assertStringStartsWith('match-row-', $row->getAttribute('wire:key'));
             $this->assertFalse($row->hasAttribute('onclick'));
             $a = $x->query('.//a[starts-with(@href,"/utakmica/")]', $row);
             $this->assertCount(1, $a);
@@ -47,6 +89,7 @@ class MatchAnchorsTest extends MatchTimeUiTest
             $this->assertNotEmpty($a[0]->getAttribute('aria-label'));
             $this->assertCount(0, $x->query('.//a|.//button|.//input|.//*[@tabindex]', $a[0]));
         }
+        $this->assertCount($count, array_unique($keys));
         $ids = [];
         foreach ($x->query('//*[@id]') as $node) {
             $ids[] = $node->getAttribute('id');
@@ -62,6 +105,12 @@ class MatchAnchorsTest extends MatchTimeUiTest
             Livewire::flushState();
             $html = $this->get($path)->assertOk()->getContent();
             $this->checkRows($html, 17);
+            foreach ($this->xpath($html)->query('//a[contains(@class,"match-row-link")]') as $link) {
+                $href = $link->getAttribute('href');
+                $fixture = MatchRoute::resolve(basename($href));
+                $this->assertNotNull($fixture);
+                $this->assertTargetCanonical($href, $fixture->id);
+            }
             $this->assertStringContainsString('G-854YSPE0YX', $html);
             foreach (['kickoffMs:', 'serverMs:', 'meridian-popup', 'adsbygoogle'] as $marker) {
                 $this->assertStringNotContainsString($marker, $html);
@@ -87,7 +136,11 @@ class MatchAnchorsTest extends MatchTimeUiTest
         DB::table('teams')->where('id', 1506)->update(['slug' => null, 'name' => 'Home " <script>alert(1)</script> & \'']);
         $html = $this->get('/utakmice-danas')->assertOk()->getContent();
         $this->checkRows($html, 1);
-        $this->assertStringContainsString('href="/utakmica/'.$id.'"', $html);
+        $detail = new MatchDetail;
+        $detail->fixture = Fixture::with(['homeTeam', 'awayTeam'])->findOrFail($id);
+        $href = $this->xpath($html)->query('//a[contains(@class,"match-row-link")]')[0]->getAttribute('href');
+        $this->assertSame($detail->getCanonicalUrl(), url($href));
+        $this->assertNotSame('/utakmica/'.$id, $href);
         $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
         $this->assertSame('Home " <script>alert(1)</script> & \' — Leeds', $this->xpath($html)->query('//a[contains(@class,"match-row-link")]')[0]->getAttribute('aria-label'));
         $this->assertCount(0, $this->xpath($html)->query('//a[@href="/tim/"]'));
@@ -124,6 +177,82 @@ class MatchAnchorsTest extends MatchTimeUiTest
         }
     }
 
+    public function test_missing_stored_slugs_use_existing_name_fallback_or_numeric_contract(): void
+    {
+        $id = DB::table('fixtures')->insertGetId(['api_fixture_id' => 55842, 'league_id' => 1, 'home_team_id' => 1506, 'away_team_id' => 1507, 'season' => 2026, 'kick_off' => '2026-10-10 11:30:00', 'status_short' => 'NS']);
+        foreach ([
+            [null, 'Sabah FA', '', 'Slavia Praha', 'sabah-fa-vs-slavia-praha-10-10-2026'],
+            ['   ', 'Sabah FA', 'slavia-praha', 'Slavia Praha', 'sabah-fa-vs-slavia-praha-10-10-2026'],
+            ['zeljeznicar', 'Željezničar & "Sarajevo"', 'slavia-praha', 'Slavia Praha', 'zeljeznicar-vs-slavia-praha-10-10-2026'],
+            [null, '!!!', null, 'Slavia Praha', (string) $id],
+        ] as [$homeSlug, $homeName, $awaySlug, $awayName, $destination]) {
+            DB::table('teams')->where('id', 1506)->update(['slug' => $homeSlug, 'name' => $homeName]);
+            DB::table('teams')->where('id', 1507)->update(['slug' => $awaySlug, 'name' => $awayName]);
+            Livewire::flushState();
+            $html = $this->get('/')->assertOk()->getContent();
+            $a = $this->xpath($html)->query('//a[contains(@class,"match-row-link")]')[0];
+            $this->assertTargetCanonical($a->getAttribute('href'), $id);
+            $this->assertSame('/utakmica/'.$destination, $a->getAttribute('href'));
+            $this->assertSame($homeName.' — '.$awayName, $a->getAttribute('aria-label'));
+        }
+    }
+
+    public function test_render_is_query_free_at_one_and_many_rows_with_escaped_slugs(): void
+    {
+        $base = ['id' => 19, 'home_team_name' => 'Željezničar <script>x</script> & "', 'away_team_name' => 'Étoile', 'home_team_slug' => null, 'away_team_slug' => null, 'kick_off' => '2026-10-10 11:30:00', 'status_short' => 'NS'];
+        foreach ([1, 200] as $count) {
+            foreach ([null, 'team" onmouseover="alert(1)&<x>'] as $slug) {
+                $row = array_replace($base, ['home_team_slug' => $slug]);
+                DB::flushQueryLog();
+                DB::enableQueryLog();
+                $html = view('livewire.live-scores', ['fixtures' => ['League' => array_fill(0, $count, $row)], 'counts' => ['all' => $count, 'live' => 0, 'upcoming' => $count, 'finished' => 0], 'sport' => 'football', 'sportAvailable' => true, 'selectedDate' => '2026-10-10', 'prevDate' => '2026-10-09', 'nextDate' => '2026-10-11'])->render();
+                $queries = DB::getQueryLog();
+                DB::disableQueryLog();
+                $this->assertSame([], $queries, 'Rendering must never perform per-row slug/relationship lookups');
+                $x = $this->xpath($html);
+                $this->assertCount($count, $x->query('//a[contains(@class,"match-row-link")]'));
+                $this->assertCount(0, $x->query('//*[@onmouseover]|//x'));
+                $this->assertStringNotContainsString('<script>x</script>', $html);
+                $model = new Fixture(['kick_off' => $row['kick_off']]);
+                $model->id = $row['id'];
+                $model->setRelation('homeTeam', new Team(['name' => $row['home_team_name'], 'slug' => $slug]));
+                $model->setRelation('awayTeam', new Team(['name' => $row['away_team_name'], 'slug' => null]));
+                $detail = new MatchDetail;
+                $detail->fixture = $model;
+                foreach ($x->query('//a[contains(@class,"match-row-link")]') as $a) {
+                    $this->assertSame($detail->getCanonicalUrl(), url($a->getAttribute('href')));
+                }
+            }
+        }
+    }
+
+    public function test_anchor_export_readonly_browser_fixtures(): void
+    {
+        $out = getenv('ANCHOR_EVIDENCE');
+        if (! $out) {
+            $this->markTestSkipped('Evidence directory not supplied');
+        }
+        $this->inventory();
+        // Disposable local SQLite fixtures only; browser later opens them mode=ro/immutable.
+        DB::table('teams')->where('id', 2000)->update(['slug' => null]);
+        $pdo = DB::connection()->getPdo();
+        foreach (['before', 'score', 'reorder'] as $state) {
+            if ($state === 'score') {
+                DB::table('fixtures')->where('id', 18)->update(['status_short' => '1H', 'elapsed_minute' => 3]);
+                DB::table('fixture_scores')->where('fixture_id', 18)->update(['goals_home' => 5]);
+            }
+            if ($state === 'reorder') {
+                DB::table('fixtures')->where('id', 19)->update(['kick_off' => '2026-10-10 10:30:00']);
+            }
+            $file = $out.'/browser-'.$state.'.sqlite';
+            if (is_file($file)) {
+                rename($file, $file.'.previous-'.uniqid());
+            }
+            $pdo->exec('VACUUM INTO '.$pdo->quote($file));
+            $this->assertFileExists($file);
+        }
+    }
+
     public function test_anchor_nonfootball_rows_remain_noninteractive(): void
     {
         $base = ['id' => 1, 'home_team_name' => 'Home', 'away_team_name' => 'Away', 'kick_off' => '2026-10-10 11:30:00', 'status_short' => 'NS'];
@@ -150,7 +279,7 @@ class MatchAnchorsTest extends MatchTimeUiTest
         file_put_contents($out.'/baseline.html', $html);
     }
 
-    public function test_anchor_retained_real_inventories_preserve_all_rows_and_destinations(): void
+    public function test_anchor_retained_real_inventories_match_detail_canonical_for_every_row(): void
     {
         $root = getenv('ANCHOR_INPUT');
         $out = getenv('ANCHOR_EVIDENCE');
@@ -167,14 +296,21 @@ class MatchAnchorsTest extends MatchTimeUiTest
             $x = $this->xpath($html);
             $links = $x->query('//a[contains(@class,"match-row-link")]');
             foreach ($rows->values() as $i => $row) {
-                $expected = '/utakmica/'.$row['id'];
-                if (! empty($row['home_team_slug']) && ! empty($row['away_team_slug']) && ! empty($row['kick_off'])) {
-                    $expected = '/utakmica/'.$row['home_team_slug'].'-vs-'.$row['away_team_slug'].'-'.Carbon::parse($row['kick_off'])->format('d-m-Y');
+                $model = new Fixture;
+                $model->id = $row['id'];
+                $model->kick_off = $row['kick_off'];
+                foreach (['home', 'away'] as $side) {
+                    $team = new Team;
+                    $team->name = $row[$side.'_team_name'];
+                    $team->slug = $row[$side.'_team_slug'];
+                    $model->setRelation($side.'Team', $team);
                 }
-                $this->assertSame($expected,$links[$i]->getAttribute('href'));
+                $detail = new MatchDetail;
+                $detail->fixture = $model;
+                $this->assertSame($detail->getCanonicalUrl(), url($links[$i]->getAttribute('href')));
             }
             if ($out) {
-                file_put_contents($out.'/real-'.basename($file,'.json').'.html',$html);
+                file_put_contents($out.'/real-'.basename($file, '.json').'.html', $html);
             }
         }
     }

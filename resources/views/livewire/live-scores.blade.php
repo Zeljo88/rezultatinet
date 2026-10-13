@@ -10,7 +10,25 @@
             }
         }
     }"
-    x-init="updateLiveTitle()"
+    x-init="
+        updateLiveTitle();
+        let focusedMatch = null;
+        $wire.$hook('morph', ({ el }) => {
+            const active = document.activeElement;
+            focusedMatch = el.contains(active) &amp;&amp; active.matches('.match-row-link')
+                ? { node: active, href: active.getAttribute('href') } : null;
+        });
+        $wire.$hook('morphed', () => {
+            const match = focusedMatch;
+            focusedMatch = null;
+            $nextTick(() => {
+                if (match?.node.isConnected &amp;&amp; match.node.getAttribute('href') === match.href
+                    &amp;&amp; match.node.getClientRects().length &amp;&amp; document.activeElement === document.body) {
+                    match.node.focus({ preventScroll: true });
+                }
+            });
+        });
+    "
     class="w-full max-w-full"
 >
 
@@ -234,16 +252,21 @@
                     // Match URL for football
                     $matchUrl = '';
                     if ($fixtureType === 'football') {
-                        $matchUrl = '/utakmica/' . $fixture['id'];
-                        if (!empty($fixture['home_team_slug']) && !empty($fixture['away_team_slug']) && !empty($fixture['kick_off'])) {
-                            $matchDate = \Carbon\Carbon::parse($fixture['kick_off'])->format('d-m-Y');
-                            $matchUrl = '/utakmica/' . $fixture['home_team_slug'] . '-vs-' . $fixture['away_team_slug'] . '-' . $matchDate;
-                        }
+                        // Reuse the detail page's canonical slug policy with already-loaded row data.
+                        $matchFixture = new \App\Models\Fixture(['kick_off' => $fixture['kick_off'] ?? null]);
+                        $matchFixture->setRelation('homeTeam', new \App\Models\Team([
+                            'name' => $fixture['home_team_name'] ?? '', 'slug' => $fixture['home_team_slug'] ?? null,
+                        ]));
+                        $matchFixture->setRelation('awayTeam', new \App\Models\Team([
+                            'name' => $fixture['away_team_name'] ?? '', 'slug' => $fixture['away_team_slug'] ?? null,
+                        ]));
+                        $matchUrl = '/utakmica/' . (\App\Support\MatchRoute::slugFor($matchFixture) ?? $fixture['id']);
                     }
                 @endphp
 
                 <div class="relative flex items-center h-[52px] pl-3 pr-2 border-b border-[#151515] bg-[#0f0f0f] hover:bg-[#161616] transition
                             {{ $fixtureType === 'football' ? 'cursor-pointer' : '' }}"
+                     @if($fixtureType === 'football') wire:key="match-row-{{ $fixture['id'] }}" @endif
                      data-status="{{ $dataStatus }}"
                      x-show="activeFilter === 'sve' || activeFilter === '{{ $dataStatus }}'"
                      x-cloak>
