@@ -242,12 +242,11 @@
                     }
                 @endphp
 
-                <div class="flex items-center h-[52px] pl-3 pr-2 border-b border-[#151515] bg-[#0f0f0f] hover:bg-[#161616] transition
+                <div class="relative flex items-center h-[52px] pl-3 pr-2 border-b border-[#151515] bg-[#0f0f0f] hover:bg-[#161616] transition
                             {{ $fixtureType === 'football' ? 'cursor-pointer' : '' }}"
                      data-status="{{ $dataStatus }}"
                      x-show="activeFilter === 'sve' || activeFilter === '{{ $dataStatus }}'"
-                     x-cloak
-                     @if($fixtureType === 'football') onclick="window.location='{{ $matchUrl }}'" @endif>
+                     x-cloak>
 
                     {{-- Home team --}}
                     <div class="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
@@ -259,9 +258,9 @@
                         @endif
                         @if($fixtureType === 'football' && !empty($fixture['home_team_slug']))
                             <a href="/tim/{{ $fixture['home_team_slug'] }}"
+                               style="position: relative; z-index: 1;"
                                class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
-                                      {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition"
-                               onclick="event.stopPropagation()">{{ $fixture['home_team_name'] }}</a>
+                                      {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition">{{ $fixture['home_team_name'] }}</a>
                         @else
                             <span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
                                          {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['home_team_name'] }}</span>
@@ -269,7 +268,14 @@
                     </div>
 
                     {{-- Score / Status in center --}}
-                    <div class="flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1">
+                    @if($fixtureType === 'football')
+                        <a href="{{ $matchUrl }}" class="match-row-link flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1"
+                           aria-label="{{ $fixture['home_team_name'] }} — {{ $fixture['away_team_name'] }}"
+                           style="outline-color: #CCFF00; outline-offset: 2px;">
+                            <span class="absolute inset-0" aria-hidden="true"></span>
+                    @else
+                        <div class="flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1">
+                    @endif
                         @if($fixtureType === 'tennis' && !empty($fixture['score_sets']))
                             <span class="text-sm font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">
                                 {{ $fixture['score_sets'] }}
@@ -301,15 +307,19 @@
                                 @endif
                             </span>
                         @endif
-                    </div>
+                    @if($fixtureType === 'football')
+                        </a>
+                    @else
+                        </div>
+                    @endif
 
                     {{-- Away team --}}
                     <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end pl-1">
                         @if($fixtureType === 'football' && !empty($fixture['away_team_slug']))
                             <a href="/tim/{{ $fixture['away_team_slug'] }}"
+                               style="position: relative; z-index: 1;"
                                class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
-                                      {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition"
-                               onclick="event.stopPropagation()">{{ $fixture['away_team_name'] }}</a>
+                                      {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition">{{ $fixture['away_team_name'] }}</a>
                         @else
                             <span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
                                          {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['away_team_name'] }}</span>
