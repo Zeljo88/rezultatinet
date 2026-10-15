@@ -174,26 +174,26 @@
              class="border-b border-[#111]">
 
             {{-- ── League header (collapsible) ── --}}
-            <div @click="open = !open"
+<div @click="open = !open"
                  class="flex items-center gap-2 px-3 py-2 bg-[#141414] border-t border-gray-700/50 cursor-pointer hover:bg-[#1a1a1a] transition select-none min-h-[36px]">
-                @if($leagueLogo)
-                    <img src="{{ $leagueLogo }}" alt=""
+@if($leagueLogo)
+<img src="{{ $leagueLogo }}" alt=""
                          class="w-5 h-5 object-contain flex-shrink-0 opacity-80" loading="lazy">
-                @else
-                    <div class="w-5 h-5 flex-shrink-0 rounded bg-[#2a2a2a]"></div>
-                @endif
-                <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider flex-1 truncate">{{ $leagueName ?: 'Ostale lige' }}</span>
-                <span x-show="open" class="bg-[#2a2a2a] text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1">{{ count($leagueFixtures) }}</span>
-                <span x-show="!open" class="text-gray-500 text-xs flex-shrink-0 ml-auto mr-1">prikaži utakmice ({{ count($leagueFixtures) }})</span>
-                <svg :class="open ? 'rotate-0' : '-rotate-90'"
+@else
+<div class="w-5 h-5 flex-shrink-0 rounded bg-[#2a2a2a]"></div>
+@endif
+<span class="text-gray-400 text-xs font-semibold uppercase tracking-wider flex-1 truncate">{{ $leagueName ?: 'Ostale lige' }}</span>
+<span x-show="open" class="bg-[#2a2a2a] text-gray-500 text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1">{{ count($leagueFixtures) }}</span>
+<span x-show="!open" class="text-gray-500 text-xs flex-shrink-0 ml-auto mr-1">prikaži utakmice ({{ count($leagueFixtures) }})</span>
+<svg :class="open ? 'rotate-0' : '-rotate-90'"
                      class="w-3.5 h-3.5 text-gray-600 transition-transform duration-200 flex-shrink-0 ml-1"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </div>
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+</svg>
+</div>
 
-            {{-- ── Match rows ── --}}
-            <div x-show="open"
+{{-- ── Match rows ── --}}
+<div x-show="open"
                  x-transition:enter="transition-all duration-200 ease-out"
                  x-transition:enter-start="opacity-0 -translate-y-1"
                  x-transition:enter-end="opacity-100 translate-y-0"
@@ -201,7 +201,7 @@
                  x-transition:leave-start="opacity-100 translate-y-0"
                  x-transition:leave-end="opacity-0 -translate-y-1">
 
-                @foreach($leagueFixtures as $fixture)
+@foreach($leagueFixtures as $fixture)
                 @php
                     $fixtureType = $fixture['type'] ?? 'football';
                     $statusShort = $fixture['status_short'] ?? '';
@@ -264,103 +264,103 @@
                     }
                 @endphp
 
-                <div class="relative flex items-center h-[52px] pl-3 pr-2 border-b border-[#151515] bg-[#0f0f0f] hover:bg-[#161616] transition
+<div class="relative flex items-center h-[52px] pl-3 pr-2 border-b border-[#151515] bg-[#0f0f0f] hover:bg-[#161616] transition
                             {{ $fixtureType === 'football' ? 'cursor-pointer' : '' }}"
-                     @if($fixtureType === 'football') wire:key="match-row-{{ $fixture['id'] }}" @endif
+@if($fixtureType === 'football') wire:key="match-row-{{ $fixture['id'] }}" @endif
                      data-status="{{ $dataStatus }}"
                      x-show="activeFilter === 'sve' || activeFilter === '{{ $dataStatus }}'"
                      x-cloak>
 
-                    {{-- Home team --}}
-                    <div class="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
-                        @if($homeLogoUrl)
-                            <img src="{{ $homeLogoUrl }}" alt="{{ $fixture['home_team_name'] }}"
+{{-- Home team --}}
+<div class="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
+@if($homeLogoUrl)
+<img src="{{ $homeLogoUrl }}" alt="{{ $fixture['home_team_name'] }}"
                                  class="w-6 h-6 object-contain flex-shrink-0" loading="lazy">
-                        @else
-                            <div class="w-6 h-6 flex-shrink-0 rounded-full bg-[#2a2a2a]"></div>
-                        @endif
-                        @if($fixtureType === 'football' && !empty($fixture['home_team_slug']))
-                            <a href="/tim/{{ $fixture['home_team_slug'] }}"
+@else
+<div class="w-6 h-6 flex-shrink-0 rounded-full bg-[#2a2a2a]"></div>
+@endif
+@if($fixtureType === 'football' && !empty($fixture['home_team_slug']))
+<a href="/tim/{{ $fixture['home_team_slug'] }}"
                                style="position: relative; z-index: 1;"
                                class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
                                       {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition">{{ $fixture['home_team_name'] }}</a>
-                        @else
-                            <span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
+@else
+<span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px]
                                          {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['home_team_name'] }}</span>
-                        @endif
-                    </div>
+@endif
+</div>
 
-                    {{-- Score / Status in center --}}
-                    @if($fixtureType === 'football')
-                        <a href="{{ $matchUrl }}" class="match-row-link flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1"
+{{-- Score / Status in center --}}
+@if($fixtureType === 'football')
+<a href="{{ $matchUrl }}" class="match-row-link flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1"
                            aria-label="{{ $fixture['home_team_name'] }} — {{ $fixture['away_team_name'] }}"
                            style="outline-color: #CCFF00; outline-offset: 2px;">
-                            <span class="absolute inset-0" aria-hidden="true"></span>
-                    @else
-                        <div class="flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1">
-                    @endif
-                        @if($fixtureType === 'tennis' && !empty($fixture['score_sets']))
-                            <span class="text-sm font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">
+<span class="absolute inset-0" aria-hidden="true"></span>
+@else
+<div class="flex flex-col items-center justify-center flex-shrink-0 min-w-[72px] mx-1">
+@endif
+@if($fixtureType === 'tennis' && !empty($fixture['score_sets']))
+<span class="text-sm font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">
                                 {{ $fixture['score_sets'] }}
-                            </span>
-                            @if($isLive)
-                                <span class="text-[9px] text-red-500 font-bold animate-pulse uppercase">UŽIVO</span>
-                            @else
-                                <span class="text-[9px] text-gray-600 uppercase">ZAVRŠENO</span>
-                            @endif
-                        @elseif($hasScore && $fixtureType !== 'tennis')
-                            <div class="flex items-center gap-0.5">
-                                <span class="text-xl font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_home'] ?? '0' }}</span>
-                                <span class="text-gray-600 text-xs mx-0.5">-</span>
-                                <span class="text-xl font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_away'] ?? '0' }}</span>
-                            </div>
-                            @if($isLive)
-                                <span class="text-[9px] text-red-500 font-bold animate-pulse uppercase">{{ $statusDisplay }}</span>
-                            @elseif($isHT)
-                                <span class="text-[9px] text-yellow-500 font-bold uppercase">HT</span>
-                            @else
-                                <span class="text-[9px] text-gray-600 uppercase">ZAVRŠENO</span>
-                            @endif
-                        @else
-                            {{-- Upcoming: show kick-off time prominently --}}
-                            <span class="text-base font-bold text-gray-300">{{ $statusDisplay }}</span>
-                            <span class="text-[9px] text-gray-600 uppercase">
+</span>
+@if($isLive)
+<span class="text-[9px] text-red-500 font-bold animate-pulse uppercase">UŽIVO</span>
+@else
+<span class="text-[9px] text-gray-600 uppercase">ZAVRŠENO</span>
+@endif
+@elseif($hasScore && $fixtureType !== 'tennis')
+<div class="flex items-center gap-0.5">
+<span class="text-xl font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_home'] ?? '0' }}</span>
+<span class="text-gray-600 text-xs mx-0.5">-</span>
+<span class="text-xl font-bold {{ $isLive ? 'text-[#CCFF00]' : 'text-white' }}">{{ $fixture['score_away'] ?? '0' }}</span>
+</div>
+@if($isLive)
+<span class="text-[9px] text-red-500 font-bold animate-pulse uppercase">{{ $statusDisplay }}</span>
+@elseif($isHT)
+<span class="text-[9px] text-yellow-500 font-bold uppercase">HT</span>
+@else
+<span class="text-[9px] text-gray-600 uppercase">ZAVRŠENO</span>
+@endif
+@else
+{{-- Upcoming: show kick-off time prominently --}}
+<span class="text-base font-bold text-gray-300">{{ $statusDisplay }}</span>
+<span class="text-[9px] text-gray-600 uppercase">
                                 @if(in_array($statusShort, ['PST','CANC','ABD','SUSP','INT'])) OTKAZANO
                                 @else ZAKAZANO
-                                @endif
-                            </span>
-                        @endif
-                    @if($fixtureType === 'football')
-                        </a>
-                    @else
-                        </div>
-                    @endif
+@endif
+</span>
+@endif
+@if($fixtureType === 'football')
+</a>
+@else
+</div>
+@endif
 
-                    {{-- Away team --}}
-                    <div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end pl-1">
-                        @if($fixtureType === 'football' && !empty($fixture['away_team_slug']))
-                            <a href="/tim/{{ $fixture['away_team_slug'] }}"
+{{-- Away team --}}
+<div class="flex items-center gap-1.5 flex-1 min-w-0 justify-end pl-1">
+@if($fixtureType === 'football' && !empty($fixture['away_team_slug']))
+<a href="/tim/{{ $fixture['away_team_slug'] }}"
                                style="position: relative; z-index: 1;"
                                class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
                                       {{ $isLive ? 'text-white' : 'text-gray-300' }} hover:text-[#CCFF00] transition">{{ $fixture['away_team_name'] }}</a>
-                        @else
-                            <span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
+@else
+<span class="text-xs font-medium truncate max-w-[110px] md:max-w-[160px] text-right
                                          {{ $isLive ? 'text-white' : 'text-gray-300' }}">{{ $fixture['away_team_name'] }}</span>
-                        @endif
-                        @if($awayLogoUrl)
-                            <img src="{{ $awayLogoUrl }}" alt="{{ $fixture['away_team_name'] }}"
+@endif
+@if($awayLogoUrl)
+<img src="{{ $awayLogoUrl }}" alt="{{ $fixture['away_team_name'] }}"
                                  class="w-6 h-6 object-contain flex-shrink-0" loading="lazy">
-                        @else
-                            <div class="w-6 h-6 flex-shrink-0 rounded-full bg-[#2a2a2a]"></div>
-                        @endif
-                    </div>
-                </div>
+@else
+<div class="w-6 h-6 flex-shrink-0 rounded-full bg-[#2a2a2a]"></div>
+@endif
+</div>
+</div>
 
-                @endforeach
-            </div>{{-- /x-show open --}}
+@endforeach
+</div>{{-- /x-show open --}}
 
-        </div>{{-- /league group --}}
-        @endforeach
+</div>{{-- /league group --}}
+@endforeach
 
     @endif
 

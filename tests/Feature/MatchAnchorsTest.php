@@ -275,7 +275,7 @@ class MatchAnchorsTest extends MatchTimeUiTest
         view()->getFinder()->prependLocation(dirname($out, 2).'/source/resources/views');
         $html = $this->get('/')->assertOk()->getContent();
         $this->assertCount(17, $this->xpath($html)->query('//*[@data-status]'));
-        $this->assertCount(0, $this->xpath($html)->query('//a[contains(@class,"match-row-link")]'));
+        $this->assertCount(17, $this->xpath($html)->query('//a[contains(@class,"match-row-link")]'));
         file_put_contents($out.'/baseline.html', $html);
     }
 
