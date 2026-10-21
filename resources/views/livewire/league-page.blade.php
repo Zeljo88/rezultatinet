@@ -15,8 +15,8 @@
             $knownSeason = $seasonLabel !== \App\Support\LeagueSeason::FALLBACK;
             $tableAnchor = $knownSeason ? 'tablica-'.str_replace('/', '-', $seasonLabel) : 'tablica-dostupnost';
         @endphp
-        <p class="text-gray-400 text-sm mb-3">{{ $knownSeason ? 'Sezona prema evidentiranim utakmicama: '.$seasonLabel.'. Arhivske sezone nisu uključene.' : 'Aktuelna sezona nije potvrđena dostupnim utakmicama. Arhivske tablice nisu prikazane kao aktuelne.' }}</p>
-        <a href="/liga/hnl#{{ $tableAnchor }}" class="inline-flex text-[#CCFF00] text-sm font-semibold mb-4 hover:underline">{{ empty($standings) ? 'Tablica HNL '.$seasonLabel.' — dostupnost podataka' : 'Puna tablica HNL — '.$seasonLabel }}</a>
+        <p class="text-gray-400 text-sm mb-3">{{ $knownSeason ? 'Sezona prema evidentiranim utakmicama: '.$seasonLabel.'. Odabir prema terminima u posljednjih 45 dana, ne potvrda službene aktuelne sezone. Druge sezone nisu uključene.' : 'Aktuelna sezona nije potvrđena: nema evidentiranih termina u posljednjih 45 dana do sada. Samo budući ili stariji zapisi nisu potvrda aktuelne sezone; arhivske tablice nisu prikazane kao aktuelne.' }}</p>
+        <a href="/liga/hnl#{{ $tableAnchor }}" class="inline-flex text-[#CCFF00] text-sm font-semibold mb-4 hover:underline">{{ empty($standings) ? 'Tablica HNL '.$seasonLabel.' — dostupnost podataka' : 'Dostupna tablica HNL — '.$seasonLabel }}</a>
         <div class="flex flex-wrap gap-2 mb-4" aria-label="Period utakmica">
             @foreach(['yesterday' => 'Jučer', 'today' => 'Danas', 'tomorrow' => 'Sutra', 'recent' => 'Zadnjih 7 dana'] as $key => $label)
                 <button wire:click="setTab('{{ $key }}')" aria-pressed="{{ $tab === $key ? 'true' : 'false' }}" class="px-3 py-1.5 rounded-lg text-sm font-semibold cursor-pointer {{ $tab === $key ? 'bg-[#CCFF00] text-black' : 'bg-[#1a1a1a] text-gray-400 border border-[#2a2a2a]' }}">{{ $label }}</button>

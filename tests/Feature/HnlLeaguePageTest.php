@@ -129,7 +129,7 @@ class HnlLeaguePageTest extends TestCase
         $this->assertCount(5, $x->query('//*[@data-hnl-section="recent"]//*[@data-hnl-match]'));
         $this->assertCount(1, $x->query('//*[@id="tablica-2026-27" and @tabindex="-1"]'));
         $this->assertCount(0, $x->query('//main//a//a'));
-        foreach (['Tablica za sezonu 2026/27 još nije dostupna.', 'Trenutačno nemamo evidentirane naredne utakmice za sezonu 2026/27.', '18.10.2026.', 'Arhivske sezone nisu uključene.', 'Vrijeme zadnje izmjene nije dostupno.'] as $text) $this->assertStringContainsString($text,$html);
+        foreach (['Tablica za sezonu 2026/27 još nije dostupna.', 'Trenutačno nemamo evidentirane naredne utakmice za sezonu 2026/27.', '18.10.2026.', 'Druge sezone nisu uključene.', 'Vrijeme zadnje izmjene nije dostupno.'] as $text) $this->assertStringContainsString($text,$html);
         foreach (['/tim/rudes','/liga/hnl/tablica','Ekipe u poretku','adsbygoogle','meridian-popup','kickoffMs:'] as $text) $this->assertStringNotContainsString($text,$html);
         $this->assertStringContainsString('rudes-vs-hnk-rijeka-16-10-2026',$html);
         file_put_contents(getenv('HNL_EVIDENCE').'/baseline-queries.json',json_encode($queries,JSON_PRETTY_PRINT));

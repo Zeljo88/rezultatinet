@@ -191,8 +191,8 @@ class LeaguePage extends Component
                     'rank', 'season', 'played', 'win', 'draw', 'lose', 'goals_for',
                     'goals_against', 'goal_diff', 'points', 'updated_at',
                 ]), [
-                    'team_name' => $s->team?->name ?? 'N/A',
-                    'team_slug' => $s->team?->slug,
+                    'team_name' => $this->hnlTeamName($s->team?->name) ?: 'Naziv ekipe nije dostupan',
+                    'team_slug' => $this->hnlTeamName($s->team?->name) ? (trim($s->team?->slug ?? '') ?: null) : null,
                 ]))->all();
 
             return;
@@ -230,7 +230,20 @@ class LeaguePage extends Component
     protected function seasonLabel(): string
     {
         if ($this->isHnl()) {
-            return $this->hnlSeasonLabel ??= LeagueSeason::label($this->league);
+            if ($this->hnlSeasonLabel === null) {
+                // Keep the existing 45-day evidence horizon, but never let advance
+                // publication select a season whose fixtures have not started yet.
+                // This is a recent recorded season, not an official rollover claim.
+                $season = Fixture::where('league_id', 835)
+                    ->whereBetween('kick_off', [now()->subDays(45), now()])
+                    ->whereBetween('season', [1000, 9998])
+                    ->orderByDesc('season')->value('season');
+                $this->hnlSeasonLabel = $season
+                    ? $season.'/'.substr((string) ($season + 1), -2)
+                    : LeagueSeason::FALLBACK;
+            }
+
+            return $this->hnlSeasonLabel;
         }
 
         return LeagueSeason::label($this->league);
@@ -315,10 +328,19 @@ class LeaguePage extends Component
             })->toArray();
     }
 
+    private function hnlTeamName(?string $name): string
+    {
+        return preg_replace('/^\s+|\s+$/u', '', $name ?? '') ?? '';
+    }
+
     /** All relations are eager loaded by the caller; URL generation must do no SQL. */
     protected function hnlFixture(Fixture $fixture, bool $withScore = true): array
     {
-        $slug = MatchRoute::slugFor($fixture);
+        $homeName = $this->hnlTeamName($fixture->homeTeam?->name);
+        $awayName = $this->hnlTeamName($fixture->awayTeam?->name);
+        $slug = $homeName !== '' && $awayName !== '' ? MatchRoute::slugFor($fixture) : null;
+        $homeLabel = $homeName !== '' ? $homeName : 'Naziv domaće ekipe nije dostupan';
+        $awayLabel = $awayName !== '' ? $awayName : 'Naziv gostujuće ekipe nije dostupan';
         $score = $withScore ? $fixture->score : null;
         $pair = static function ($home, $away): ?array {
             return $home !== null && $away !== null && $home >= 0 && $away >= 0
@@ -363,7 +385,7 @@ class LeaguePage extends Component
                 } elseif ($status === 'PEN' && $field[0] === $field[1] && $pen && $pen[0] !== $pen[1]) {
                     $result = $field;
                     $penalties = $pen;
-                    $winner = $pen[0] > $pen[1] ? $fixture->homeTeam?->name : $fixture->awayTeam?->name;
+                    $winner = $pen[0] > $pen[1] ? $homeLabel : $awayLabel;
                 }
             }
             if (!$result && ($ft || $goals || $et || $pen)) {
@@ -387,10 +409,10 @@ class LeaguePage extends Component
                 'TBD' => 'TBD — termin nije potvrđen',
                 default => $status,
             },
-            'home_team_name' => $fixture->homeTeam?->name ?? 'N/A',
-            'away_team_name' => $fixture->awayTeam?->name ?? 'N/A',
-            'home_team_slug' => $fixture->homeTeam?->slug,
-            'away_team_slug' => $fixture->awayTeam?->slug,
+            'home_team_name' => $homeLabel,
+            'away_team_name' => $awayLabel,
+            'home_team_slug' => $homeName !== '' ? (trim($fixture->homeTeam?->slug ?? '') ?: null) : null,
+            'away_team_slug' => $awayName !== '' ? (trim($fixture->awayTeam?->slug ?? '') ?: null) : null,
             'match_url' => $slug ? url('/utakmica/'.$slug) : null,
             'result' => $result,
             'result_message' => $message,
