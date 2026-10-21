@@ -50,8 +50,8 @@ jobs:
       - name: Run one bounded engine proof and targeted regressions without network
         run: |
           set -Eeuo pipefail
-          mkdir runtime
-          git archive HEAD | tar -x -C runtime
+          python3 tools/hnl-ci/deliver.py runtime evidence
+          (cd runtime && HNL_OUT=../evidence python3 tools/hnl-ci/verify.py)
           sudo chown -R 1000:1000 runtime
           chmod 0777 evidence
           docker run --name hnl-ci-tests --network none --cap-drop ALL --security-opt no-new-privileges --mount type=volume,src=hnl-ci-socket,dst=/tmp/hnl-ci --mount type=bind,src="$PWD/runtime",dst=/workspace --mount type=bind,src="$PWD/evidence",dst=/evidence hnl-ci-php bash tools/hnl-ci/run.sh

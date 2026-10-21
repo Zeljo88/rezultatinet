@@ -1,6 +1,6 @@
 # HNL single-job MariaDB proof
 
-Owner 2026-10-21 15:00 UTC permits the one temporary nonforce branch push and narrowly scoped CI workflow. No deployment or production/provider operations.
+The 2026-10-21 15:00 UTC one-job allowance was spent by run39623498985. This packaging-only candidate is LOCAL ONLY, with a manual-only workflow and no external execution authority. A second job requires new bounded owner authorization. No deployment or production/provider operations.
 
 Exact reviewed parent da9b83982de3ff800c0b656bdcf8f8cb86526585. reviewed-manifest.json covers every one of its 274 tracked files. All delivery differences are tools/hnl-ci additions and the new single-job workflow. No original test or runtime edits. The retained archive and prerequisite bundle were verified locally and remain sealed, not repackaged as a different reviewed candidate.
 
@@ -10,4 +10,8 @@ Each engine scenario is a separate process bounded to 29 seconds plus 1-second t
 
 The 100/987 unchanged regression selection is a separate SQLite/fake suite, never MariaDB engine proof. Local fake-schema.sql and offline.py are explicitly local smoke tools; the engine runner uses schema.sql and rejects any non-10.11.13 engine. PHP8.3 required. Local offline.py seccomp-denies all sockets.
 
-Evidence includes synthetic snapshots, fake counters, transaction attempts, matched wait traces, actual engine schema/version/isolation and exact results. Publication excludes app/container/environment logs. One job15min, no retries/reruns. Cleanup commit removes the push trigger; only the temporary branch changes. A pass means CI_PASSED_FOR_RELEASE_REVIEW only. Receipt crash gap remains unknown; strict validator did not run on the lost original raw preview. Historical preview permanently spent; F1/F2 remain unknown. Deployment/writer exclusion/backups and provider/import authorization remain separate.
+Evidence includes synthetic snapshots, fake counters, transaction attempts, matched wait traces, actual engine schema/version/isolation and exact results. Publication excludes app/container/environment logs. One job15min, no retries/reruns. The spent push trigger remains removed. No push, dispatch or rerun is authorized by this package. A pass means CI_PASSED_FOR_RELEASE_REVIEW only. Receipt crash gap remains unknown; strict validator did not run on the lost original raw preview. Historical preview permanently spent; F1/F2 remain unknown. Deployment/writer exclusion/backups and provider/import authorization remain separate.
+
+## Exact Git delivery
+
+`python3 tools/hnl-ci/deliver.py runtime evidence` exports committed HEAD and its explicit `.github` subtree, preserving inherited export attributes and all reviewed bytes. It verifies exact tracked membership, SHA256, size, mode and safe regular-file paths before materializing a deterministic `delivery.tar`. Missing, extra, duplicate, unsafe, linked or tampered members fail closed. The original `verify.py` remains unchanged and runs on the exported input before container launch and again before init. `delivery-manifest.json` covers every delivered tracked file, including the harness manifest itself; its outer hash and archive hash are recorded in `packaging.json`. The original reviewed package is immutable. No scenarios, tests, runtime, dependencies, schema or time bounds change.
