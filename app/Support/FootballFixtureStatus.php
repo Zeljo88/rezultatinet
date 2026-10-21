@@ -43,6 +43,31 @@ final class FootballFixtureStatus
         return in_array(self::normalize($status), self::CANCELLED, true);
     }
 
+    /** Reject stale pre-match/earlier-phase live payloads against the locked row. */
+    public static function canPersistLive(?string $current, ?string $incoming, ?int $currentMinute, ?int $incomingMinute): bool
+    {
+        if (! self::canPersist($current, $incoming)) {
+            return false;
+        }
+        $current = self::normalize($current);
+        $incoming = self::normalize($incoming);
+        $prematch = ['NS', 'TBD', 'PST'];
+        if (! in_array($incoming, [...$prematch, ...self::TERMINAL, '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'], true)) {
+            return false;
+        }
+        if ($current !== null && ! in_array($current, $prematch, true) && in_array($incoming, $prematch, true)) {
+            return false;
+        }
+        // Completed phases still have an order: a delayed FT must not erase ET/penalties.
+        $phase = ['1H' => 1, 'HT' => 2, '2H' => 3, 'FT' => 3, 'ET' => 4, 'BT' => 4, 'AET' => 4, 'P' => 5, 'PEN' => 5];
+        if (isset($phase[$current], $phase[$incoming]) && $phase[$incoming] < $phase[$current]) {
+            return false;
+        }
+
+        return self::isTerminal($incoming) || $currentMinute === null
+            || ($incomingMinute !== null && $incomingMinute >= $currentMinute);
+    }
+
     public static function canPersist(?string $current, ?string $incoming): bool
     {
         $incoming = self::normalize($incoming);
