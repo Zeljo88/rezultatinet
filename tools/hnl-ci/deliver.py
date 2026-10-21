@@ -61,8 +61,8 @@ def main(destination, evidence):
         expected[name] = {'sha256': sha(data), 'mode': int(mode, 8) & 0o777, 'size': len(data)}
     # The root archive intentionally inherits /.github export-ignore. Exporting
     # the explicit subtree avoids that ancestor attribute without modifying it.
-    root_archive = git('archive', '--format=tar', head)
-    github_archive = git('archive', '--format=tar', '--prefix=.github/', head + ':.github')
+    root_archive = git('-c', 'tar.umask=0022', 'archive', '--format=tar', head)
+    github_archive = git('-c', 'tar.umask=0022', 'archive', '--format=tar', '--prefix=.github/', head + ':.github')
     files = members(root_archive)
     for name, value in members(github_archive).items():
         if name in files:

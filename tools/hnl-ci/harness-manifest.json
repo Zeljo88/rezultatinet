@@ -8,7 +8,7 @@
   "tools/hnl-ci/TransportTest.php": "877e48ea54a0cd5b11505828120a88b1bfd313bb465caf44bb6b3e655d144c0c",
   "tools/hnl-ci/common.php": "6e61d4b0ea7e44f140e03aefae50fb8ac64ad0edca46e9d8e33e446aaf437fbd",
   "tools/hnl-ci/database.sh": "9f45d5ca2069c701b219d25035e124999991b2dc4a76564843ce8c53def9499f",
-  "tools/hnl-ci/deliver.py": "fbb0dc78eaf8670fd3cf94fa49561a3521674d609502c15d8ebab98cf4f00387",
+  "tools/hnl-ci/deliver.py": "866b989ed883d4894193c2a790c23941785f0444c042ef146e7c083a01d5f224",
   "tools/hnl-ci/engine.php": "a6db51a9ec6aaa3ec10e1675b33168447b8a959e0b9ccc67a8a9ac23b88f114d",
   "tools/hnl-ci/fake-schema.sql": "a4eef4217b9d73f48d6ea4207eb32bae27f154499dc86d0d8546924d05b0cbad",
   "tools/hnl-ci/init.php": "fb1230ab1845fff48b482ee3118c31d578559ddf0a12744f671ce3fd1c2b3fa6",
