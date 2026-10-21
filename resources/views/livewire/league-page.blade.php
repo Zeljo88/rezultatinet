@@ -10,6 +10,105 @@
         </div>
     </div>
 
+    @if($isHnl)
+        @php
+            $knownSeason = $seasonLabel !== \App\Support\LeagueSeason::FALLBACK;
+            $tableAnchor = $knownSeason ? 'tablica-'.str_replace('/', '-', $seasonLabel) : 'tablica-dostupnost';
+        @endphp
+        <p class="text-gray-400 text-sm mb-3">{{ $knownSeason ? 'Sezona prema evidentiranim utakmicama: '.$seasonLabel.'. Arhivske sezone nisu uključene.' : 'Aktuelna sezona nije potvrđena dostupnim utakmicama. Arhivske tablice nisu prikazane kao aktuelne.' }}</p>
+        <a href="/liga/hnl#{{ $tableAnchor }}" class="inline-flex text-[#CCFF00] text-sm font-semibold mb-4 hover:underline">{{ empty($standings) ? 'Tablica HNL '.$seasonLabel.' — dostupnost podataka' : 'Puna tablica HNL — '.$seasonLabel }}</a>
+        <div class="flex flex-wrap gap-2 mb-4" aria-label="Period utakmica">
+            @foreach(['yesterday' => 'Jučer', 'today' => 'Danas', 'tomorrow' => 'Sutra', 'recent' => 'Zadnjih 7 dana'] as $key => $label)
+                <button wire:click="setTab('{{ $key }}')" aria-pressed="{{ $tab === $key ? 'true' : 'false' }}" class="px-3 py-1.5 rounded-lg text-sm font-semibold cursor-pointer {{ $tab === $key ? 'bg-[#CCFF00] text-black' : 'bg-[#1a1a1a] text-gray-400 border border-[#2a2a2a]' }}">{{ $label }}</button>
+            @endforeach
+        </div>
+        @if(empty($fixtures))
+            <p class="text-gray-400 text-sm mb-4">{{ $tab === 'today' ? 'Danas nema evidentiranih utakmica' : 'Nema evidentiranih utakmica za odabrani period' }}{{ $knownSeason ? ' za sezonu '.$seasonLabel : '' }} (Europe/Zagreb).</p>
+        @endif
+        <div class="space-y-4">
+            @foreach([
+                ['key' => 'selected', 'title' => 'Odabrani period', 'rows' => $fixtures],
+                ['key' => 'recent', 'title' => 'Posljednjih 5 dostupnih rezultata', 'rows' => $seoRecent],
+                ['key' => 'upcoming', 'title' => 'Narednih 5 zakazanih utakmica', 'rows' => $seoUpcoming],
+            ] as $section)
+                @if($section['key'] !== 'selected' || !empty($section['rows']))
+                <section data-hnl-section="{{ $section['key'] }}" class="bg-[#111] border border-[#2a2a2a] rounded-xl overflow-hidden">
+                    <h2 class="text-lg font-bold text-white px-4 py-3 border-b border-[#2a2a2a]">{{ $section['title'] }} — {{ $seasonLabel }}</h2>
+                    @if(empty($section['rows']))
+                        <p class="text-gray-400 text-sm px-4 py-3">{{ !$knownSeason ? 'Podaci nisu dostupni dok sezona nije potvrđena.' : ($section['key'] === 'upcoming' ? 'Trenutačno nemamo evidentirane naredne utakmice za sezonu '.$seasonLabel.'.' : 'Nemamo evidentirane završene utakmice za sezonu '.$seasonLabel.'.') }}</p>
+                    @else
+                        <ul class="divide-y divide-[#2a2a2a]">
+                            @foreach($section['rows'] as $f)
+                                <li data-hnl-match="{{ $f['id'] }}" wire:key="hnl-{{ $section['key'] }}-{{ $f['id'] }}" class="px-4 py-3 text-sm">
+                                    <span class="block text-gray-400 text-xs mb-1">{{ \App\Support\MatchTime::local($f['kick_off'])->format('d.m.Y H:i T') }} · {{ $f['status_label'] }}</span>
+                                    @if($f['match_url'])<a href="{{ $f['match_url'] }}" class="text-white font-semibold hover:text-[#CCFF00]">@else<span class="text-white font-semibold">@endif
+                                        {{ $f['home_team_name'] }}
+                                        @if($f['result']) {{ $f['result'][0] }}–{{ $f['result'][1] }} @else — @endif
+                                        {{ $f['away_team_name'] }}
+                                    @if($f['match_url'])</a>@else</span>@endif
+                                    @if(in_array($f['status_short'], ['FT', 'AET', 'PEN']) && !$f['result'])
+                                        <span class="block text-gray-400 text-xs mt-1">{{ $f['result_message'] }}</span>
+                                    @endif
+                                    @if($f['penalties'])
+                                        <span class="block text-gray-300 text-xs mt-1">Igra {{ $f['result'][0] }}–{{ $f['result'][1] }}; jedanaesterci {{ $f['penalties'][0] }}–{{ $f['penalties'][1] }}. Pobjednik prema evidentiranim jedanaestercima: {{ $f['winner'] }}.</span>
+                                    @endif
+                                    <span class="block text-xs text-[#CCFF00] mt-1">
+                                        @foreach(['home', 'away'] as $side)
+                                            @if($f[$side.'_team_slug'])<a href="/tim/{{ $f[$side.'_team_slug'] }}" class="hover:underline mr-3">{{ $f[$side.'_team_name'] }}</a>@endif
+                                        @endforeach
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                        @if($section['key'] === 'recent')
+                            <p class="px-4 py-3 text-gray-400 text-xs">Posljednji dostupni rezultat: {{ \App\Support\MatchTime::local($seoRecent[0]['kick_off'])->format('d.m.Y.') }} Prikazujemo dostupne zapise, ne cjelokupan raspored. Datumi utakmica nisu vrijeme provjere rezultata.</p>
+                            @php
+                                $scoreTimes = collect($seoRecent)->pluck('score_updated_at')->filter()->sort()->values();
+                            @endphp
+                            <p class="px-4 pb-3 text-gray-400 text-xs">
+                                @if($scoreTimes->isNotEmpty())
+                                    Zadnja zabilježena izmjena rezultata: {{ \App\Support\MatchTime::local($scoreTimes->first())->format('d.m.Y H:i T') }}@if($scoreTimes->first() !== $scoreTimes->last()) – {{ \App\Support\MatchTime::local($scoreTimes->last())->format('d.m.Y H:i T') }}@endif.
+                                @endif
+                                @if($scoreTimes->count() !== count($seoRecent)) Vrijeme zadnje izmjene {{ $scoreTimes->isEmpty() ? 'nije dostupno' : 'nije dostupno za sve rezultate' }}.@endif
+                            </p>
+                        @endif
+                    @endif
+                </section>
+                @endif
+            @endforeach
+            <section id="{{ $tableAnchor }}" tabindex="-1" class="bg-[#111] border border-[#2a2a2a] rounded-xl p-4">
+                <h2 class="text-lg font-bold text-white mb-3">Tablica HNL — {{ $seasonLabel }}</h2>
+                @if(empty($standings))
+                    <p class="text-gray-400 text-sm">{{ $knownSeason ? 'Tablica za sezonu '.$seasonLabel.' još nije dostupna.' : 'Tablica nije dostupna: sezona nije potvrđena.' }}</p>
+                @else
+                    <p class="text-gray-400 text-xs mb-3">Dostupni zapisi za sezonu {{ $seasonLabel }}. Potpunost i točnost tablice nisu neovisno potvrđene.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-gray-300">
+                            <caption class="text-left mb-3">U: utakmice · P/N/I: pobjede/neriješeno/izgubljeno · G: golovi · GR: razlika · B: bodovi</caption>
+                            <thead><tr><th scope="col">#</th><th scope="col" class="text-left">Klub</th><th scope="col">U</th><th scope="col">P/N/I</th><th scope="col">G</th><th scope="col">GR</th><th scope="col">B</th></tr></thead>
+                            <tbody>
+                                @foreach($standings as $row)
+                                    <tr class="border-b border-[#2a2a2a]">
+                                        <td class="py-3">{{ $row['rank'] ?? '–' }}</td>
+                                        <th scope="row" class="text-left py-3">@if($row['team_slug'])<a href="/tim/{{ $row['team_slug'] }}" class="hover:text-[#CCFF00]">{{ $row['team_name'] }}</a>@else{{ $row['team_name'] }}@endif</th>
+                                        <td class="text-center">{{ $row['played'] ?? '–' }}</td><td class="text-center">{{ $row['win'] ?? '–' }}/{{ $row['draw'] ?? '–' }}/{{ $row['lose'] ?? '–' }}</td><td class="text-center">{{ $row['goals_for'] ?? '–' }}:{{ $row['goals_against'] ?? '–' }}</td><td class="text-center">{{ $row['goal_diff'] ?? '–' }}</td><td class="text-center font-bold text-white">{{ $row['points'] ?? '–' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-gray-400 text-xs mt-3">
+                        @if($hnlFreshness['oldest'])
+                            Zadnja zabilježena izmjena: {{ \App\Support\MatchTime::local($hnlFreshness['oldest'])->format('d.m.Y H:i T') }}@if($hnlFreshness['oldest']->ne($hnlFreshness['newest'])) – {{ \App\Support\MatchTime::local($hnlFreshness['newest'])->format('d.m.Y H:i T') }}@endif.
+                        @endif
+                        @if($hnlFreshness['missing']) Vrijeme zadnje izmjene nije dostupno za sve zapise.@endif
+                        @if($hnlFreshness['stale']) Podaci možda nisu ažurni.@endif
+                    </p>
+                @endif
+            </section>
+            <p class="text-gray-400 text-sm">{{ $seoDescription }}</p>
+        </div>
+    @else
     {{-- View toggle: Utakmice / Tablica --}}
     <div class="flex gap-2 mb-4">
         <button wire:click="setView('fixtures')" class="px-4 py-2 rounded-lg text-sm font-bold transition cursor-pointer {{ $view === 'fixtures' ? 'bg-[#CCFF00] text-black' : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-[#2a2a2a]' }}">
@@ -236,4 +335,5 @@
 
     </div>
     {{-- END SEO CONTENT BLOCKS --}}
+    @endif
 </div>

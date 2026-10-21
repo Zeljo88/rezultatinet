@@ -21,6 +21,20 @@ class LeaguePage extends Component
     public string $view = 'fixtures'; // fixtures | standings
     public string $slug = '';
 
+    // Request-local only: never trust a hydrated public season value.
+    private ?string $hnlSeasonLabel = null;
+    private bool $hnlFixturesLoaded = false;
+
+    protected function isHnl(): bool
+    {
+        return $this->slug === 'hnl' && (int) $this->league->id === 835;
+    }
+
+    private function hnlSeason(): ?int
+    {
+        return preg_match('/^(\d{4})\/\d{2}$/', $this->seasonLabel(), $match) ? (int) $match[1] : null;
+    }
+
     protected array $slugMap = [
         'hnl'               => 210,
         'superliga-srbija'  => 286,
@@ -106,7 +120,9 @@ class LeaguePage extends Component
         abort_if(!$leagueId, 404);
         $this->league = League::where('api_league_id', $leagueId)->firstOrFail();
         $this->loadFixtures();
-        $this->loadStandings();
+        if (!$this->isHnl()) {
+            $this->loadStandings();
+        }
     }
 
     public function loadFixtures(): void
@@ -123,6 +139,14 @@ class LeaguePage extends Component
             $query->where(fn ($q) => \App\Support\MatchTime::onDay($q, 'kick_off', \App\Support\MatchTime::today()->addDay()->toDateString()));
         } else {
             $query->whereBetween("kick_off", [now()->subDays(7), now()])->whereIn("status_short", ["FT","AET","PEN","PST","CANC"]);
+        }
+
+        if ($this->isHnl()) {
+            $this->hnlFixturesLoaded = true;
+            $this->fixtures = $query->where('season', $this->hnlSeason() ?? -1)
+                ->orderByDesc('id')->get()->map(fn ($f) => $this->hnlFixture($f))->all();
+
+            return;
         }
 
         $ftStatuses   = ['FT','AET','PEN'];
@@ -160,6 +184,20 @@ class LeaguePage extends Component
 
     public function loadStandings(): void
     {
+        if ($this->isHnl()) {
+            $this->standings = Standing::with('team')->where('league_id', 835)
+                ->where('season', $this->hnlSeason() ?? -1)->orderBy('rank')->orderBy('team_id')->orderBy('id')
+                ->get()->map(fn ($s) => array_merge($s->only([
+                    'rank', 'season', 'played', 'win', 'draw', 'lose', 'goals_for',
+                    'goals_against', 'goal_diff', 'points', 'updated_at',
+                ]), [
+                    'team_name' => $s->team?->name ?? 'N/A',
+                    'team_slug' => $s->team?->slug,
+                ]))->all();
+
+            return;
+        }
+
         $leagueId = $this->league->id;
         $this->standings = Cache::remember("standings:{$leagueId}", 300, function () use ($leagueId) {
             return Standing::with('team')
@@ -191,6 +229,10 @@ class LeaguePage extends Component
     /** Use fresh fixture data, otherwise avoid publishing a stale numeric season. */
     protected function seasonLabel(): string
     {
+        if ($this->isHnl()) {
+            return $this->hnlSeasonLabel ??= LeagueSeason::label($this->league);
+        }
+
         return LeagueSeason::label($this->league);
     }
 
@@ -216,6 +258,13 @@ class LeaguePage extends Component
     /** Upcoming fixtures for SEO content block (SSR, no polling) */
     protected function getUpcomingFixtures(): array
     {
+        if ($this->isHnl()) {
+            return Fixture::with(['homeTeam', 'awayTeam'])->where('league_id', 835)
+                ->where('season', $this->hnlSeason() ?? -1)->where('status_short', 'NS')
+                ->where('kick_off', '>', now())->orderBy('kick_off')->orderBy('id')->limit(5)
+                ->get()->map(fn ($f) => $this->hnlFixture($f, false))->all();
+        }
+
         return Fixture::with(['homeTeam', 'awayTeam'])
             ->where('league_id', $this->league->id)
             ->whereIn('status_short', ['NS', 'TBD'])
@@ -236,6 +285,13 @@ class LeaguePage extends Component
     /** Recent completed fixtures remain useful when today's round is empty. */
     protected function getRecentFixtures(): array
     {
+        if ($this->isHnl()) {
+            return Fixture::with(['homeTeam', 'awayTeam', 'score'])->where('league_id', 835)
+                ->where('season', $this->hnlSeason() ?? -1)->whereIn('status_short', ['FT', 'AET', 'PEN'])
+                ->where('kick_off', '<=', now())->orderByDesc('kick_off')->orderByDesc('id')->limit(5)
+                ->get()->map(fn ($f) => $this->hnlFixture($f))->all();
+        }
+
         return Fixture::with(['homeTeam', 'awayTeam', 'score'])
             ->where('league_id', $this->league->id)
             ->whereIn('status_short', ['FT', 'AET', 'PEN'])
@@ -257,6 +313,104 @@ class LeaguePage extends Component
                     'match_url' => $slug ? url('/utakmica/' . $slug) : null,
                 ];
             })->toArray();
+    }
+
+    /** All relations are eager loaded by the caller; URL generation must do no SQL. */
+    protected function hnlFixture(Fixture $fixture, bool $withScore = true): array
+    {
+        $slug = MatchRoute::slugFor($fixture);
+        $score = $withScore ? $fixture->score : null;
+        $pair = static function ($home, $away): ?array {
+            return $home !== null && $away !== null && $home >= 0 && $away >= 0
+                ? [(int) $home, (int) $away] : null;
+        };
+        $ft = $pair($score?->home_fulltime, $score?->away_fulltime);
+        $goals = $pair($score?->goals_home, $score?->goals_away);
+        $et = $pair($score?->home_extratime, $score?->away_extratime);
+        $pen = $pair($score?->home_penalties, $score?->away_penalties);
+        $hasEt = $score?->home_extratime !== null || $score?->away_extratime !== null;
+        $hasPen = $score?->home_penalties !== null || $score?->away_penalties !== null;
+        $status = $fixture->status_short;
+        $result = null;
+        $penalties = null;
+        $winner = null;
+        $message = 'Rezultat nije dostupan';
+
+        if ($status === 'FT') {
+            $result = $ft ?? $goals;
+            // Do not combine partial pairs or silently choose between conflicting fields.
+            foreach ([[$score?->home_fulltime, $score?->away_fulltime], [$score?->goals_home, $score?->goals_away]] as $stored) {
+                if ($result && (($stored[0] !== null && $stored[0] !== $result[0])
+                    || ($stored[1] !== null && $stored[1] !== $result[1]))) {
+                    $result = null;
+                    $message = 'Rezultat zahtijeva provjeru';
+                    break;
+                }
+            }
+            if ($hasEt || $hasPen) {
+                $result = null;
+                $message = 'Rezultat zahtijeva provjeru';
+            }
+        } elseif (in_array($status, ['AET', 'PEN'], true)) {
+            // Writers copy provider score.extratime and goals separately. Require both
+            // to agree on a non-decreasing total; never use the 90-minute pair as AET.
+            $field = $hasEt ? $et : ($status === 'PEN' ? $ft : null);
+            if ($field && $goals === $field
+                && ($score?->home_fulltime === null || $field[0] >= $score->home_fulltime)
+                && ($score?->away_fulltime === null || $field[1] >= $score->away_fulltime)) {
+                if ($status === 'AET' && $field[0] !== $field[1] && !$hasPen) {
+                    $result = $field;
+                } elseif ($status === 'PEN' && $field[0] === $field[1] && $pen && $pen[0] !== $pen[1]) {
+                    $result = $field;
+                    $penalties = $pen;
+                    $winner = $pen[0] > $pen[1] ? $fixture->homeTeam?->name : $fixture->awayTeam?->name;
+                }
+            }
+            if (!$result && ($ft || $goals || $et || $pen)) {
+                $message = 'Rezultat zahtijeva provjeru';
+            }
+        } elseif (in_array($status, ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE'], true)) {
+            $result = $goals;
+        }
+
+        return [
+            'id' => $fixture->id,
+            'kick_off' => $fixture->kick_off,
+            'status_short' => $status,
+            'status_label' => match ($status) {
+                'FT' => 'FT — završeno',
+                'AET' => 'AET — nakon produžetaka',
+                'PEN' => 'PEN — nakon jedanaesteraca',
+                'NS' => 'NS — zakazano',
+                'PST' => 'PST — odgođeno',
+                'CANC' => 'CANC — otkazano',
+                'TBD' => 'TBD — termin nije potvrđen',
+                default => $status,
+            },
+            'home_team_name' => $fixture->homeTeam?->name ?? 'N/A',
+            'away_team_name' => $fixture->awayTeam?->name ?? 'N/A',
+            'home_team_slug' => $fixture->homeTeam?->slug,
+            'away_team_slug' => $fixture->awayTeam?->slug,
+            'match_url' => $slug ? url('/utakmica/'.$slug) : null,
+            'result' => $result,
+            'result_message' => $message,
+            'penalties' => $penalties,
+            'winner' => $winner,
+            'score_updated_at' => $score?->getRawOriginal('updated_at'),
+        ];
+    }
+
+    private function hnlFreshness(): array
+    {
+        $times = collect($this->standings)->pluck('updated_at')->filter()
+            ->map(fn ($time) => \Carbon\Carbon::parse($time))->sort()->values();
+
+        return [
+            'oldest' => $times->first(),
+            'newest' => $times->last(),
+            'missing' => $times->count() !== count($this->standings),
+            'stale' => $times->isNotEmpty() && $times->first()->lt(now()->subDay()),
+        ];
     }
 
     /** Top scorers for this league (SSR, no polling) */
@@ -329,6 +483,13 @@ class LeaguePage extends Component
 
     public function render()
     {
+        if ($this->isHnl()) {
+            if (!$this->hnlFixturesLoaded) {
+                $this->loadFixtures();
+            }
+            $this->loadStandings();
+        }
+
         $leagueName = $this->league->name;
         $season = $this->seasonLabel();
 
@@ -344,12 +505,14 @@ class LeaguePage extends Component
         $ogImage = $this->league->logo_url ?: null;
 
         return view('livewire.league-page', [
+            'isHnl'            => $this->isHnl(),
+            'hnlFreshness'     => $this->isHnl() ? $this->hnlFreshness() : null,
             'seoH1'            => $this->getSeoH1(),
             'seasonLabel'      => $this->seasonLabel(),
             'seoDescription'   => $this->getSeoDescription(),
             'seoUpcoming'      => $this->getUpcomingFixtures(),
             'seoRecent'        => $this->getRecentFixtures(),
-            'seoTopScorers'    => $this->getTopScorers(),
+            'seoTopScorers'    => $this->isHnl() ? [] : $this->getTopScorers(),
             'seoStandings'     => array_slice($this->standings, 0, 8),
         ])->layout('layouts.app', [
             'metaTitle'       => $metaTitle,
