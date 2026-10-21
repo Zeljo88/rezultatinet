@@ -1,8 +1,5 @@
 name: HNL reviewed MariaDB one-shot CI
 on:
-  push:
-    branches: [ci/hnl-mariadb-20261021-once]
-    paths: [tools/hnl-ci/launch.once]
   workflow_dispatch:
 permissions:
   contents: read
