@@ -1,33 +1,22 @@
 <?php
+
 namespace App\Console\Commands;
 
 use App\Models\League;
-use App\Models\ApiCallLog;
+use App\Services\ApiFootballService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 
 class SyncLeagues extends Command
 {
     protected $signature = 'sync:leagues';
+
     protected $description = 'Sync leagues from API-Football';
 
-    public function handle(): void
+    public function handle(ApiFootballService $api): void
     {
         $this->info('Fetching leagues...');
 
-        $response = Http::withHeaders([
-            'X-RapidAPI-Key'  => config('services.api_football.key'),
-            'X-RapidAPI-Host' => 'v3.football.api-sports.io',
-        ])->get('https://v3.football.api-sports.io/leagues', ['current' => 'true']);
-
-        if (!$response->successful()) {
-            $this->error('API request failed: ' . $response->status());
-            return;
-        }
-
-        ApiCallLog::create(['endpoint' => '/leagues', 'called_date' => today()]);
-
-        $leagues = $response->json('response', []);
+        $leagues = $api->getLeagues('SyncLeagues');
         $count = 0;
 
         // Priority leagues to mark active
@@ -53,11 +42,11 @@ class SyncLeagues extends Command
             League::updateOrCreate(
                 ['api_league_id' => $item['league']['id']],
                 [
-                    'name'           => $item['league']['name'],
-                    'country'        => $item['country']['name'] ?? null,
-                    'logo_url'       => $item['league']['logo'] ?? null,
-                    'sport'          => 'football',
-                    'is_active'      => in_array($item['league']['id'], $priorityIds),
+                    'name' => $item['league']['name'],
+                    'country' => $item['country']['name'] ?? null,
+                    'logo_url' => $item['league']['logo'] ?? null,
+                    'sport' => 'football',
+                    'is_active' => in_array($item['league']['id'], $priorityIds),
                     'current_season' => $item['seasons'][0]['year'] ?? null,
                 ]
             );

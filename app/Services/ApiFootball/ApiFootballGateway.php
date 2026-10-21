@@ -66,6 +66,7 @@ class ApiFootballGateway
                     ->withHeaders([
                         'x-apisports-key' => (string) config('services.api_football.key'),
                     ])
+                    ->withOptions($caller === 'StaleFixtureReconciliation' ? ['allow_redirects' => false] : [])
                     ->acceptJson()
                     ->timeout((int) config('api_football.timeout', 15))
                     ->get($path, $query);
@@ -119,6 +120,14 @@ class ApiFootballGateway
                 }
 
                 $classification = $this->invalidEnvelopeClassification($envelope);
+                if ($classification === null && $caller === 'StaleFixtureReconciliation'
+                    && ((! isset($envelope['errors']) || $envelope['errors'] !== [])
+                        || ! isset($envelope['results']) || ! is_int($envelope['results'])
+                        || $envelope['results'] !== count($envelope['response'])
+                        || ! isset($envelope['paging']) || ($envelope['paging']['current'] ?? null) !== 1
+                        || ($envelope['paging']['total'] ?? null) !== 1)) {
+                    $classification = 'malformed_single_fixture_envelope';
+                }
                 if ($classification !== null) {
                     $this->recordAttempt($endpointClass, $caller, $status, $classification, $attempt, $started);
 
@@ -142,6 +151,10 @@ class ApiFootballGateway
             }
 
             $this->recordAttempt($endpointClass, $caller, $status, $status >= 500 ? 'transient_exhausted' : 'client_error', $attempt, $started);
+
+            if ($caller === 'StaleFixtureReconciliation' && $status < 500) {
+                throw new ApiFootballProviderResponseException('stale_client_or_redirect_response');
+            }
 
             if ($status >= 500 && $claimAttempt !== null) {
                 throw new ApiFootballRetryableFailure("API-Football returned retryable status {$status}.");

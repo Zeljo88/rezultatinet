@@ -1,41 +1,18 @@
 <?php
+
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
+use App\Exceptions\ApiFootballBlocked;
 
 class ApiBasketballService
 {
-    protected $client;
-
-    public function __construct()
-    {
-        $this->client = Http::baseUrl('https://v1.basketball.api-sports.io')
-            ->withHeaders(['x-apisports-key' => config('services.api_football.key')])
-            ->timeout(15);
-    }
-
-    /**
-     * Free plan doesn't support live=all endpoint.
-     * We check status from today's games instead.
-     */
     public function getLiveGames(): array
     {
-        // Not supported on free plan — returns empty, handled in sync command
-        return [];
+        throw new ApiFootballBlocked('Basketball provider calls are disabled by the sport allowlist.');
     }
 
     public function getGamesByDate(string $date): array
     {
-        // PAUSED — API quota emergency. Re-enable when daily budget is fixed.
-        return [];
-    }
-
-    public function getGamesByDate_DISABLED(string $date): array
-    {
-        $response = $this->client->get('/games', ['date' => $date]);
-        if (!$response->successful()) return [];
-        $errors = $response->json('errors', []);
-        if (!empty($errors)) return [];
-        return $response->json('response', []);
+        throw new ApiFootballBlocked('Basketball provider calls are disabled by the sport allowlist.');
     }
 }
