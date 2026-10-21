@@ -6,6 +6,7 @@ use App\Models\League;
 use App\Models\Standing;
 use App\Models\Team;
 use App\Services\ApiFootballService;
+use App\Services\HnlStandingsSync;
 use Illuminate\Console\Command;
 
 class SyncStandings extends Command
@@ -19,8 +20,9 @@ class SyncStandings extends Command
     // Seasons to try in order
     protected array $seasons = [2025, 2024, 2026];
 
-    public function handle(ApiFootballService $api): void
+    public function handle(ApiFootballService $api): int
     {
+        $hnlFailed = false;
         $specificLeague = $this->option('league');
         $ids = $specificLeague ? [(int) $specificLeague] : $this->leagueIds;
 
@@ -29,6 +31,23 @@ class SyncStandings extends Command
             $league = League::where('api_league_id', $apiLeagueId)->first();
             if (! $league) {
                 $this->warn("League {$apiLeagueId} not found");
+
+                continue;
+            }
+
+            if ($apiLeagueId === HnlStandingsSync::PROVIDER_LEAGUE) {
+                try {
+                    $receipt = app(HnlStandingsSync::class)->sync();
+                    if ($receipt['outcome'] !== 'committed') {
+                        $hnlFailed = true;
+                        $this->error('HNL committed, but sync receipt unavailable; do not refetch.');
+                    } else {
+                        $this->info('HNL season 2026 committed: '.$receipt['rows'].' teams');
+                    }
+                } catch (\Throwable $e) {
+                    $hnlFailed = true;
+                    $this->error('HNL sync stopped; existing standings preserved ('.class_basename($e).').');
+                }
 
                 continue;
             }
@@ -95,5 +114,7 @@ class SyncStandings extends Command
 
             $this->info("✓ {$league->name} (season {$usedSeason}): ".count($standingsData).' teams');
         }
+
+        return $hnlFailed ? self::FAILURE : self::SUCCESS;
     }
 }

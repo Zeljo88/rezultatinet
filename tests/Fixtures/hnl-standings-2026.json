@@ -1,0 +1,465 @@
+{
+  "get": "standings",
+  "parameters": {
+    "league": "210",
+    "season": "2026"
+  },
+  "errors": [],
+  "results": 1,
+  "paging": {
+    "current": 1,
+    "total": 1
+  },
+  "response": [
+    {
+      "league": {
+        "id": 210,
+        "season": 2026,
+        "standings": [
+          [
+            {
+              "rank": 1,
+              "points": 22,
+              "goalsDiff": 10,
+              "group": "HNL",
+              "form": "WWLWW",
+              "description": "Promotion - Champions League (Qualification)",
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 608,
+                "name": "HNK Hajduk Split"
+              },
+              "all": {
+                "played": 10,
+                "win": 7,
+                "draw": 1,
+                "lose": 2,
+                "goals": {
+                  "for": 19,
+                  "against": 9
+                }
+              },
+              "home": {
+                "played": 6,
+                "win": 5,
+                "draw": 1,
+                "lose": 0,
+                "goals": {
+                  "for": 12,
+                  "against": 3
+                }
+              },
+              "away": {
+                "played": 4,
+                "win": 2,
+                "draw": 0,
+                "lose": 2,
+                "goals": {
+                  "for": 7,
+                  "against": 6
+                }
+              }
+            },
+            {
+              "rank": 2,
+              "points": 19,
+              "goalsDiff": 11,
+              "group": "HNL",
+              "form": "WLWLW",
+              "description": "Promotion - Europa League (Qualification)",
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 620,
+                "name": "Dinamo Zagreb"
+              },
+              "all": {
+                "played": 9,
+                "win": 6,
+                "draw": 1,
+                "lose": 2,
+                "goals": {
+                  "for": 23,
+                  "against": 12
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 5,
+                "draw": 0,
+                "lose": 0,
+                "goals": {
+                  "for": 13,
+                  "against": 3
+                }
+              },
+              "away": {
+                "played": 4,
+                "win": 1,
+                "draw": 1,
+                "lose": 2,
+                "goals": {
+                  "for": 10,
+                  "against": 9
+                }
+              }
+            },
+            {
+              "rank": 3,
+              "points": 18,
+              "goalsDiff": 6,
+              "group": "HNL",
+              "form": "LWDDD",
+              "description": "Promotion - Conference League (Qualification)",
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 1483,
+                "name": "NK Varazdin"
+              },
+              "all": {
+                "played": 10,
+                "win": 5,
+                "draw": 3,
+                "lose": 2,
+                "goals": {
+                  "for": 14,
+                  "against": 8
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 3,
+                "draw": 2,
+                "lose": 0,
+                "goals": {
+                  "for": 6,
+                  "against": 1
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 2,
+                "draw": 1,
+                "lose": 2,
+                "goals": {
+                  "for": 8,
+                  "against": 7
+                }
+              }
+            },
+            {
+              "rank": 4,
+              "points": 17,
+              "goalsDiff": 4,
+              "group": "HNL",
+              "form": "DLDWL",
+              "description": "Promotion - Conference League (Qualification)",
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 616,
+                "name": "NK Osijek"
+              },
+              "all": {
+                "played": 10,
+                "win": 5,
+                "draw": 2,
+                "lose": 3,
+                "goals": {
+                  "for": 19,
+                  "against": 15
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 3,
+                "draw": 1,
+                "lose": 1,
+                "goals": {
+                  "for": 10,
+                  "against": 6
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 2,
+                "draw": 1,
+                "lose": 2,
+                "goals": {
+                  "for": 9,
+                  "against": 9
+                }
+              }
+            },
+            {
+              "rank": 5,
+              "points": 17,
+              "goalsDiff": 4,
+              "group": "HNL",
+              "form": "WLWDW",
+              "description": null,
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 561,
+                "name": "HNK Rijeka"
+              },
+              "all": {
+                "played": 9,
+                "win": 5,
+                "draw": 2,
+                "lose": 2,
+                "goals": {
+                  "for": 16,
+                  "against": 12
+                }
+              },
+              "home": {
+                "played": 4,
+                "win": 4,
+                "draw": 0,
+                "lose": 0,
+                "goals": {
+                  "for": 12,
+                  "against": 4
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 1,
+                "draw": 2,
+                "lose": 2,
+                "goals": {
+                  "for": 4,
+                  "against": 8
+                }
+              }
+            },
+            {
+              "rank": 6,
+              "points": 12,
+              "goalsDiff": 1,
+              "group": "HNL",
+              "form": "LWLWD",
+              "description": null,
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 1016,
+                "name": "Istra 1961"
+              },
+              "all": {
+                "played": 10,
+                "win": 3,
+                "draw": 3,
+                "lose": 4,
+                "goals": {
+                  "for": 17,
+                  "against": 16
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 2,
+                "draw": 1,
+                "lose": 2,
+                "goals": {
+                  "for": 10,
+                  "against": 8
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 1,
+                "draw": 2,
+                "lose": 2,
+                "goals": {
+                  "for": 7,
+                  "against": 8
+                }
+              }
+            },
+            {
+              "rank": 7,
+              "points": 10,
+              "goalsDiff": -4,
+              "group": "HNL",
+              "form": "WLLDL",
+              "description": null,
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 1017,
+                "name": "NK Lokomotiva Zagreb"
+              },
+              "all": {
+                "played": 10,
+                "win": 3,
+                "draw": 1,
+                "lose": 6,
+                "goals": {
+                  "for": 13,
+                  "against": 17
+                }
+              },
+              "home": {
+                "played": 4,
+                "win": 2,
+                "draw": 1,
+                "lose": 1,
+                "goals": {
+                  "for": 6,
+                  "against": 3
+                }
+              },
+              "away": {
+                "played": 6,
+                "win": 1,
+                "draw": 0,
+                "lose": 5,
+                "goals": {
+                  "for": 7,
+                  "against": 14
+                }
+              }
+            },
+            {
+              "rank": 8,
+              "points": 10,
+              "goalsDiff": -10,
+              "group": "HNL",
+              "form": "LWDLW",
+              "description": null,
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 1018,
+                "name": "NK Slaven Belupo"
+              },
+              "all": {
+                "played": 10,
+                "win": 3,
+                "draw": 1,
+                "lose": 6,
+                "goals": {
+                  "for": 12,
+                  "against": 22
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 3,
+                "draw": 0,
+                "lose": 2,
+                "goals": {
+                  "for": 10,
+                  "against": 11
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 0,
+                "draw": 1,
+                "lose": 4,
+                "goals": {
+                  "for": 2,
+                  "against": 11
+                }
+              }
+            },
+            {
+              "rank": 9,
+              "points": 7,
+              "goalsDiff": -14,
+              "group": "HNL",
+              "form": "LWDLL",
+              "description": null,
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 1019,
+                "name": "Rudes"
+              },
+              "all": {
+                "played": 10,
+                "win": 2,
+                "draw": 1,
+                "lose": 7,
+                "goals": {
+                  "for": 13,
+                  "against": 27
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 1,
+                "draw": 1,
+                "lose": 3,
+                "goals": {
+                  "for": 8,
+                  "against": 15
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 1,
+                "draw": 0,
+                "lose": 4,
+                "goals": {
+                  "for": 5,
+                  "against": 12
+                }
+              }
+            },
+            {
+              "rank": 10,
+              "points": 6,
+              "goalsDiff": -8,
+              "group": "HNL",
+              "form": "DLWDL",
+              "description": "Relegation - Prva NL",
+              "update": "2026-10-20T00:00:00+00:00",
+              "status": "same",
+              "team": {
+                "id": 1068,
+                "name": "HNK Gorica"
+              },
+              "all": {
+                "played": 10,
+                "win": 1,
+                "draw": 3,
+                "lose": 6,
+                "goals": {
+                  "for": 7,
+                  "against": 15
+                }
+              },
+              "home": {
+                "played": 5,
+                "win": 0,
+                "draw": 2,
+                "lose": 3,
+                "goals": {
+                  "for": 4,
+                  "against": 8
+                }
+              },
+              "away": {
+                "played": 5,
+                "win": 1,
+                "draw": 1,
+                "lose": 3,
+                "goals": {
+                  "for": 3,
+                  "against": 7
+                }
+              }
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}
