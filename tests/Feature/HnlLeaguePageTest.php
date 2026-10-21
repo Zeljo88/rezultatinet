@@ -295,7 +295,12 @@ class HnlLeaguePageTest extends TestCase
 
     public function test_populated_ssr_partial_data_and_today_results_never_invent_zero(): void
     {
-        DB::table('standings')->where('league_id',835)->update(['season'=>2026,'updated_at'=>'2026-10-20 06:00:00']);
+        // New synthetic current rows; never relabel the retained May archived table.
+        foreach([1506,1507,1508,1509,1510,1511,1512,1513,1447,2743] as $i=>$team) {
+            $this->insert('standings',['league_id'=>835,'team_id'=>$team,'season'=>2026,'rank'=>$i+1,
+                'played'=>2,'win'=>1,'draw'=>1,'lose'=>0,'goals_for'=>3,'goals_against'=>1,
+                'goal_diff'=>2,'points'=>4,'updated_at'=>'2026-10-20 06:00:00']);
+        }
         $aet=['home_fulltime'=>1,'away_fulltime'=>1,'home_extratime'=>2,'away_extratime'=>1,'goals_home'=>2,'goals_away'=>1];
         $pen=['home_fulltime'=>0,'away_fulltime'=>0,'home_extratime'=>1,'away_extratime'=>1,'goals_home'=>1,'goals_away'=>1,'home_penalties'=>3,'away_penalties'=>4];
         $ids=[];
