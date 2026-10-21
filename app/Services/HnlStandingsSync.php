@@ -53,6 +53,7 @@ final class HnlStandingsSync
         $this->require(count($rows) === count(self::TEAMS), 'roster_size');
         $ids = [];
         $totals = ['win' => 0, 'lose' => 0, 'draw' => 0, 'for' => 0, 'against' => 0];
+        $venueTotals = array_fill_keys(['home', 'away'], array_fill_keys(['played', 'win', 'lose', 'draw', 'for', 'against'], 0));
         $previousPoints = PHP_INT_MAX;
         $mapped = [];
         foreach ($rows as $index => $row) {
@@ -108,9 +109,11 @@ final class HnlStandingsSync
             foreach (['home', 'away'] as $scope) {
                 foreach (['played', 'win', 'draw', 'lose'] as $field) {
                     $value[$scope.'_'.$field] = $row[$scope][$field];
+                    $venueTotals[$scope][$field] += $row[$scope][$field];
                 }
                 foreach (['for', 'against'] as $field) {
                     $value[$scope.'_goals_'.$field] = $row[$scope]['goals'][$field];
+                    $venueTotals[$scope][$field] += $row[$scope]['goals'][$field];
                 }
             }
             $mapped[self::TEAMS[$id]] = $value;
@@ -120,6 +123,12 @@ final class HnlStandingsSync
         $this->require($sorted === array_keys(self::TEAMS), 'complete_roster');
         $this->require($totals['win'] === $totals['lose'] && $totals['draw'] % 2 === 0
             && $totals['for'] === $totals['against'], 'table_balance');
+
+        // Every home appearance/result/goal has its matching away counterpart.
+        foreach (['played' => 'played', 'win' => 'lose', 'lose' => 'win',
+            'draw' => 'draw', 'for' => 'against', 'against' => 'for'] as $home => $away) {
+            $this->require($venueTotals['home'][$home] === $venueTotals['away'][$away], 'venue_balance_'.$home);
+        }
 
         return ['rows' => $mapped, 'ordered_provider_team_ids' => $ids,
             'payload_sha256' => hash('sha256', json_encode($envelope, JSON_THROW_ON_ERROR))];
