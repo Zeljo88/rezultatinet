@@ -1,3 +1,27 @@
+{{-- hnl-page-contract:1 --}}
+@php
+    // Old classes supply only the unchanged baseline contract. Never infer HNL
+    // support from the route alone or replace absent data with invented rows.
+    $useHnl = is_array($hnlPage ?? null)
+        && ($hnlPage['version'] ?? null) === 1
+        && ($hnlPage['leagueId'] ?? null) === 835
+        && ($hnlPage['slug'] ?? null) === 'hnl'
+        && $slug === 'hnl' && (int) $league->id === 835
+        && isset($hnlPage['data']['seoH1'], $hnlPage['data']['seasonLabel'],
+            $hnlPage['data']['seoDescription'], $hnlPage['data']['seoUpcoming'],
+            $hnlPage['data']['seoRecent'], $hnlPage['data']['hnlFreshness'],
+            $hnlPage['data']['fixtures'], $hnlPage['data']['standings']);
+    if ($useHnl) {
+        $seoH1 = $hnlPage['data']['seoH1'];
+        $seasonLabel = $hnlPage['data']['seasonLabel'];
+        $seoDescription = $hnlPage['data']['seoDescription'];
+        $seoUpcoming = $hnlPage['data']['seoUpcoming'];
+        $seoRecent = $hnlPage['data']['seoRecent'];
+        $hnlFreshness = $hnlPage['data']['hnlFreshness'];
+        $fixtures = $hnlPage['data']['fixtures'];
+        $standings = $hnlPage['data']['standings'];
+    }
+@endphp
 <div>
     {{-- League header --}}
     <div class="flex items-center gap-3 mb-5">
@@ -10,7 +34,7 @@
         </div>
     </div>
 
-    @if($isHnl)
+    @if($useHnl)
         @php
             $knownSeason = $seasonLabel !== \App\Support\LeagueSeason::FALLBACK;
             $tableAnchor = $knownSeason ? 'tablica-'.str_replace('/', '-', $seasonLabel) : 'tablica-dostupnost';

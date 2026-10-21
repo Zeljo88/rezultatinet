@@ -25,9 +25,39 @@ class LeaguePage extends Component
     private ?string $hnlSeasonLabel = null;
     private bool $hnlFixturesLoaded = false;
 
+    private ?string $leagueView = null;
+    private bool $hnlViewV1 = false;
+
+    /** Pin the data contract to the exact template this request will evaluate. */
+    private function leagueView(): string
+    {
+        if ($this->slug !== 'hnl' || (int) $this->league->id !== 835) {
+            return 'livewire.league-page';
+        }
+
+        if ($this->leagueView === null) {
+            $source = file_get_contents(view()->getFinder()->find('livewire.league-page'));
+            $this->hnlViewV1 = str_starts_with($source, '{{-- hnl-page-contract:1 --}}');
+            // Laravel's standard inline Blade view is content-addressed. A source
+            // replacement later in this request cannot change its selected contract.
+            $this->leagueView = (new class($source) extends \Illuminate\View\Component {
+                public function __construct(private string $source) {}
+
+                public function render(): string
+                {
+                    return $this->source;
+                }
+            })->resolveView();
+        }
+
+        return $this->leagueView;
+    }
+
     protected function isHnl(): bool
     {
-        return $this->slug === 'hnl' && (int) $this->league->id === 835;
+        $this->leagueView();
+
+        return $this->slug === 'hnl' && (int) $this->league->id === 835 && $this->hnlViewV1;
     }
 
     private function hnlSeason(): ?int
@@ -191,6 +221,10 @@ class LeaguePage extends Component
                     'rank', 'season', 'played', 'win', 'draw', 'lose', 'goals_for',
                     'goals_against', 'goal_diff', 'points', 'updated_at',
                 ]), [
+                    // Keep the old public Livewire row contract for open tabs on rollback.
+                    'team_logo' => $s->team?->logo_url,
+                    'form' => $s->form,
+                    'description' => $s->description,
                     'team_name' => $this->hnlTeamName($s->team?->name) ?: 'Naziv ekipe nije dostupan',
                     'team_slug' => $this->hnlTeamName($s->team?->name) ? (trim($s->team?->slug ?? '') ?: null) : null,
                 ]))->all();
@@ -399,6 +433,21 @@ class LeaguePage extends Component
             'id' => $fixture->id,
             'kick_off' => $fixture->kick_off,
             'status_short' => $status,
+            // Legacy fields remain factual projections of the same loaded row.
+            // Old classes can receive this public snapshot after source rollback.
+            'elapsed_minute' => $fixture->elapsed_minute,
+            'home_team_id' => $fixture->home_team_id,
+            'away_team_id' => $fixture->away_team_id,
+            'home_team_logo' => $fixture->homeTeam?->logo_url,
+            'away_team_logo' => $fixture->awayTeam?->logo_url,
+            'is_ft' => in_array($status, ['FT', 'AET', 'PEN']),
+            'is_live' => in_array($status, ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE']),
+            'score_home' => in_array($status, ['FT', 'AET', 'PEN'])
+                ? ($score?->home_fulltime ?? $score?->goals_home)
+                : (in_array($status, ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE']) ? ($score?->goals_home ?? $score?->home_fulltime) : null),
+            'score_away' => in_array($status, ['FT', 'AET', 'PEN'])
+                ? ($score?->away_fulltime ?? $score?->goals_away)
+                : (in_array($status, ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE']) ? ($score?->goals_away ?? $score?->away_fulltime) : null),
             'status_label' => match ($status) {
                 'FT' => 'FT — završeno',
                 'AET' => 'AET — nakon produžetaka',
@@ -526,8 +575,7 @@ class LeaguePage extends Component
         $metaDescription = $metaDescOverrides[$this->slug] ?? "Pratite aktuelnu tablicu {$leagueName}{$seasonTitle}. Live rezultati, poredak i raspored na rezultati.net.";
         $ogImage = $this->league->logo_url ?: null;
 
-        return view('livewire.league-page', [
-            'isHnl'            => $this->isHnl(),
+        $data = [
             'hnlFreshness'     => $this->isHnl() ? $this->hnlFreshness() : null,
             'seoH1'            => $this->getSeoH1(),
             'seasonLabel'      => $this->seasonLabel(),
@@ -536,7 +584,16 @@ class LeaguePage extends Component
             'seoRecent'        => $this->getRecentFixtures(),
             'seoTopScorers'    => $this->isHnl() ? [] : $this->getTopScorers(),
             'seoStandings'     => array_slice($this->standings, 0, 8),
-        ])->layout('layouts.app', [
+        ];
+        // V1 is one complete, request-local contract, never hydrated client state.
+        $data['hnlPage'] = $this->isHnl() ? [
+            'version' => 1,
+            'leagueId' => 835,
+            'slug' => 'hnl',
+            'data' => $data + ['fixtures' => $this->fixtures, 'standings' => $this->standings],
+        ] : null;
+
+        return view($this->leagueView(), $data)->layout('layouts.app', [
             'metaTitle'       => $metaTitle,
             'metaDescription' => $metaDescription,
             'ogImage'         => $ogImage,
