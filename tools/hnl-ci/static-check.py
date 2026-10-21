@@ -1,0 +1,27 @@
+# Local prelaunch check; PyYAML is a host tool, not a runner dependency.
+from pathlib import Path
+import ast,subprocess,json,hashlib,yaml
+p=Path('tools/hnl-ci');wf=Path('.github/workflows/hnl-mariadb-once.yml')
+w=yaml.safe_load(wf.read_text());events=w.get('on',w.get(True));assert set(events)=={'push','workflow_dispatch'}
+assert events['push']=={'branches':['ci/hnl-mariadb-20261021-once'],'paths':['tools/hnl-ci/launch.once']}
+assert w['permissions']=={'contents':'read'} and len(w['jobs'])==1
+j=w['jobs']['isolated'];assert j['timeout-minutes']==15 and 'github.run_attempt == 1' in j['if']
+for f in Path('.github/workflows').glob('*.yml'):
+ if f==wf:continue
+ q=yaml.safe_load(f.read_text());triggers=q.get('on',q.get(True));assert not (set(triggers)&{'workflow_run','create','check_run','check_suite'})
+ if 'push' in triggers:assert triggers['push']['branches']==['rex/a1b-main-integration-2026-09-17']
+ assert 'pull_request_target' not in triggers
+for f in p.glob('*.php'):subprocess.run(['php','-l',str(f)],check=True,capture_output=True)
+for f in p.glob('*.py'):ast.parse(f.read_text(),filename=str(f))
+for f in p.glob('*.sh'):subprocess.run(['bash','-n',str(f)],check=True)
+s=wf.read_text();assert s.count('docker run')==2 and s.count('--network none')==2
+assert 'secrets.' not in s and 'pull_request_target' not in s and 'workflow_run' not in s
+assert 'persist-credentials: false' in s and 'mariadb:10.11.13' in s
+assert not Path('.env').exists() and not Path('bootstrap/cache/config.php').exists()
+assert 'timeout --signal=TERM --kill-after=1 29s' in (p/'run.sh').read_text()
+assert 'innodb_lock_wait_timeout=5' in (p/'common.php').read_text()
+assert 'INNODB_LOCK_WAITS' in (p/'engine.php').read_text()
+assert 'driver_code\']===1205' in (p/'engine.php').read_text()
+assert "'sync_observed_deadlock_victim'" in (p/'engine.php').read_text()
+assert "throw new Inconclusive('other_deadlock_victim')" in (p/'engine.php').read_text()
+print('PASS workflow one-job/trigger isolation, syntax, time bounds, source/no-env guards')

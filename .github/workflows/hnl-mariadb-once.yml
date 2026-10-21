@@ -1,0 +1,77 @@
+name: HNL reviewed MariaDB one-shot CI
+on:
+  push:
+    branches: [ci/hnl-mariadb-20261021-once]
+    paths: [tools/hnl-ci/launch.once]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hnl-mariadb-20261021-once
+  cancel-in-progress: false
+jobs:
+  isolated:
+    if: github.ref == 'refs/heads/ci/hnl-mariadb-20261021-once' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Verify exact reviewed source and separate harness hashes
+        run: |
+          set -Eeuo pipefail
+          mkdir evidence
+          HNL_OUT=evidence python3 tools/hnl-ci/verify.py
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git diff --binary da9b83982de3ff800c0b656bdcf8f8cb86526585 HEAD > evidence/test-workflow.diff
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          p=Path('evidence/test-workflow.diff')
+          Path('evidence/delivery.json').write_text(json.dumps({'head':__import__('os').environ['GITHUB_SHA'],'test_workflow_diff_sha256':hashlib.sha256(p.read_bytes()).hexdigest()})+'\n')
+          p.unlink()
+          PY
+      - name: Build PHP 8.3 with existing locked dependencies
+        run: docker build -f tools/hnl-ci/Dockerfile -t hnl-ci-php .
+      - name: Start socket-only disposable MariaDB 10.11.13
+        run: |
+          set -Eeuo pipefail
+          docker pull mariadb:10.11.13
+          docker volume create hnl-ci-socket
+          docker run -d --name hnl-ci-db --network none --mount type=volume,src=hnl-ci-socket,dst=/tmp/hnl-ci --mount type=bind,src="$PWD/tools/hnl-ci/database.sh",dst=/ci-database.sh,readonly --entrypoint bash mariadb:10.11.13 /ci-database.sh
+          for attempt in $(seq 1 45); do
+            if docker exec hnl-ci-db mariadb-admin --socket=/tmp/hnl-ci/mariadb.sock -uroot ping --silent; then break; fi
+            test "$attempt" -lt 45
+            sleep 1
+          done
+          docker exec hnl-ci-db mariadb --socket=/tmp/hnl-ci/mariadb.sock -uroot -e "CREATE DATABASE hnl_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER 'ci'@'localhost' IDENTIFIED VIA unix_socket; GRANT ALL ON hnl_ci.* TO 'ci'@'localhost'; GRANT PROCESS ON *.* TO 'ci'@'localhost';"
+          docker image inspect mariadb:10.11.13 --format '{{json .RepoDigests}}' > evidence/mariadb-image.json
+          docker inspect hnl-ci-db --format '{{json .HostConfig.NetworkMode}}' > evidence/database-network.json
+      - name: Run one bounded engine proof and targeted regressions without network
+        run: |
+          set -Eeuo pipefail
+          mkdir runtime
+          git archive HEAD | tar -x -C runtime
+          sudo chown -R 1000:1000 runtime
+          chmod 0777 evidence
+          docker run --name hnl-ci-tests --network none --cap-drop ALL --security-opt no-new-privileges --mount type=volume,src=hnl-ci-socket,dst=/tmp/hnl-ci --mount type=bind,src="$PWD/runtime",dst=/workspace --mount type=bind,src="$PWD/evidence",dst=/evidence hnl-ci-php bash tools/hnl-ci/run.sh
+      - name: Seal bounded synthetic evidence
+        if: always()
+        run: |
+          docker inspect hnl-ci-tests --format '{{json .HostConfig.NetworkMode}}' > evidence/test-network.json || true
+          python3 tools/hnl-ci/publish.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hnl-ci-${{ github.sha }}
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Remove only disposable test containers and volume
+        if: always()
+        run: |
+          docker rm -f -v hnl-ci-tests hnl-ci-db || true
+          docker volume rm hnl-ci-socket || true

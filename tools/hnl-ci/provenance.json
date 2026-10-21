@@ -1,0 +1,14 @@
+{
+  "reviewed_commit": "da9b83982de3ff800c0b656bdcf8f8cb86526585",
+  "reviewed_tree": "46fd0ae89cc2c1507f71167fb1b618d9ab04cf45",
+  "reviewed_archive_sha256": "e951dbd5ff1aa14980152b33abe1b78097ce1d52c964a6430ae180e23a25e0b4",
+  "original_bundle_sha256": "6f5b873eb74c45bb4a572d141664c24791f8eb02a5120aa43ce5cd4b7b06787a",
+  "bundle_prerequisite": "b3eb8124c2256b8a622309c4f2a43c1daa0478bb",
+  "reviewed_manifest_sha256": "ada35e5226ec9657f0b5c80f74771f727631748519d9040718ea3cd24d8029eb",
+  "engine_version": "10.11.13",
+  "job_max_minutes": 15,
+  "scenario_max_seconds": 30,
+  "db_lock_max_seconds": 5,
+  "external_jobs_max": 1,
+  "reruns": 0
+}
