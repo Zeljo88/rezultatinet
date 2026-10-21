@@ -70,6 +70,9 @@ def main(destination, evidence):
         files[name] = value
     verify(files, expected)
     target, out = Path(destination), Path(evidence)
+    archive_path = target.with_name(target.name + '-delivery.tar')
+    if archive_path.exists():
+        raise ValueError('archive destination must be absent')
     if target.exists():
         raise ValueError('destination must be absent')
     out.mkdir(parents=True, exist_ok=True)
@@ -91,7 +94,7 @@ def main(destination, evidence):
         dest.write_bytes(data)
         dest.chmod(mode)
     manifest = (json.dumps(expected, indent=2, sort_keys=True) + '\n').encode()
-    (out / 'delivery.tar').write_bytes(payload)
+    archive_path.write_bytes(payload)
     (out / 'delivery-manifest.json').write_bytes(manifest)
     (out / 'packaging.json').write_text(json.dumps({
         'head': head, 'tree': git('rev-parse', head + '^{tree}').decode().strip(),
