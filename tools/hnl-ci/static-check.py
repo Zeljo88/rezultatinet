@@ -24,3 +24,19 @@ assert 'driver_code\']===1205' in (p/'engine.php').read_text()
 assert "'sync_observed_deadlock_victim'" in (p/'engine.php').read_text()
 assert "throw new Inconclusive('other_deadlock_victim')" in (p/'engine.php').read_text()
 print('PASS workflow one-job/trigger isolation, syntax, time bounds, source/no-env guards')
+
+# Ownership boundary and phase ordering are part of the delivery contract.
+steps=j['steps'];first=steps[1]['run'];engine=next(x['run'] for x in steps if x.get('name','').startswith('Run one bounded'))
+seal=next(x for x in steps if x.get('name')=='Seal bounded synthetic evidence')
+assert first.index('umask 0007') < first.index('mkdir -m 2770 evidence') < first.index('verify.py')
+assert engine.index('umask 0007') < engine.index('verify.py') < engine.index('deliver.py') < engine.rindex('verify.py') < engine.index('docker run')
+assert '--user 1000:1000 --group-add "$(id -g)"' in engine
+assert 'dst=/workspace,readonly' in engine and '--tmpfs /workspace/vendor:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700' in engine
+assert '--cap-drop ALL --security-opt no-new-privileges' in engine
+assert 'chmod 0777' not in s and 'chown' not in s
+assert seal['if']=='always()' and seal['run'].index('--check-only') < seal['run'].index('docker inspect')
+assert steps[-1]['if']=='always()' and 'evidence' not in steps[-1]['run']
+r=(p/'run.sh').read_text()
+assert r.index('umask 0007') < r.index('cp -a /build/vendor/.') < r.index('verify.py') < r.index('init.php') < r.index('for scenario') < r.index('regressions.py')
+print('PASS scoped group evidence, readonly source, isolation and phase-order checks (static only)')
+assert seal['id']=='seal' and steps[-2]['if']=="always() && steps.seal.outcome == 'success'"

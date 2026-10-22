@@ -20,7 +20,8 @@ jobs:
       - name: Verify exact reviewed source and separate harness hashes
         run: |
           set -Eeuo pipefail
-          mkdir evidence
+          umask 0007
+          mkdir -m 2770 evidence
           HNL_OUT=evidence python3 tools/hnl-ci/verify.py
           test -z "$(git status --porcelain --untracked-files=no)"
           git diff --binary da9b83982de3ff800c0b656bdcf8f8cb86526585 HEAD > evidence/test-workflow.diff
@@ -36,6 +37,8 @@ jobs:
       - name: Start socket-only disposable MariaDB 10.11.13
         run: |
           set -Eeuo pipefail
+          umask 0007
+          python3 tools/hnl-ci/publish.py --check-only
           docker pull mariadb:10.11.13
           docker volume create hnl-ci-socket
           docker run -d --name hnl-ci-db --network none --mount type=volume,src=hnl-ci-socket,dst=/tmp/hnl-ci --mount type=bind,src="$PWD/tools/hnl-ci/database.sh",dst=/ci-database.sh,readonly --entrypoint bash mariadb:10.11.13 /ci-database.sh
@@ -50,18 +53,24 @@ jobs:
       - name: Run one bounded engine proof and targeted regressions without network
         run: |
           set -Eeuo pipefail
+          umask 0007
+          HNL_OUT=evidence python3 tools/hnl-ci/verify.py
           python3 tools/hnl-ci/deliver.py runtime evidence
           (cd runtime && HNL_OUT=../evidence python3 tools/hnl-ci/verify.py)
-          sudo chown -R 1000:1000 runtime
-          chmod 0777 evidence
-          docker run --name hnl-ci-tests --network none --cap-drop ALL --security-opt no-new-privileges --mount type=volume,src=hnl-ci-socket,dst=/tmp/hnl-ci --mount type=bind,src="$PWD/runtime",dst=/workspace --mount type=bind,src="$PWD/evidence",dst=/evidence hnl-ci-php bash tools/hnl-ci/run.sh
+          mkdir runtime/vendor
+          docker run --name hnl-ci-tests --user 1000:1000 --group-add "$(id -g)" --network none --cap-drop ALL --security-opt no-new-privileges --mount type=volume,src=hnl-ci-socket,dst=/tmp/hnl-ci --mount type=bind,src="$PWD/runtime",dst=/workspace,readonly --tmpfs /workspace/vendor:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700 --mount type=bind,src="$PWD/evidence",dst=/evidence hnl-ci-php bash tools/hnl-ci/run.sh
       - name: Seal bounded synthetic evidence
+        id: seal
         if: always()
         run: |
+          set -Eeuo pipefail
+          umask 0007
+          test -e evidence || mkdir -m 2770 evidence
+          python3 tools/hnl-ci/publish.py --check-only
           docker inspect hnl-ci-tests --format '{{json .HostConfig.NetworkMode}}' > evidence/test-network.json || true
           python3 tools/hnl-ci/publish.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && steps.seal.outcome == 'success'
         with:
           name: hnl-ci-${{ github.sha }}
           path: evidence/

@@ -1,6 +1,18 @@
 from pathlib import Path
-import json,hashlib,subprocess,os
-root=Path.cwd();d=root/'tools/hnl-ci';out=Path(os.environ.get('HNL_OUT',d/'out'));out.mkdir(parents=True,exist_ok=True)
+import json,hashlib,subprocess,os,stat
+root=Path.cwd();d=root/'tools/hnl-ci';out=Path(os.environ.get('HNL_OUT',d/'out'))
+# A fresh host-created, setgid evidence root is shared only with the test group.
+# Never repair/reuse unsafe input paths by chmod/chown or following a link.
+os.umask(0o007)
+meta=out.lstat()
+assert stat.S_ISDIR(meta.st_mode) and stat.S_IMODE(meta.st_mode)==0o2770, 'unsafe evidence root'
+assert meta.st_gid in {os.getegid(),*os.getgroups()}, 'missing evidence group'
+preinit={'identities.json','delivery.json','mariadb-image.json','database-network.json','delivery-manifest.json','packaging.json'}
+for f in out.iterdir():
+ st=f.lstat()
+ assert f.name in preinit and stat.S_ISREG(st.st_mode) and st.st_nlink==1, ('unsafe pre-init evidence',f.name)
+ assert stat.S_IMODE(st.st_mode)==0o660 and st.st_gid==meta.st_gid, ('evidence mode/group drift',f.name)
+
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 p=json.loads((d/'provenance.json').read_text());m=json.loads((d/'reviewed-manifest.json').read_text())
 for name,h in m.items():assert sha(root/name)==h,('reviewed byte drift',name)

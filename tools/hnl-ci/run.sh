@@ -1,8 +1,9 @@
 #!/bin/bash
 set -Eeuo pipefail
+umask 0007
 export HNL_OUT=/evidence
 export APP_ENV=testing CACHE_STORE=array QUEUE_CONNECTION=sync SESSION_DRIVER=array BROADCAST_CONNECTION=null LOG_CHANNEL=null
-cp -a /build/vendor /workspace/vendor
+cp -a /build/vendor/. /workspace/vendor/
 composer dump-autoload --no-interaction --no-scripts --no-plugins
 python3 tools/hnl-ci/verify.py
 php -d zend.exception_ignore_args=1 tools/hnl-ci/init.php
