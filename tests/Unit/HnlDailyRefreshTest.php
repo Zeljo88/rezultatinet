@@ -142,7 +142,7 @@ final class HnlDailyRefreshTest extends TestCase
             $v[$t] = DB::table($t)->orderBy('id')->get()->toJson();
         }
 
-return $v;
+        return $v;
     }
 
     private function http(int $status = 200, mixed $body = null, bool $deny = false): void
@@ -158,7 +158,7 @@ return $v;
                 throw new ConnectionException('test');
             }
 
-return Factory::response($body ?? $this->envelope, $status, ['Location' => 'https://no-follow.invalid']);
+            return Factory::response($body ?? $this->envelope, $status, ['Location' => 'https://no-follow.invalid']);
         });
         Http::swap($factory);
     }
@@ -166,6 +166,55 @@ return Factory::response($body ?? $this->envelope, $status, ['Location' => 'http
     private function execute(?callable $guard = null): array
     {
         return (new \ReflectionMethod($this->service, 'execute'))->invoke($this->service, $guard ?? static function () {});
+    }
+
+    public function test_uncertain_transport_also_blocks_following_days(): void
+    {
+        $this->http(0);
+        self::assertSame('failed', $this->execute()['outcome']);
+        self::assertNull($this->service->status()['physical_observed']);
+        Carbon::setTestNow(Carbon::parse('2026-10-24 04:45:00', 'UTC'));
+        self::assertSame('failed', $this->execute()['outcome']);
+        self::assertSame(1, $this->calls);
+        self::assertSame($this->initial, $this->snapshot());
+    }
+
+    public function test_operational_expiry_is_finite_and_not_calendar_rollover(): void
+    {
+        foreach (['2026-10-22T14:20:00Z', '2027-01-01T00:00:00Z', '2027-05-31T23:59:59Z'] as $at) {
+            HnlDailyPolicy::assertWindow(strtotime($at));
+            self::assertFalse(HnlDailyPolicy::ENABLED);
+        }
+        Carbon::setTestNow(Carbon::parse(HnlDailyPolicy::EXPIRES_AT));
+        $this->http();
+        try {
+            $this->execute();
+            self::fail('expiry admitted');
+        } catch (\RuntimeException $e) {
+            self::assertSame('hnl_policy_expired', $e->getMessage());
+        }
+        self::assertSame(0, DB::table('hnl_standings_runs')->count());
+        self::assertSame(0, $this->calls);
+    }
+
+    public function test_expiry_after_reservation_stops_physical_dispatch(): void
+    {
+        $this->http();
+        $this->quota->shouldReceive('reserve')->with('standings', 'HnlStandingsRefresh')->andReturnUsing(function () {
+            Carbon::setTestNow(Carbon::parse(HnlDailyPolicy::EXPIRES_AT));
+
+            return ['allowed' => true];
+        })->byDefault();
+        // Explicit lease callback advances the clock at the physical-dispatch boundary.
+        $guards = 0;
+        $result = $this->execute(function () use (&$guards) {
+            if (++$guards === 2) {
+                Carbon::setTestNow(Carbon::parse(HnlDailyPolicy::EXPIRES_AT));
+            }
+        });
+        self::assertSame('failed', $result['outcome']);
+        self::assertSame(0, $this->calls);
+        self::assertSame($this->initial, $this->snapshot());
     }
 
     public function test_default_policy_refuses_without_claim(): void
@@ -314,7 +363,7 @@ return Factory::response($body ?? $this->envelope, $status, ['Location' => 'http
         $this->http();
         $calls = 0;
         $r = $this->execute(function () use (&$calls) {
-            if (++$calls >= 3) {
+            if (++$calls >= 4) {
                 throw new \RuntimeException('lost');
             }
         });
@@ -515,7 +564,7 @@ return Factory::response($body ?? $this->envelope, $status, ['Location' => 'http
     public function test_two_failed_slots_pause_before_fetch(): void
     {
         foreach (['2026-10-21', '2026-10-22'] as $day) {
-            DB::table('hnl_standings_runs')->insert(['id' => $day, 'league_id' => 835, 'utc_day' => $day, 'season' => 2026, 'policy' => 'v1', 'outcome' => 'failed', 'attempted_at' => $day.' 04:45:00']);
+            DB::table('hnl_standings_runs')->insert(['id' => $day, 'league_id' => 835, 'utc_day' => $day, 'season' => 2026, 'policy' => 'v1', 'outcome' => 'failed', 'physical_observed' => 0, 'attempted_at' => $day.' 04:45:00']);
         }
         $this->http();
         $r = $this->execute();
@@ -540,13 +589,13 @@ return Factory::response($body ?? $this->envelope, $status, ['Location' => 'http
     public function test_midnight_after_quota_reservation_is_blocked_before_physical_request(): void
     {
         $this->quota->shouldReceive('reserve')->andReturnUsing(function () {
-            Carbon::setTestNow(Carbon::parse('2026-10-24 00:00:00','UTC'));
+            Carbon::setTestNow(Carbon::parse('2026-10-24 00:00:00', 'UTC'));
 
             return ['allowed' => true];
         });
         $this->http();
-        self::assertSame('failed',$this->execute()['outcome']);
-        self::assertSame(0,$this->calls);
-        self::assertSame($this->initial,$this->snapshot());
+        self::assertSame('failed', $this->execute()['outcome']);
+        self::assertSame(0, $this->calls);
+        self::assertSame($this->initial, $this->snapshot());
     }
 }

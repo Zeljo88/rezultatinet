@@ -27,8 +27,9 @@ class ApiFootballGateway
         ?callable $claimAttempt = null,
         ?callable $validateEnvelope = null,
         bool $hnlDaily = false,
+        ?callable $beforePhysical = null,
     ): array {
-        if ($hnlDaily && ($path !== '/standings' || $query !== ['league' => 210, 'season' => 2026] || $caller !== 'HnlStandingsRefresh' || $endpointClass !== 'standings' || $claimAttempt === null || $validateEnvelope === null)) {
+        if ($hnlDaily && ($path !== '/standings' || $query !== ['league' => 210, 'season' => 2026] || $caller !== 'HnlStandingsRefresh' || $endpointClass !== 'standings' || $claimAttempt === null || $validateEnvelope === null || $beforePhysical === null)) {
             throw new \RuntimeException('hnl_daily_gateway_contract');
         }
         if (! in_array('football', config('api_football.enabled_sports', []), true)) {
@@ -87,7 +88,10 @@ class ApiFootballGateway
                             }
                         },
                     ] : ($caller === 'StaleFixtureReconciliation' ? ['allow_redirects' => false] : []))
-                    ->withRequestMiddleware(function ($request) use ($hnlDaily, $dailyUtcSlot, &$dailyPhysical) {
+                    ->withRequestMiddleware(function ($request) use ($hnlDaily, $dailyUtcSlot, &$dailyPhysical, $beforePhysical) {
+                        if ($hnlDaily) {
+                            $beforePhysical();
+                        }
                         if ($hnlDaily && (++$dailyPhysical !== 1 || now('UTC')->format('Y-m-d') !== $dailyUtcSlot)) {
                             throw new \RuntimeException('hnl_physical_slot_guard');
                         }

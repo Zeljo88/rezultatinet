@@ -4,21 +4,27 @@ namespace App\Services;
 
 final class HnlDailyPolicy
 {
-    public const VERSION = 'hnl-2026-oct22-v1';
+    public const VERSION = 'hnl-2026-oct22-v2';
 
     public const ENABLED = false;
 
-    // Unknown authoritative expiry MUST block activation. Never infer from calendar year.
-    public const EXPIRES_AT = null;
+    // Conservative OPERATIONAL cutoff, NOT an asserted official season-end.
+    // Activation review must approve this bound; 2027/28 needs a new reviewed baseline/roster.
+    public const EXPIRES_AT = '2027-06-01T00:00:00Z';
 
     public const BASELINE = __DIR__.'/HnlDailyBaseline.json';
 
     public static function admission(int $now): void
     {
-        if (! self::ENABLED || self::EXPIRES_AT === null) {
+        if (! self::ENABLED) {
             throw new \RuntimeException('hnl_activation_blocked_policy_expiry');
         }
-        if ($now >= strtotime(self::EXPIRES_AT)) {
+        self::assertWindow($now);
+    }
+
+    public static function assertWindow(int $now): void
+    {
+        if ($now < strtotime('2026-10-22T12:50:29Z') || $now >= strtotime(self::EXPIRES_AT)) {
             throw new \RuntimeException('hnl_policy_expired');
         }
     }

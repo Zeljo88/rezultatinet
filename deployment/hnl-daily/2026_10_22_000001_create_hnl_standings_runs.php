@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -35,6 +36,18 @@ return new class extends Migration
 
     public function down(): void
     {
-        throw new RuntimeException('Preserve HNL ledger; no destructive automatic rollback.');
+        if (DB::connection()->getDriverName() !== 'mysql' || DB::transactionLevel() !== 0) {
+            throw new RuntimeException('Empty rollback requires isolated MariaDB admission.');
+        }
+        DB::statement('SET SESSION lock_wait_timeout = 5');
+        DB::statement('LOCK TABLES hnl_standings_runs WRITE');
+        try {
+            if (DB::table('hnl_standings_runs')->exists()) {
+                throw new RuntimeException('Preserve HNL ledger: populated rollback refused.');
+            }
+            Schema::drop('hnl_standings_runs');
+        } finally {
+            DB::statement('UNLOCK TABLES');
+        }
     }
 };

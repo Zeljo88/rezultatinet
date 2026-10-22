@@ -26,6 +26,7 @@ final class HnlDailyRefresh
         $start = hrtime(true);
         try {
             return $this->execute(function () use ($lock, $start): void {
+                HnlDailyPolicy::admission(now('UTC')->timestamp);
                 self::check(hrtime(true) - $start < 60_000_000_000 && $lock->isOwnedByCurrentProcess(), 'lease_or_deadline');
             });
         } finally {
@@ -36,6 +37,12 @@ final class HnlDailyRefresh
     /** Internal core; tests invoke reflectively, never a CLI bypass for policy admission. */
     private function execute(callable $guard): array
     {
+        HnlDailyPolicy::assertWindow(now('UTC')->timestamp);
+        $leaseGuard = $guard;
+        $guard = static function () use ($leaseGuard): void {
+            HnlDailyPolicy::assertWindow(now('UTC')->timestamp);
+            $leaseGuard();
+        };
         self::check(DB::transactionLevel() === 0, 'outer_transaction');
         $day = now('UTC')->format('Y-m-d');
         $id = (string) Str::uuid();
@@ -70,7 +77,11 @@ final class HnlDailyRefresh
             }
             $identities = json_encode([$league, $teams], JSON_THROW_ON_ERROR);
             // A previously ambiguous attempt pauses all later days. Ordinary failed slots remain spent.
-            self::check(! DB::table('hnl_standings_runs')->where('league_id', 835)->where('id', '!=', $id)->whereIn('outcome', ['claimed', 'commit_unknown'])->exists(), 'unresolved_run');
+            self::check(! DB::table('hnl_standings_runs')->where('league_id', 835)->where('id', '!=', $id)->where(function ($q) {
+                $q->whereIn('outcome', ['claimed', 'commit_unknown'])->orWhere(function ($q) {
+                    $q->where('outcome', 'failed')->whereNull('physical_observed');
+                });
+            })->exists(), 'unresolved_run');
             $recent = DB::table('hnl_standings_runs')->where('league_id', 835)->where('id', '!=', $id)->orderByDesc('utc_day')->limit(2)->pluck('outcome')->all();
             self::check($recent !== ['failed', 'failed'], 'two_failed_slots_pause');
             $last = DB::table('hnl_standings_runs')->where('league_id', 835)->where('outcome', 'committed')->orderByDesc('utc_day')->first();
@@ -98,7 +109,7 @@ final class HnlDailyRefresh
                 }, function ($full) use (&$validated, &$envelope): void {
                     $validated = (new HnlDailyValidator)->validate($full);
                     $envelope = $full;
-                }, true);
+                }, true, $guard);
             $physical = 1;
             self::check($validated !== null, 'no_valid_response');
             $vector = [];
@@ -242,15 +253,15 @@ final class HnlDailyRefresh
 
     public static function canonical(array $rows): string
     {
-        usort($rows,fn ($a,$b) => $a['id'] <=> $b['id']);
+        usort($rows, fn ($a, $b) => $a['id'] <=> $b['id']);
         foreach ($rows as &$row) {
             ksort($row);
         } unset($row);
 
-        return json_encode($rows,JSON_THROW_ON_ERROR);
+        return json_encode($rows, JSON_THROW_ON_ERROR);
     }
 
-    private static function check(bool $ok,string $reason): void
+    private static function check(bool $ok, string $reason): void
     {
         if (! $ok) {
             throw new RuntimeException('hnl_daily_'.$reason);
