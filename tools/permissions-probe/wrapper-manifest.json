@@ -1,7 +1,7 @@
 {
-  ".github/workflows/hnl-permissions-probe.yml": "12acfe40ab3c78b26faafbeabf3797cba622bc5801fda8b5bed88ee9b85d8c18",
+  ".github/workflows/hnl-permissions-probe.yml": "f942109fb95cdc7803b01ec6d46f873687cebdffe7ebed04040af88632164816",
   "tools/permissions-probe/container.py": "65daec05c157975c2a066310715ab845137871d5cde52c53a35f419f5de451ba",
-  "tools/permissions-probe/host.py": "5c58fbd1ffb1aa493bb77665abc2c91acc05666887206255406681ba3b9887bc",
+  "tools/permissions-probe/host.py": "97ec9174d7a5d94600e35b15d7811800799f0beeacee3e4628c867ea5d560cf2",
   "tools/permissions-probe/producer-inventory.json": "7a3a90524d596ba3667f32489afa04baf5625cba3b32e99ddd1666f4c165528e",
   "tools/permissions-probe/producer-io.php.txt": "0606868c8e0579ff6c26f0f2d20bacd6da218cfc76aa2161a705140609e9b532",
   "tools/permissions-probe/setup.py": "694a7120a6fbcbf886e53c96d612895300b49a4866efebe1fa4c8e0d172aa532"

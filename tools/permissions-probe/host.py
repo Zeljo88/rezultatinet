@@ -14,8 +14,33 @@ def absent(kind,name):
  return {'kind':kind,'name':name,'absent':True,'listing_succeeded':True}
 def resources():return json.loads((A/'resources.json').read_text())
 def inspect(name):
- x=json.loads(capture(['docker','inspect',name]))[0]
- return {'Id':x['Id'],'Name':x['Name'],'Image':x['Image'],'User':x['Config']['User'],'HostConfig':{k:x['HostConfig'][k] for k in ['NetworkMode','CapDrop','SecurityOpt','GroupAdd','Tmpfs']},'Mounts':x['Mounts'],'State':{k:x['State'][k] for k in ['Status','ExitCode','OOMKilled']}}
+ payload=json.loads(capture(['docker','inspect',name]))
+ assert isinstance(payload,list) and len(payload)==1,'expected exactly one inspect object'
+ x=payload[0];hc=x['HostConfig']
+ # Docker omits Tmpfs for containers without configured tmpfs mounts. Preserve
+ # absence/null/empty distinctly; none of these is evidence of an effective mount.
+ tmpfs=hc.get('Tmpfs')
+ assert tmpfs is None or (isinstance(tmpfs,dict) and all(isinstance(k,str) and isinstance(v,str) for k,v in tmpfs.items())),'malformed optional Tmpfs'
+ return {'Id':x['Id'],'Name':x['Name'],'Image':x['Image'],'User':x['Config']['User'],'HostConfig':{**{k:hc[k] for k in ['NetworkMode','CapDrop','SecurityOpt','GroupAdd']},'Tmpfs':tmpfs},'TmpfsPresence':'present' if 'Tmpfs' in hc else 'absent','Mounts':x['Mounts'],'State':{k:x['State'][k] for k in ['Status','ExitCode','OOMKilled']}}
+def required_mounts(x,lines):
+ # Configuration alone is not proof: require effective Docker mounts AND proc
+ # mountinfo captured inside the corrected container before its vendor setup.
+ assert isinstance(x['Mounts'],list) and isinstance(lines,list),'missing mount evidence'
+ proc={}
+ for line in lines:
+  left,right=line.split(' - ',1);fields=left.split();tail=right.split()
+  assert len(fields)>=6 and len(tail)>=3,'malformed mountinfo'
+  dest=fields[4];assert dest not in proc,'ambiguous mountinfo'
+  proc[dest]=(set(fields[5].split(',')),tail[0])
+ expected={'/workspace':('bind',False,str(B/'candidate')),'/workspace/vendor':('tmpfs',True,None),'/evidence':('bind',True,str(B/'candidate-evidence')),'/tmp/hnl-ci':('volume',True,None)}
+ for dest,(kind,writable,source) in expected.items():
+  matches=[m for m in x['Mounts'] if m['Destination']==dest]
+  assert len(matches)==1,('required mount missing/ambiguous',dest)
+  m=matches[0];assert m['Type']==kind and m['RW'] is writable,('wrong effective mount',dest)
+  if source is not None:assert m['Source']==source,('wrong bind source',dest)
+  options,fs=proc[dest];assert ('rw' if writable else 'ro') in options and ('ro' if writable else 'rw') not in options,('wrong proc access',dest)
+  if kind=='tmpfs':assert fs=='tmpfs' and {'nosuid','nodev'}<=options,('wrong vendor filesystem/options',dest)
+ return {'result':'PASS','kind':'DOCKER_MOUNTS_AND_CONTAINER_PROC','required':list(expected)}
 def start_probe():
  assert os.getuid()!=1000 and os.getuid()!=0
  suffix=os.environ['GITHUB_RUN_ID'];names={'old':'hnl-perm-old-'+suffix,'corrected':'hnl-perm-new-'+suffix,'volume':'hnl-perm-socket-'+suffix};write(A/'resources.json',names)
@@ -35,10 +60,11 @@ def start_probe():
  args=['docker','run','-d','--name',names['corrected'],*flags,'--mount','type=volume,src='+names['volume']+',dst=/tmp/hnl-ci','--mount','type=bind,src='+str(B/'candidate')+',dst=/workspace,readonly','--tmpfs','/workspace/vendor:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700']
  for source,dest,ro in [(B/'candidate-evidence','/evidence',False),(A,'/diagnostics',False),(Q,'/probe',True),(B/'private','/private',False),(B/'missing','/missing',False)]:args+=['--mount','type=bind,src='+str(source)+',dst='+dest+(',readonly' if ro else '')]
  args += [image,'python3','/probe/container.py'];run(args)
- x=inspect(names['corrected']);assert x['User']=='1000:1000' and x['HostConfig']['NetworkMode']=='none' and x['HostConfig']['CapDrop']==['ALL'] and str(os.getgid()) in x['HostConfig']['GroupAdd'];write(A/'corrected-inspect.json',x)
+ x=inspect(names['corrected']);assert x['User']=='1000:1000' and x['HostConfig']['NetworkMode']=='none' and x['HostConfig']['CapDrop']==['ALL'] and str(os.getgid()) in x['HostConfig']['GroupAdd'] and any(v in ['no-new-privileges','no-new-privileges:true'] for v in x['HostConfig']['SecurityOpt']);write(A/'corrected-inspect.json',x)
  exitcode=capture(['docker','wait',names['corrected']],timeout=95);r=run(['docker','logs',names['corrected']],capture_output=True);(A/'container.log').write_bytes(r.stdout+r.stderr);assert exitcode=='0',exitcode
  assert (B/'private/identities.json').read_text()=='UNCHANGED_PRIVATE\n'
  write(A/'host-consumer-before-cleanup.json',{p.name:meta(p) for p in (B/'candidate-evidence').iterdir()})
+ write(A/'mount-checks.json',required_mounts(x,json.loads((A/'mountinfo.json').read_text())))
 def cleanup():
  records=[]
  if (A/'resources.json').exists():
@@ -61,7 +87,8 @@ def publish():
   for n,h in json.loads(first).items():assert sha(q/n)==h
   return json.loads((q/'result.json').read_text())
  checks=[]
- if (A/'probe-phase.json').exists():
+ if (A/'probe-phase.json').exists() and (A/'mount-checks.json').exists():
+  assert json.loads((A/'mount-checks.json').read_text())['result']=='PASS'
   assert json.loads((A/'probe-phase.json').read_text())['result']=='PERMISSIONS_BOUNDARY_PASS'
   # Publisher sees the real container-created files after container removal.
   flow=B/'existing';flow.mkdir();(B/'candidate-evidence').rename(flow/'evidence');before=(flow/'evidence/result.json').read_bytes();v=seal(flow,'existing');assert v['result']=='INCONCLUSIVE' and (flow/'evidence/result.json').read_bytes()==before
