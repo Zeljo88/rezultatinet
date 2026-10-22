@@ -25,7 +25,6 @@ class ApiFootballGateway
         string $endpointClass,
         string $caller,
         ?callable $claimAttempt = null,
-        ?callable $validateEnvelope = null,
     ): array {
         if (! in_array('football', config('api_football.enabled_sports', []), true)) {
             throw new ApiFootballBlocked(
@@ -67,7 +66,7 @@ class ApiFootballGateway
                     ->withHeaders([
                         'x-apisports-key' => (string) config('services.api_football.key'),
                     ])
-                    ->withOptions(($caller === 'StaleFixtureReconciliation' || $validateEnvelope !== null) ? ['allow_redirects' => false] : [])
+                    ->withOptions($caller === 'StaleFixtureReconciliation' ? ['allow_redirects' => false] : [])
                     ->acceptJson()
                     ->timeout((int) config('api_football.timeout', 15))
                     ->get($path, $query);
@@ -137,15 +136,6 @@ class ApiFootballGateway
                     }
 
                     return [];
-                }
-
-                if ($validateEnvelope !== null) {
-                    try {
-                        $validateEnvelope($envelope);
-                    } catch (Throwable $e) {
-                        $this->recordAttempt($endpointClass, $caller, $status, 'caller_validation_failed', $attempt, $started);
-                        throw $e;
-                    }
                 }
 
                 $this->recordAttempt($endpointClass, $caller, $status, 'success', $attempt, $started);
