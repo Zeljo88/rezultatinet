@@ -100,10 +100,10 @@ class Controller:
   pkg=read(E/'packaging.json');assert pkg['files']==301 and pkg['head']==CANDIDATE and pkg['archive_sha256']=='c7687afc54d600cbf946b762bd308fcafe3e5504e126303c14519e68d889a531'
   self.conservation(F/'candidate');(F/'candidate/vendor').mkdir()
   suffix=os.environ['GITHUB_RUN_ID'];assert suffix.isdigit()
-  names={'test':'hnl-combined-test-'+suffix,'db':'hnl-combined-db-'+suffix,'volume':'hnl-perm-socket-'+suffix+'1'}
+  names={'test':'hnl-combined-test-'+suffix,'db':'hnl-combined-db-'+suffix,'data_volume':'hnl-combined-data-'+suffix,'volume':'hnl-perm-socket-'+suffix+'1'}
   for k in ['test','db']:self.absent('container',names[k])
-  self.absent('volume',names['volume']);write(A/'full-resources.json',names)
-  self.run(['docker','volume','create',names['volume']])
+  self.absent('volume',names['volume']);self.absent('volume',names['data_volume']);write(A/'full-resources.json',names)
+  self.run(['docker','volume','create',names['volume']]);self.run(['docker','volume','create',names['data_volume']])
   image=read(W/'probe-artifact/image.json')['id'];assert image.startswith('sha256:')
   flags=['--user','1000:1000','--group-add',str(os.getgid()),'--network','none','--cap-drop','ALL','--security-opt','no-new-privileges']
   self.run(['docker','run','-d','--name',names['test'],*flags,'--mount','type=volume,src='+names['volume']+',dst=/tmp/hnl-ci','--mount','type=bind,src='+str(F/'candidate')+',dst=/workspace,readonly','--tmpfs','/workspace/vendor:rw,nosuid,nodev,uid=1000,gid=1000,mode=0700','--mount','type=bind,src='+str(E)+',dst=/evidence',image,'sleep','530'])
@@ -119,9 +119,14 @@ class Controller:
   if self.phase_end-time.monotonic()<510:raise Inconclusive('insufficient DB35+run475 budget before DB')
   db_end=time.monotonic()+35
   dbimage=read(A/'database-image.json')['id']
-  self.run(['docker','run','-d','--name',names['db'],'--network','none','--mount','type=volume,src='+names['volume']+',dst=/tmp/hnl-ci','--mount','type=bind,src='+str(F/'candidate/tools/hnl-ci/database.sh')+',dst=/ci-database.sh,readonly','--entrypoint','bash',dbimage,'/ci-database.sh'],cap=10)
+  self.run(['docker','run','-d','--name',names['db'],'--network','none','--mount','type=volume,src='+names['data_volume']+',dst=/var/lib/mysql','--mount','type=volume,src='+names['volume']+',dst=/tmp/hnl-ci','--mount','type=bind,src='+str(F/'candidate/tools/hnl-ci/database.sh')+',dst=/ci-database.sh,readonly','--entrypoint','bash',dbimage,'/ci-database.sh'],cap=10)
   db=json.loads(self.run(['docker','inspect',names['db']],cap=5).stdout)[0]
   assert db['HostConfig']['NetworkMode']=='none' and db['Image']==dbimage
+  mounts={m['Destination']:m for m in db['Mounts']};assert len(mounts)==len(db['Mounts'])==3
+  for dest,name in [('/var/lib/mysql',names['data_volume']),('/tmp/hnl-ci',names['volume'])]:
+   m=mounts[dest];assert m['Type']=='volume' and m['Name']==name and m['Driver']=='local' and m['RW'] is True
+  m=mounts['/ci-database.sh'];assert m['Type']=='bind' and m['RW'] is False and m['Source']==str(F/'candidate/tools/hnl-ci/database.sh')
+  write(A/'database-container.json',{'image':dbimage,'network':'none','mounts':db['Mounts'],'bootstrap':'original root setup then mariadbd --user=mysql'})
   # Poll readiness only; no scenario retry or second DB startup.
   while True:
    r=self.run(['docker','exec',names['db'],'mariadb-admin','--socket=/tmp/hnl-ci/mariadb.sock','-uroot','ping','--silent'],check=False,cap=min(3,db_end-time.monotonic()))
@@ -163,7 +168,7 @@ class Controller:
    except Exception as exc:errors.append({'scope':'probe','error':type(exc).__name__})
   if (A/'full-resources.json').exists():
    n=read(A/'full-resources.json')
-   for kind,name in [('container',n['test']),('container',n['db']),('volume',n['volume'])]:
+   for kind,name in [('container',n['test']),('container',n['db']),('volume',n['volume']),('volume',n['data_volume'])]:
     try:
      r=self.run(['docker',kind,'inspect',name],check=False)
      if r.returncode==0:self.run(['docker','rm','-f','-v',name] if kind=='container' else ['docker','volume','rm',name])

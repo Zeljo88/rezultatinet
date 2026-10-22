@@ -73,7 +73,8 @@ class Boundary(unittest.TestCase):
     self.assertIn('sha256:TEST',args)
    else:self.assertIn('sha256:DB',args)
   elif args[1]=='inspect':
-   if '-db-' in args[-1]:obj={'HostConfig':{'NetworkMode':'none'},'Image':'sha256:DB'}
+   if '-db-' in args[-1]:
+    n=c.read(c.A/'full-resources.json');obj={'HostConfig':{'NetworkMode':'none'},'Image':'sha256:DB','Mounts':[{'Destination':dest,'Type':'volume','Name':name,'Driver':'local','RW':True} for dest,name in [('/var/lib/mysql',n['data_volume']),('/tmp/hnl-ci',n['volume'])]]+[{'Destination':'/ci-database.sh','Type':'bind','RW':False,'Source':str(c.F/'candidate/tools/hnl-ci/database.sh')}]}
    else:
     x=c.read(self.p/'corrected-inspect.json');old=str(self.root/'probe-work');new=str(c.F);vol=c.read(c.A/'full-resources.json')['volume']
     for m in x['Mounts']:
