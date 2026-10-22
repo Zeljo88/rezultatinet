@@ -2,7 +2,7 @@
 from pathlib import Path
 import ast,subprocess,json,hashlib,yaml
 p=Path('tools/hnl-ci');wf=Path('.github/workflows/hnl-mariadb-once.yml')
-w=yaml.safe_load(wf.read_text());events=w.get('on',w.get(True));assert set(events)=={'workflow_dispatch','push'};assert events['push']=={'branches':['ci/hnl-mariadb-20261021-once']}
+w=yaml.safe_load(wf.read_text());events=w.get('on',w.get(True));assert set(events)=={'workflow_dispatch'}
 assert w['permissions']=={'contents':'read'} and len(w['jobs'])==1
 j=w['jobs']['isolated'];assert j['timeout-minutes']==15 and 'github.run_attempt == 1' in j['if']
 for f in Path('.github/workflows').glob('*.yml'):
