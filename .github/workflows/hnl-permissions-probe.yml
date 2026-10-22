@@ -1,7 +1,5 @@
 name: HNL permissions IO-only one-shot
 on:
-  push:
-    branches: [ci/hnl-permissions-20261022-once]
   workflow_dispatch:
 permissions:
   contents: read
