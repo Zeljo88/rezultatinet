@@ -38,6 +38,8 @@ class ApiFootballGateway
             );
         }
 
+        $dailyUtcSlot = now('UTC')->format('Y-m-d');
+        $dailyPhysical = 0;
         $maxAttempts = $hnlDaily ? 1 : min(2, max(1, (int) config('api_football.max_attempts', 2)));
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             if ($claimAttempt !== null && ! $claimAttempt()) {
@@ -75,12 +77,23 @@ class ApiFootballGateway
                         'allow_redirects' => false,
                         'on_headers' => static function ($r) {
                             $n = $r->getHeaderLine('Content-Length');
-                            if ($n !== '' && (! ctype_digit($n) || (int) $n > 131072)) throw new \RuntimeException('hnl_body_bound');
+                            if ($n !== '' && (! ctype_digit($n) || (int) $n > 131072)) {
+                                throw new \RuntimeException('hnl_body_bound');
+                            }
                         },
                         'progress' => static function ($total, $downloaded) {
-                            if ($downloaded > 131072) throw new \RuntimeException('hnl_body_bound');
+                            if ($downloaded > 131072) {
+                                throw new \RuntimeException('hnl_body_bound');
+                            }
                         },
                     ] : ($caller === 'StaleFixtureReconciliation' ? ['allow_redirects' => false] : []))
+                    ->withRequestMiddleware(function ($request) use ($hnlDaily, $dailyUtcSlot, &$dailyPhysical) {
+                        if ($hnlDaily && (++$dailyPhysical !== 1 || now('UTC')->format('Y-m-d') !== $dailyUtcSlot)) {
+                            throw new \RuntimeException('hnl_physical_slot_guard');
+                        }
+
+                        return $request;
+                    })
                     ->acceptJson()
                     ->timeout($hnlDaily ? 15 : (int) config('api_football.timeout', 15))
                     ->get($path, $query);
@@ -157,7 +170,9 @@ class ApiFootballGateway
                 }
 
                 if ($validateEnvelope !== null) {
-                    try { $validateEnvelope($envelope); } catch (Throwable $e) {
+                    try {
+                        $validateEnvelope($envelope);
+                    } catch (Throwable $e) {
                         $this->recordAttempt($endpointClass, $caller, $status, 'strict_validation_failed', $attempt, $started);
                         throw $e;
                     }

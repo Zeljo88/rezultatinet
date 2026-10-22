@@ -1,9 +1,13 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-return new class extends Migration {
-    public function up(): void {
+
+return new class extends Migration
+{
+    public function up(): void
+    {
         Schema::create('hnl_standings_runs', function (Blueprint $t) {
             $t->engine = 'InnoDB';
             $t->uuid('id')->primary();
@@ -28,5 +32,9 @@ return new class extends Migration {
             $t->index(['league_id', 'outcome', 'validated_at'], 'hnl_last_success');
         });
     }
-    public function down(): void { throw new RuntimeException('Preserve HNL ledger; no destructive automatic rollback.'); }
+
+    public function down(): void
+    {
+        throw new RuntimeException('Preserve HNL ledger; no destructive automatic rollback.');
+    }
 };

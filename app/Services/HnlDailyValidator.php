@@ -2,14 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\League;
-use App\Models\Standing;
 use App\Models\Team;
-use App\Services\ApiFootball\ApiFootballGateway;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use RuntimeException;
-use Throwable;
 
 /** Reviewed 2026/27 scope only. A rollover/format/roster change needs review. */
 final class HnlDailyValidator
@@ -24,7 +18,6 @@ final class HnlDailyValidator
     // corroborated by the complete 210/2026 standings preview, NOT archived rows.
     public const TEAMS = [561 => 1447, 608 => 1507, 616 => 1511, 620 => 1506,
         1016 => 1510, 1017 => 1512, 1018 => 1509, 1019 => 2743, 1068 => 1513, 1483 => 1508];
-
 
     /** Strict, HNL-only supported single-group provider contract. Never repair malformed data. */
     public function validate(mixed $envelope): array
