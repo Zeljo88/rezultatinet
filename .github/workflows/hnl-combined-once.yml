@@ -1,6 +1,8 @@
 name: HNL combined permissions then MariaDB one-shot
 on:
-  workflow_dispatch:
+  push:
+    branches: [ci/hnl-combined-20261022-once]
+    paths: [.github/workflows/hnl-combined-once.yml]
 permissions:
   contents: read
 concurrency:
