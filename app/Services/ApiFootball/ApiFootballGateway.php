@@ -25,7 +25,12 @@ class ApiFootballGateway
         string $endpointClass,
         string $caller,
         ?callable $claimAttempt = null,
+        ?callable $validateEnvelope = null,
+        bool $hnlDaily = false,
     ): array {
+        if ($hnlDaily && ($path !== '/standings' || $query !== ['league' => 210, 'season' => 2026] || $caller !== 'HnlStandingsRefresh' || $endpointClass !== 'standings' || $claimAttempt === null || $validateEnvelope === null)) {
+            throw new \RuntimeException('hnl_daily_gateway_contract');
+        }
         if (! in_array('football', config('api_football.enabled_sports', []), true)) {
             throw new ApiFootballBlocked(
                 'Football provider is not allowlisted.',
@@ -33,7 +38,7 @@ class ApiFootballGateway
             );
         }
 
-        $maxAttempts = min(2, max(1, (int) config('api_football.max_attempts', 2)));
+        $maxAttempts = $hnlDaily ? 1 : min(2, max(1, (int) config('api_football.max_attempts', 2)));
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             if ($claimAttempt !== null && ! $claimAttempt()) {
                 throw new ApiFootballLocalAttemptLimitReached;
@@ -66,9 +71,18 @@ class ApiFootballGateway
                     ->withHeaders([
                         'x-apisports-key' => (string) config('services.api_football.key'),
                     ])
-                    ->withOptions($caller === 'StaleFixtureReconciliation' ? ['allow_redirects' => false] : [])
+                    ->withOptions($hnlDaily ? [
+                        'allow_redirects' => false,
+                        'on_headers' => static function ($r) {
+                            $n = $r->getHeaderLine('Content-Length');
+                            if ($n !== '' && (! ctype_digit($n) || (int) $n > 131072)) throw new \RuntimeException('hnl_body_bound');
+                        },
+                        'progress' => static function ($total, $downloaded) {
+                            if ($downloaded > 131072) throw new \RuntimeException('hnl_body_bound');
+                        },
+                    ] : ($caller === 'StaleFixtureReconciliation' ? ['allow_redirects' => false] : []))
                     ->acceptJson()
-                    ->timeout((int) config('api_football.timeout', 15))
+                    ->timeout($hnlDaily ? 15 : (int) config('api_football.timeout', 15))
                     ->get($path, $query);
             } catch (ConnectionException $e) {
                 $this->recordAttempt($endpointClass, $caller, 'network', 'transient_error', $attempt, $started);
@@ -112,6 +126,10 @@ class ApiFootballGateway
                 return [];
             }
 
+            if ($hnlDaily && (strlen($response->body()) > 131072 || $status !== 200) && $status < 400) {
+                $this->recordAttempt($endpointClass, $caller, $status, 'hnl_invalid_response', $attempt, $started);
+                throw new ApiFootballProviderResponseException('hnl_invalid_response');
+            }
             if ($response->successful()) {
                 try {
                     $envelope = $response->json();
@@ -138,6 +156,12 @@ class ApiFootballGateway
                     return [];
                 }
 
+                if ($validateEnvelope !== null) {
+                    try { $validateEnvelope($envelope); } catch (Throwable $e) {
+                        $this->recordAttempt($endpointClass, $caller, $status, 'strict_validation_failed', $attempt, $started);
+                        throw $e;
+                    }
+                }
                 $this->recordAttempt($endpointClass, $caller, $status, 'success', $attempt, $started);
 
                 return $envelope['response'];
