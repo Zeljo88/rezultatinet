@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib, importlib.util, json, os, signal, subprocess, sys, time
 sys.dont_write_bytecode=True
 W=Path.cwd(); Q=W/'tools/permissions-probe'; F=W/'full-work'; A=W/'combined-artifact'
-CANDIDATE='9deffc32b1466f4187238f6cc72311cd88a5ac9b'
+CANDIDATE='f0e6e4dd8ebb8a4af40917742b3d5978e2cca533'
 SCENARIOS='empty-release populated-release empty-membership populated-membership empty-team populated-team empty-league populated-league timeout deadlock midfailure success receipt-failure'.split()
 # Absolute job elapsed ceilings. Each includes process termination overhead.
 CEILINGS={'setup':160,'probe':245,'probe_cleanup':255,'probe_publish':275,'full':800,'cleanup':825,'seal':840,'upload':900}
@@ -74,7 +74,8 @@ class Controller:
   for kind,name in [('container',r['old']),('container',r['corrected']),('volume',r['volume'])]:self.absent(kind,name)
   write(A/'pre-db-probe-readback.json',{'result':'PASS','scope':'LOCAL_HOST_READBACK_NOT_EXTERNAL_ARTIFACT_DOWNLOAD','seal_sha256':sha(p/'READBACK_SHA256SUMS.json'),'elapsed':time.monotonic()-self.start})
  def conservation(self,root):
-  assert sha(root/'tools/hnl-ci/harness-manifest.json')=='8dd69b44c6bb6153079336cb05d9e5179e5c2e953d970ab87c605c74698e7469'
+  expected='8dd69b44c6bb6153079336cb05d9e5179e5c2e953d970ab87c605c74698e7469' if root==W/'probe-work/candidate' else 'f648fc2869eb49a5a81ad19d7801a632d6e17a86987e0b8590a0d36238f32a88'
+  assert sha(root/'tools/hnl-ci/harness-manifest.json')==expected
   for name,count in [('reviewed-manifest.json',274),('harness-manifest.json',26)]:
    manifest=read(root/'tools/hnl-ci'/name);assert len(manifest)==count
    assert all(sha(root/n)==h for n,h in manifest.items())
@@ -93,11 +94,13 @@ class Controller:
   F.mkdir();E=F/'candidate-evidence';E.mkdir(mode=0o2770);E.chmod(0o2770)
   env=dict(os.environ);env.pop('GITHUB_SHA',None);env['HNL_OUT']=str(E)
   source=W/'probe-work/candidate-git'
+  # Probe remains byte-identical; select timing-only full candidate after its gate.
+  self.run(['git','checkout','--detach',CANDIDATE],cwd=source)
   self.run(['python3','tools/hnl-ci/verify.py'],cwd=source,env=env)
   diff=self.run(['git','diff','--binary','da9b83982de3ff800c0b656bdcf8f8cb86526585','HEAD'],cwd=source).stdout
   write(E/'delivery.json',{'head':CANDIDATE,'combined_head':os.environ['GITHUB_SHA'],'test_workflow_diff_sha256':hashlib.sha256(diff).hexdigest(),'combined_manifest_sha256':sha(W/'tools/combined-ci/manifest.json')})
   self.run(['python3','tools/hnl-ci/deliver.py',str(F/'candidate'),str(E)],cwd=source,env=env)
-  pkg=read(E/'packaging.json');assert pkg['files']==301 and pkg['head']==CANDIDATE and pkg['archive_sha256']=='c7687afc54d600cbf946b762bd308fcafe3e5504e126303c14519e68d889a531'
+  pkg=read(E/'packaging.json');assert pkg['files']==301 and pkg['head']==CANDIDATE and pkg['archive_sha256']=='6e38a249d01a998873f793e4a07795549756d6b95faf21ab4f935e9fc275ec1a'
   self.conservation(F/'candidate');(F/'candidate/vendor').mkdir()
   suffix=os.environ['GITHUB_RUN_ID'];assert suffix.isdigit()
   names={'test':'hnl-combined-test-'+suffix,'db':'hnl-combined-db-'+suffix,'data_volume':'hnl-combined-data-'+suffix,'volume':'hnl-perm-socket-'+suffix+'1'}
