@@ -1,6 +1,8 @@
 name: HNL reviewed MariaDB one-shot CI
 on:
   workflow_dispatch:
+  push:
+    branches: [ci/hnl-mariadb-20261021-once]
 permissions:
   contents: read
 concurrency:

@@ -1,5 +1,5 @@
 {
-  ".github/workflows/hnl-mariadb-once.yml": "9d87eee82cc62baff714e12779c1e46b6a6c1ccf6299e49a1f2f353a3b74c0ad",
+  ".github/workflows/hnl-mariadb-once.yml": "d222a6bc9084574cb9fa7c79ff3ed252dd0b69d020a7a8ee828ae1e74266448c",
   "tools/hnl-ci/.gitignore": "9aded95b9be545417437be5e45dba2ef8785c8b60ffddf2f1b5658162958f377",
   "tools/hnl-ci/Dockerfile": "fe4e007725dfadffa5c83ea44855ece152a9e78086f8b0a8460ce88f680ec188",
   "tools/hnl-ci/Dockerfile.dockerignore": "75f3933e0aec617a09198711dc12ce4964a5c69d2f933badad92506c885d4ff9",
@@ -21,7 +21,7 @@
   "tools/hnl-ci/reviewed-manifest.json": "ada35e5226ec9657f0b5c80f74771f727631748519d9040718ea3cd24d8029eb",
   "tools/hnl-ci/run.sh": "e1ece2681cd46f371875117dcb4dddfaec9ac0cda3cb17bbf665a33489922c3a",
   "tools/hnl-ci/schema.sql": "3a223975fb09f4e0efce15a89d8a695c5ca44a7252f57fcdc158422137b79603",
-  "tools/hnl-ci/static-check.py": "c258f173943e39b58a645103ee0a8c030c063a7eacbf17bbb1889f0338fb8067",
+  "tools/hnl-ci/static-check.py": "166dc571f2ec48775543146f2f597dccf19dd6397ada17cb8ca90e46bfc90fe3",
   "tools/hnl-ci/test-bootstrap.php": "01b5fad5e2ffec7de04de0faf696b691af36bd55e04823b15561023f4bdeb6c5",
   "tools/hnl-ci/verify.py": "052ce27f5b33fafcb4ed8a0caee963520971341f181291dc1724842408cc1cca",
   "tools/hnl-ci/worker.php": "ae0dce5a2c54ada1f879159ae91627c7d49f44e1b95903b2d293a9b6712095c3"
