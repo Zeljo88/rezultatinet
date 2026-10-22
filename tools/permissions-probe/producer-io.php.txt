@@ -1,0 +1,9 @@
+<?php
+umask(0007); require 'tools/hnl-ci/common.php';
+$names=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);
+foreach($names['actual_php_atomic_json'] as $name) { putjson($name,['result'=>'FAILED','rehearsal'=>'IO_ONLY_NO_ENGINE','phase'=>(int)$argv[2]]); }
+mark('IO_ONLY_NO_ENGINE',['phase'=>(int)$argv[2]]);
+foreach($names['worker_proc_open_redirects'] as $name) {
+ $p=proc_open([PHP_BINARY,'-r','echo "IO_ONLY_NO_ENGINE\n";'],[0=>['file','/dev/null','r'],1=>['file',outdir().'/'.$name,'w'],2=>['file','/dev/null','w']],$pipes); if(proc_close($p)!==0)throw new RuntimeException('io_child');
+}
+

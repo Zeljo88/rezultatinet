@@ -1,0 +1,38 @@
+name: HNL permissions IO-only one-shot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hnl-permissions-20261022-once
+  cancel-in-progress: false
+jobs:
+  permissions-only:
+    if: github.ref == 'refs/heads/ci/hnl-permissions-20261022-once' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Exact source export and unchanged dependency image only
+        run: timeout --signal=TERM --kill-after=2 230s python3 tools/permissions-probe/setup.py
+      - name: Distinct UID IO-only probe without application execution
+        run: timeout --signal=TERM --kill-after=2 110s python3 tools/permissions-probe/host.py probe
+      - name: Cleanup and independently prove resource absence
+        if: always()
+        run: timeout --signal=TERM --kill-after=2 25s python3 tools/permissions-probe/host.py cleanup
+      - name: Seal and read back bounded synthetic evidence after cleanup
+        id: seal
+        if: always()
+        run: timeout --signal=TERM --kill-after=2 25s python3 tools/permissions-probe/host.py publish
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && steps.seal.outcome == 'success'
+        timeout-minutes: 1
+        with:
+          name: hnl-permissions-${{ github.sha }}
+          path: probe-artifact/
+          retention-days: 7
+          if-no-files-found: error

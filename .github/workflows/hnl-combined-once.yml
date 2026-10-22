@@ -1,0 +1,42 @@
+name: HNL combined permissions then MariaDB one-shot
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hnl-combined-20261022-once
+  cancel-in-progress: false
+jobs:
+  combined:
+    if: github.ref == 'refs/heads/ci/hnl-combined-20261022-once' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Start single monotonic job clock before checkout
+        run: python3 -c 'import os,time,pathlib; pathlib.Path(os.environ["RUNNER_TEMP"],"hnl-combined-start").write_text(str(time.monotonic()))'
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        timeout-minutes: 1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Exact setup then complete probe and gated full harness
+        run: python3 tools/combined-ci/controller.py execute
+      - name: Independent cleanup and absence proof
+        if: always()
+        run: python3 tools/combined-ci/controller.py cleanup
+      - name: Seal and host readback with final upload reserve
+        id: seal
+        if: always()
+        run: python3 tools/combined-ci/controller.py seal
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && steps.seal.outcome == 'success' && steps.seal.outputs.upload == 'true'
+        timeout-minutes: 1
+        with:
+          name: hnl-combined-${{ github.sha }}
+          path: |
+            combined-artifact/
+            probe-artifact/
+            full-work/evidence/
+          retention-days: 7
+          if-no-files-found: error
