@@ -1,4 +1,5 @@
 <?php
+use Illuminate\Support\Facades\DB;
 require __DIR__.'/common.php';boot();
 try {
  savej(getenv('LABEL').'-started',['pid'=>getmypid(),'connection'=>DB::selectOne('SELECT CONNECTION_ID() AS id')->id]);

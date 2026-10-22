@@ -292,8 +292,8 @@
   "tools/hnl-daily-ci/preview-transport.php": "66742c9803a44ce60a954385dbce13aec0a3bf45e31288d8784b7b27011c6891",
   "tools/hnl-daily-ci/run.sh": "24f743bbe656cadacb63098fc23f8442571eb6096fea335f6fc1ef717a09f7cb",
   "tools/hnl-daily-ci/schema.sql": "3a223975fb09f4e0efce15a89d8a695c5ca44a7252f57fcdc158422137b79603",
-  "tools/hnl-daily-ci/suite.py": "0384a0f6cfc092f2b04dff38fc07b9eec7c1c18d09e724a35b5587adba0c7115",
+  "tools/hnl-daily-ci/suite.py": "15034b3025a0e3e060a6f0b2a118aca240b4699f2c3beea3d844a134934f0ecb",
   "tools/hnl-daily-ci/test-bootstrap.php": "01b5fad5e2ffec7de04de0faf696b691af36bd55e04823b15561023f4bdeb6c5",
-  "tools/hnl-daily-ci/worker.php": "a45fb6b987f305fdb16b4710ca45a58bd853a079d489d5e07a7e0759d38fcb73",
+  "tools/hnl-daily-ci/worker.php": "1de18c32b7bb0243f9eb68a7cb2d5b366578acbc75e6aed8e27dff394e71cc0a",
   "vite.config.js": "20d05486173e0c8f3aee44a6918a49c21ec9791a50933760d0be74ddcdb6acd9"
 }

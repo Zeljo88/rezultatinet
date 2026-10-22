@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess,os,time,json,xml.etree.ElementTree as ET,signal
-P=Path('/evidence');start=time.monotonic();env=os.environ|{'HNL_EVIDENCE':'/tmp/hnl-local','TMPDIR':'/tmp/hnl-local','APP_ENV':'testing','CACHE_STORE':'array','QUEUE_CONNECTION':'sync','SESSION_DRIVER':'array','BROADCAST_CONNECTION':'null','LOG_CHANNEL':'null','DB_CONNECTION':'sqlite','DB_DATABASE':':memory:'}
+P=Path('/evidence');start=time.monotonic();env=os.environ|{'HNL_EVIDENCE':'/tmp/hnl-local','TMPDIR':'/tmp/hnl-local','APP_ENV':'testing','CACHE_STORE':'array','QUEUE_CONNECTION':'sync','SESSION_DRIVER':'array','BROADCAST_CONNECTION':'null','LOG_CHANNEL':'null','DB_CONNECTION':'sqlite','DB_DATABASE':':memory:','APP_PACKAGES_CACHE':'/tmp/hnl-local/packages.php','APP_SERVICES_CACHE':'/tmp/hnl-local/services.php','APP_CONFIG_CACHE':'/tmp/hnl-local/config.php','APP_ROUTES_CACHE':'/tmp/hnl-local/routes.php','VIEW_COMPILED_PATH':'/tmp/hnl-local/views'}
 Path('/tmp/hnl-local').mkdir(mode=0o770)
 scenarios='migration concurrent-claim manual-scheduler crash-beforeclaim crash-afterclaim crash-beforehttp crash-uncertain-http crash-afterresponse crash-midwrite crash-precommit crash-lostack crash-postcommit lock-timeout deadlock identity-drift membership-drift lease-overtake lease-expiry-overtake midnight-before midnight-reserve lease-lost network changed-nochange'.split()
 def run(args,limit,out):
