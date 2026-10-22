@@ -1,7 +1,6 @@
 name: HNL daily final isolated MariaDB one-shot
 on:
-  push:
-    branches: [ci/hnl-daily-final-20261022-once]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
