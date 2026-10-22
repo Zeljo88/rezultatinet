@@ -17,7 +17,7 @@
   "tools/hnl-ci/preview-transport.php": "66742c9803a44ce60a954385dbce13aec0a3bf45e31288d8784b7b27011c6891",
   "tools/hnl-ci/provenance.json": "6ff4880885ab5476a88e328034b1b704f0080dce707be6eea5df30877e915ca8",
   "tools/hnl-ci/publish.py": "f3c18407146bdfb3ff528c47cfe6a3e62b40b55145d5a576373f34f3191f8181",
-  "tools/hnl-ci/regressions.py": "3da8dcd59998b07a66d8054c57cff20741b30086cd0ae3017d100783c3171630",
+  "tools/hnl-ci/regressions.py": "960cbd5bd29745e4332fc76b314d6a85f136048d6e40c9ec7c2993ee8ab87215",
   "tools/hnl-ci/reviewed-manifest.json": "ada35e5226ec9657f0b5c80f74771f727631748519d9040718ea3cd24d8029eb",
   "tools/hnl-ci/run.sh": "06ab52e92765d9b3c9ca0b4cfc5ae7dc520e4607df4a52964d53c9226fe98d8d",
   "tools/hnl-ci/schema.sql": "3a223975fb09f4e0efce15a89d8a695c5ca44a7252f57fcdc158422137b79603",
