@@ -74,6 +74,7 @@ class Controller:
   for kind,name in [('container',r['old']),('container',r['corrected']),('volume',r['volume'])]:self.absent(kind,name)
   write(A/'pre-db-probe-readback.json',{'result':'PASS','scope':'LOCAL_HOST_READBACK_NOT_EXTERNAL_ARTIFACT_DOWNLOAD','seal_sha256':sha(p/'READBACK_SHA256SUMS.json'),'elapsed':time.monotonic()-self.start})
  def conservation(self,root):
+  assert sha(root/'tools/hnl-ci/harness-manifest.json')=='8dd69b44c6bb6153079336cb05d9e5179e5c2e953d970ab87c605c74698e7469'
   for name,count in [('reviewed-manifest.json',274),('harness-manifest.json',26)]:
    manifest=read(root/'tools/hnl-ci'/name);assert len(manifest)==count
    assert all(sha(root/n)==h for n,h in manifest.items())
@@ -155,16 +156,21 @@ class Controller:
   self.phase('probe_publish');self.run(['python3',str(Q/'host.py'),'publish'])
   self.admit_full()
  def cleanup(self):
-  self.phase('cleanup');records=[]
-  # Cleanup both phases even after setup/probe/full failure; never suppress absence errors.
-  if (W/'probe-artifact/resources.json').exists():self.run(['python3',str(Q/'host.py'),'cleanup'])
+  self.phase('cleanup');records=[];errors=[]
+  # Attempt both isolated resource sets even if one removal fails; never swallow proof failure.
+  if (W/'probe-artifact/resources.json').exists():
+   try:self.run(['python3',str(Q/'host.py'),'cleanup'])
+   except Exception as exc:errors.append({'scope':'probe','error':type(exc).__name__})
   if (A/'full-resources.json').exists():
    n=read(A/'full-resources.json')
    for kind,name in [('container',n['test']),('container',n['db']),('volume',n['volume'])]:
-    r=self.run(['docker',kind,'inspect',name],check=False)
-    if r.returncode==0:self.run(['docker','rm','-f','-v',name] if kind=='container' else ['docker','volume','rm',name])
-    records.append(self.absent(kind,name))
-  write(A/'cleanup.json',{'result':'PASS','full_resources':records})
+    try:
+     r=self.run(['docker',kind,'inspect',name],check=False)
+     if r.returncode==0:self.run(['docker','rm','-f','-v',name] if kind=='container' else ['docker','volume','rm',name])
+     records.append(self.absent(kind,name))
+    except Exception as exc:errors.append({'kind':kind,'name':name,'error':type(exc).__name__})
+  write(A/'cleanup.json',{'result':'FAILED' if errors else 'PASS','full_resources':records,'errors':errors})
+  if errors:raise RuntimeError('independent cleanup or absence proof failed')
  def seal(self):
   self.phase('seal');cleanup_ok=(A/'cleanup.json').exists() and read(A/'cleanup.json')['result']=='PASS'
   E=F/'candidate-evidence'
